@@ -8,3 +8,5 @@ The notebooks should be used as follows:
 3. Hyperparamter optimization part 2: MOVE_hyperparameter_optimization_stability.ipynb
 4. Create and analyse the MOVE latent sapce: latent_space_analysis.ipynb
 5. Extract drug/categorical data assositions across all continuous datasets: identify_drug_assosiation.ipynb
+
+The data used in notebooks are not availble for testing due to the informed consent given by study participants, the various national ethical approvals for the present study, and the European General Data Protection Regulation (GDPR). Therefore, individual-level clinical and omics data cannot be transferred from the centralized IMI-DIRECT repository. Requests for access to summary statistics IMI-DIRECT data, including those presented here, can be made to DIRECTdataaccess@Dundee.ac.uk. Requesters will be informed on how summary-level data can be accessed via the DIRECT secure analysis platform following submission of appropriate application. The IMI-DIRECT data access policy is available at www.direct-diabetes.org.![image](https://user-images.githubusercontent.com/42805115/156761088-a6970c7a-f318-4b73-a9ea-84896c0b8b33.png).

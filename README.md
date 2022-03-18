@@ -31,18 +31,22 @@ MOVE is currently in the form of Jupyter Notebooks to ensure that one can modify
 
 ### Requirements
 Python3 with 
-- jupyter
-- numpy
-- pytorch
-- sklearn
-- scipy
-- pandas
-- seaborn
-- matplotlib
+```
+jupyter
+numpy
+pytorch
+sklearn
+scipy
+pandas
+seaborn
+matplotlib
+```
 
-- For training on GPU:
-- pytorch with CUDA
-- CUDA drivers
+For training on GPU:
+```
+pytorch with CUDA
+CUDA drivers
+```
 
 All above packages can be installed using pip or conda
 

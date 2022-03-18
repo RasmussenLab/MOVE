@@ -34,7 +34,9 @@ The data used in our project is sensitive data and therefore not available here.
 MOVE is currently in the form of Jupyter Notebooks to ensure that one can modify the scripts according to the data available. Ie, we had five types of omics data together with clinical data - your dataset may differ. We are working on a script and pip package for easier access to the analysis.
 
 ### Requirements
-Python3 with 
+We have only run MOVE in a Linux environment, however as it is depedent on python it should be possible to run on Macs and potentially Windows machines as well. What you need is:
+
+Python3 with:
 ```
 jupyter
 numpy
@@ -52,7 +54,7 @@ pytorch with CUDA
 CUDA drivers
 ```
 
-All above packages can be installed using pip or conda.
+All above packages can be installed using pip or conda, e.g. `pip install jupyterlab` or by installing [Anaconda](https://anaconda.org) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html). If you install Anaconda most packages should be installed by default or you can install using the conda approach `conda install packagename`. For installing pytorch go to the [website](https://pytorch.org/get-started/locally/) and chose the version that matches you OS and whether you want CUDA support or not.
 
 The training of the VAEs can be done using GPU or CPU, as with all deep learning GPUs speed up the computations but it is perfectly doable to run on a server with multiple CPU cores. 
 

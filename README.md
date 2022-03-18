@@ -12,17 +12,21 @@ The framework includes five notebooks including:
 We developed the method based on Type 2 Diabetes cohort from the IMI DIRECT project containing 789 newly diagnosed T2D patients. The cohort and data creation is described in [Koivula et al.](https://dx.doi.org/10.1007%2Fs00125-019-4906-1) and [Wesolowska-Andersen and Brorsson et al.](https://doi.org/10.1016/j.xcrm.2021.100477). For the analysis we included the following data:
 
 Omics:
-- Genomics
-- Transcriptomics
-- Proteomics
-- Metabolomics
-- Metagenomics
+```
+Genomics
+Transcriptomics
+Proteomics
+Metabolomics
+Metagenomics
+```
 
 Other data:
-- Clinical data (blood measurements, imaging data, ...)
-- Questionnaire data (diet etc)
-- Accelerometer data
-- Medication data
+```
+Clinical data (blood measurements, imaging data, ...)
+Questionnaire data (diet etc)
+Accelerometer data
+Medication data
+```
 
 The data used in our project is sensitive data and therefore not available here. See below for the procedure to obtain access. **We are working on providing simulated data for testing the workflow.**
 

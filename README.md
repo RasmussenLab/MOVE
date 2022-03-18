@@ -9,7 +9,7 @@ The framework includes five notebooks including:
 4. Create and analyse the MOVE latent space: latent_space_analysis.ipynb
 5. Extract drug/categorical data assositions across all continuous datasets: identify_drug_assosiation.ipynb
 
-We developed the method based on Type 2 Diabetes cohort from the IMI DIRECT project containing 789 newly diagnosed T2D patients. The cohort and data creation is described in [Koivula et al.](https://dx.doi.org/10.1007%2Fs00125-019-4906-1) and [Wesolowska-Andersen and Brorsson et al.](https://doi.org/10.1016/j.xcrm.2021.100477). For the analysis we included the following data:
+We developed the method based on a Type 2 Diabetes cohort from the IMI DIRECT project containing 789 newly diagnosed T2D patients. The cohort and data creation is described in [Koivula et al.](https://dx.doi.org/10.1007%2Fs00125-019-4906-1) and [Wesolowska-Andersen and Brorsson et al.](https://doi.org/10.1016/j.xcrm.2021.100477). For the analysis we included the following data:
 
 Omics:
 ```
@@ -28,7 +28,7 @@ Accelerometer data
 Medication data
 ```
 
-The data used in our project is sensitive data and therefore not available here. See below for the procedure to obtain access. **We are working on providing simulated data for testing the workflow.**
+The data used in our project is sensitive data and therefore not available for download - see below for the procedure to obtain access. **We are working on providing simulated data for testing the workflow, ETA March 23rd 2022.**
 
 # Installation
 MOVE is currently in the form of Jupyter Notebooks to ensure that one can modify the scripts according to the data available. Ie, we had five types of omics data together with clinical data - your dataset may differ. We are working on a script and pip package for easier access to the analysis.
@@ -58,7 +58,7 @@ All above packages can be installed using pip or conda, e.g. `pip install jupyte
 The training of the VAEs can be done using GPU or CPU, as with all deep learning GPUs speed up the computations but it is perfectly doable to run on a server with multiple CPU cores. 
 
 ### How to run MOVE
-Start with the Jupyter notebooks above from 01-05. Explanations are in the notebooks. Feel free to open an issue for help. We are working on a script and pip package for easier access to the analysis.
+Start with the Jupyter notebooks above from 01-05. Explanations are in the notebooks. Feel free to open an issue for help. **We are working on a script and pip package for easier access to the analysis, ETA April 2022.**
 
 # DIRECT data access
 The data used in notebooks are not available for testing due to the informed consent given by study participants, the various national ethical approvals for the study, and the European General Data Protection Regulation (GDPR). Therefore, individual-level clinical and omics data cannot be transferred from the centralized IMI-DIRECT repository. 

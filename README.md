@@ -24,13 +24,13 @@ Other data:
 - Accelerometer data
 - Medication data
 
-The data used in our project is sensitive data and therefore not available here. See below for the procedure to obtain access. *We are working on providing simulated data for testing the workflow.*
+The data used in our project is sensitive data and therefore not available here. See below for the procedure to obtain access. **We are working on providing simulated data for testing the workflow.**
 
 # Installation
 MOVE is currently in the form of Jupyter Notebooks to ensure that one can modify the scripts according to the data available. Ie, we had five types of omics data together with clinical data - your dataset may differ. We are working on a script and pip package for easier analysis.
 
 ## Requirements
-- Python3 with 
+Python3 with 
 - jupyter
 - numpy
 - pytorch

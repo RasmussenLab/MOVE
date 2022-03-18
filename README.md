@@ -34,9 +34,9 @@ The data used in our project is sensitive data and therefore not available here.
 MOVE is currently in the form of Jupyter Notebooks to ensure that one can modify the scripts according to the data available. Ie, we had five types of omics data together with clinical data - your dataset may differ. We are working on a script and pip package for easier access to the analysis.
 
 ### Requirements
-We have only run MOVE in a Linux environment, however as it is depedent on python it should be possible to run on Macs and potentially Windows machines as well. What you need is:
+We have only run MOVE in a Linux environment, however as it is depedent on python it should be possible to run on Macs and potentially Windows machines as well. We ran this with:
 
-Python3 with:
+Python3.8 with:
 ```
 jupyter
 numpy

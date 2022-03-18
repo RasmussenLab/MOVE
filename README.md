@@ -1,4 +1,4 @@
-# MOVE
+# MOVE (Multi-Omics Variational autoEncoder)
 
 The code in this repository can be used to run our Multi-Omics Variational autoEncoder (MOVE) framework for integration of omics and clinical variabels spanning both categorial and continuous data. The manuscript is currently in review.
 

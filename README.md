@@ -31,7 +31,7 @@ Medication data
 The data used in our project is sensitive data and therefore not available here. See below for the procedure to obtain access. **We are working on providing simulated data for testing the workflow.**
 
 # Installation
-MOVE is currently in the form of Jupyter Notebooks to ensure that one can modify the scripts according to the data available. Ie, we had five types of omics data together with clinical data - your dataset may differ. We are working on a script and pip package for easier analysis.
+MOVE is currently in the form of Jupyter Notebooks to ensure that one can modify the scripts according to the data available. Ie, we had five types of omics data together with clinical data - your dataset may differ. We are working on a script and pip package for easier access to the analysis.
 
 ### Requirements
 Python3 with 
@@ -52,9 +52,12 @@ pytorch with CUDA
 CUDA drivers
 ```
 
-All above packages can be installed using pip or conda
+All above packages can be installed using pip or conda.
 
 The training of the VAEs can be done using GPU or CPU, as with all deep learning GPUs speed up the computations but it is perfectly doable to run on a server with multiple CPU cores. 
+
+### How to run MOVE
+Start with the Jupyter notebooks above from 01-05. Explanations are in the notebooks. Feel free to open an issue for help. We are working on a script and pip package for easier access to the analysis.
 
 # DIRECT data access
 The data used in notebooks are not available for testing due to the informed consent given by study participants, the various national ethical approvals for the study, and the European General Data Protection Regulation (GDPR). Therefore, individual-level clinical and omics data cannot be transferred from the centralized IMI-DIRECT repository. 

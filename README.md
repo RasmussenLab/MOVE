@@ -28,7 +28,9 @@ Accelerometer data
 Medication data
 ```
 
-The data used in our project is sensitive data and therefore not available for download - see below for the procedure to obtain access. **We are working on providing simulated data for testing the workflow, ETA March 23rd 2022.**
+The data used in our project is sensitive data and therefore not available for download - see below for the procedure to obtain access. 
+
+**We added simulated data that can be used for testing the workflow - note that these data are at the moment random data. To be updated.**
 
 # Installation
 MOVE is currently in the form of Jupyter Notebooks to ensure that one can modify the scripts according to the data available. Ie, we had five types of omics data together with clinical data - your dataset may differ. We are working on a script and pip package for easier access to the analysis.

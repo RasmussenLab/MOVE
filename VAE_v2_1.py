@@ -113,12 +113,14 @@ def make_dataloader(cat_list=None, con_list=None, batchsize=10, cuda=False):
     # Handle categorical data sets
     if not (cat_list is None):
        cat_shapes, mask, cat_all= concat_cat_list(cat_list)
+
     else:
       mask = [True] * len(con_list[0])
     
     # Concetenate con datasetsand make final mask
     if not (con_list is None):
       n_con_shapes, mask, con_all = concat_con_list(con_list, mask)
+
     
     # Create dataset
     if not (cat_list is None or con_list is None):
@@ -127,8 +129,9 @@ def make_dataloader(cat_list=None, con_list=None, batchsize=10, cuda=False):
       
       cat_all = torch.from_numpy(cat_all)
       con_all = torch.from_numpy(con_all)
-      
-      dataset = Dataset(cat_all=cat_all, con_all=con_all, con_shapes=n_con_shapes, cat_shapes=cat_shapes)
+
+      dataset = Dataset(con_all=con_all, con_shapes=n_con_shapes, cat_all=cat_all, cat_shapes=cat_shapes)
+        
     elif not (con_list is None):
       con_all = con_all[mask]
       con_all = torch.from_numpy(con_all)
@@ -136,12 +139,10 @@ def make_dataloader(cat_list=None, con_list=None, batchsize=10, cuda=False):
     elif not (cat_list is None):
       cat_all = cat_all[mask]
       cat_all = torch.from_numpy(cat_all)
-      dataset = Dataset(cat=cat_all, cat_shapes=cat_shapes)
-    
+      dataset = Dataset(cat_all=cat_all, cat_shapes=cat_shapes)
     # Create dataloader
     dataloader = DataLoader(dataset=dataset, batch_size=batchsize, drop_last=True,
-                             shuffle=True, num_workers=1, pin_memory=cuda)
-    
+                             shuffle=True) #Changed num_workers and pin_memory
     return mask, dataloader
   
 class VAE(nn.Module):
@@ -396,8 +397,7 @@ class VAE(nn.Module):
       
       return loss, CE, MSE, KLD * KLD_weight
     
-    def encodeing(self, train_loader, epoch, lrate, kld_w):
-    
+    def encoding(self, train_loader, epoch, lrate, kld_w):
         self.train()
         train_loss = 0
         log_interval = 50

@@ -173,7 +173,7 @@ class VAE(nn.Module):
                  beta=0.01, dropout=0.2, cuda=False):
       
       if nlatent < 1:
-        raise ValueError('Minimum 1 latent neuron, not {}'.format(latent))
+        raise ValueError('Minimum 1 latent neuron, not {}'.format(nlatent))
 
       if beta <= 0:
         raise ValueError('beta must be > 0')
@@ -184,7 +184,7 @@ class VAE(nn.Module):
       if (ncategorical is None and ncontinuous is None):
         raise ValueError('At least one type of data must be in the input')
       
-      if (con_shapes is None and cat_shape is None):
+      if (con_shapes is None and cat_shapes is None):
         raise ValueError('Shapes of the input data must be provided')
       
       self.input_size = 0

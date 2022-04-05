@@ -1,13 +1,10 @@
 #!/usr/bin/env python
 
-import os, sys
 import torch
 import numpy as np
-from torch.utils import data
 
 from torch import nn
 from torch import optim
-import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import TensorDataset
 

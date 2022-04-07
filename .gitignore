@@ -1,0 +1,9 @@
+# Jupyter NB checkpoints
+.ipynb_checkpoints
+
+# Python compiled bytecode
+__pycache__/
+*.py[cod]
+
+# NumPy binary files
+data*/*.npy

@@ -38,10 +38,14 @@ def fetch(dataset_name: str, destination: Path):
             "Unexpected dataset name. Available names are:"
             f" {', '.join(FILES.keys())}."
         )
+
+    # Check if file exists
     destination = Path(destination)
     if destination.exists():
         warn("A file exists at destination. Skipping download.")
         return destination
+
+    # Download file
     file_info = FILES[dataset_name]
     hash_ = md5()
     with requests.get(file_info.url, stream=True) as request:
@@ -50,10 +54,13 @@ def fetch(dataset_name: str, destination: Path):
             for chunk in request.iter_content(chunk_size=8192):
                 file.write(chunk)
                 hash_.update(chunk)
+
+    # Test file integrity
     size = destination.stat().st_size
     checksum = hash_.hexdigest()
     if checksum != file_info.expected_checksum or size != file_info.expected_size:
         raise IOError(f"The downloaded file is corrupted. Try redownloading.")
+
     return destination
 
 def scale(x: np.array):
@@ -77,5 +84,5 @@ def rclr(x: np.array, axis: int = 0):
         sample/column).
     """
     logx = np.ma.log(x).filled(np.nan)
-    gmean = np.nanmean(logx, axis=axis, keepdims=1)
+    gmean = np.nanmean(logx, axis=axis, keepdims=True)
     return logx - gmean

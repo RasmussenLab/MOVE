@@ -1,0 +1,12 @@
+_target_: move.models.vae.VAE
+
+# Use a custom resolver to extract the weights input in 'data/main.yaml'
+categorical_weights: ${weights:${data.categorical_inputs}}
+continuous_weights: ${weights:${data.continuous_inputs}}
+
+num_hidden:
+  - 200
+  - 200
+num_latent: 20
+beta: 0.01
+dropout: 0.2

@@ -1,0 +1,18 @@
+na_value: NA
+
+# raw - for raw data (e.g., the TSVs)
+# interim - for intermediate data (e.g., the NPYs)
+# processed - for processed data (e.g., trained models, latents)
+raw_data_path: data
+interim_data_path: data
+processed_data_path: data
+
+categorical_inputs:
+  - name: genotypes
+    weight: 1
+
+continuous_inputs:
+  - name: transcriptomics
+    weight: 1
+  - name: metagenomics
+    weight: 1

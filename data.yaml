@@ -1,0 +1,20 @@
+path: ./data/
+na_encoding: NA
+
+ids_file_name: baseline_ids
+
+categorical_data_files:
+  - diabetes_genotypes
+  - baseline_drugs 
+  - baseline_categorical
+
+continuous_data_files: 
+  - baseline_continuous
+  - baseline_transcriptomics
+  - baseline_diet_wearables
+  - baseline_proteomic_antibodies
+  - baseline_target_metabolomics
+  - baseline_untarget_metabolomics
+  - baseline_metagenomics
+  
+data_of_interest: baseline_drugs  

@@ -63,7 +63,7 @@ def extract_weights(configs: list[InputConfig]) -> list[int]:
 
 # Store config schema
 cs = ConfigStore.instance()
-cs.store(name="main", node=MOVEConfig)
+cs.store(name="config", node=MOVEConfig)
 
 # Register custom resolvers
 OmegaConf.register_new_resolver("weights", extract_weights)

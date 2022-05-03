@@ -1,6 +1,7 @@
 import numpy as np  # TODO: use torch instead of NumPy
 import torch
 from torch import nn, optim
+from torch.utils.data import DataLoader
 
 
 class VAE(nn.Module):
@@ -85,13 +86,12 @@ class VAE(nn.Module):
         super(VAE, self).__init__()
 
         # Initialize simple attributes
-        self.usecuda = cuda
         self.beta = beta
         self.num_hidden = num_hidden
         self.num_latent = num_latent
         self.dropout = dropout
 
-        self.device = torch.device("cuda" if self.usecuda == True else "cpu")
+        self.device = torch.device("cuda" if cuda == True else "cpu")
 
         # Activation functions
         self.relu = nn.LeakyReLU()
@@ -377,74 +377,76 @@ class VAE(nn.Module):
 
         return cat_out_class, cat_target
 
-    def latent(self, test_loader, kld_w):
+    @torch.no_grad()
+    def latent(self, dataloader: DataLoader, kld_weight: float):
         self.eval()
         test_loss = 0
         test_likelihood = 0
 
-        length = test_loader.dataset.npatients
-        latent = np.empty((length, self.num_latent), dtype=np.float32)
-        latent_var = np.empty((length, self.num_latent), dtype=np.float32)
+        num_samples = dataloader.dataset.npatients
+
+        latent = torch.empty((num_samples, self.num_latent))
+        latent_var = torch.empty((num_samples, self.num_latent))
 
         # reconstructed output
         if not (self.num_categorical is None):
-            cat_class, cat_recon, cat_total_shape = self.make_cat_recon_out(length)
+            cat_class, cat_recon, cat_total_shape = self.make_cat_recon_out(num_samples)
         else:
             cat_class = None
             cat_recon = None
 
-        if not (self.num_continuous is None):
-            con_recon = np.empty((length, self.num_continuous), dtype=np.float32)
-        else:
-            con_recon = None
+        con_recon = (
+            None
+            if self.num_continuous is None
+            else torch.empty((num_samples, self.num_continuous))
+        )
 
         row = 0
-        with torch.no_grad():
-            for (cat, con) in test_loader:
-                cat = cat.to(self.device)
-                con = con.to(self.device)
-                cat.requires_grad = False
-                con.requires_grad = False
+        for (cat, con) in dataloader:
+            cat = cat.to(self.device)
+            con = con.to(self.device)
+            cat.requires_grad = False
+            con.requires_grad = False
 
-                # get dataset
-                if not (self.num_categorical is None or self.num_continuous is None):
-                    tensor = torch.cat((cat, con), 1)
-                elif not (self.num_categorical is None):
-                    tensor = cat
-                elif not (self.num_continuous is None):
-                    tensor = con
+            # get dataset
+            if not (self.num_categorical is None or self.num_continuous is None):
+                tensor = torch.cat((cat, con), 1)
+            elif not (self.num_categorical is None):
+                tensor = cat
+            elif not (self.num_continuous is None):
+                tensor = con
 
-                # Evaluate
-                cat_out, con_out, mu, logvar = self(tensor)
+            # Evaluate
+            cat_out, con_out, mu, logvar = self(tensor)
 
-                mu = mu.to(self.device)
-                logvar = logvar.to(self.device)
-                batch = len(mu)
+            mu = mu.to(self.device)
+            logvar = logvar.to(self.device)
+            batch = len(mu)
 
-                loss, bce, sse, kld = self.loss_function(
-                    cat, cat_out, con, con_out, mu, logvar, kld_w
+            loss, bce, sse, _ = self.loss_function(
+                cat, cat_out, con, con_out, mu, logvar, kld_weight
+            )
+            test_likelihood += bce + sse
+            test_loss += loss.data.item()
+
+            if not (self.num_categorical is None):
+                cat_out_class, cat_target = self.get_cat_recon(
+                    batch, cat_total_shape, cat, cat_out
                 )
-                test_likelihood += bce + sse
-                test_loss += loss.data.item()
+                cat_recon[row : row + len(cat_out_class)] = cat_out_class
+                cat_class[row : row + len(cat_target)] = cat_target
 
-                if not (self.num_categorical is None):
-                    cat_out_class, cat_target = self.get_cat_recon(
-                        batch, cat_total_shape, cat, cat_out
-                    )
-                    cat_recon[row : row + len(cat_out_class)] = cat_out_class
-                    cat_class[row : row + len(cat_target)] = cat_target
+            if not (self.num_continuous is None):
+                con_recon[row : row + len(con_out)] = con_out
 
-                if not (self.num_continuous is None):
-                    con_recon[row : row + len(con_out)] = con_out
+            latent_var[row : row + len(logvar)] = logvar
+            latent[row : row + len(mu)] = mu
+            row += len(mu)
 
-                latent_var[row : row + len(logvar)] = logvar
-                latent[row : row + len(mu)] = mu
-                row += len(mu)
-
-        test_loss /= len(test_loader)
+        test_loss /= len(dataloader)
         print("====> Test set loss: {:.4f}".format(test_loss))
 
-        assert row == length
+        assert row == num_samples
         return (
             latent,
             latent_var,

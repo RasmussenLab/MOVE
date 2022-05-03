@@ -14,7 +14,6 @@ from move.models.vae import VAE
 from move.training.seed import set_global_seed
 
 
-
 @hydra.main(config_path="../conf", config_name="main")
 def train_model(config: MOVEConfig):
 
@@ -35,10 +34,10 @@ def train_model(config: MOVEConfig):
         config.model,
         continuous_shapes=train_loader.dataset.con_shapes,
         categorical_shapes=train_loader.dataset.cat_shapes,
-        _convert_="partial"
+        _convert_="partial",
     ).to(device)
 
-    kld_w = 0
+    kld_w = 0.0
     r = 20 / len(config.training.kld_steps)
     update = 1 + r
 
@@ -78,6 +77,6 @@ def train_model(config: MOVEConfig):
 
     return best_model, losses, ce, sse, KLD
 
+
 if __name__ == "__main__":
     train_model()
-

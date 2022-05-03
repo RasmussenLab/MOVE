@@ -1,6 +1,9 @@
 import copy
+import random
+from typing import Optional
 
 import hydra
+import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
@@ -8,9 +11,15 @@ from move.conf.schema import MOVEConfig
 from move.data.dataloaders import make_dataloader
 from move.data.io import read_data
 from move.models.vae import VAE
+from move.training.seed import set_global_seed
+
+
 
 @hydra.main(config_path="../conf", config_name="main")
 def train_model(config: MOVEConfig):
+
+    if config.seed is not None:
+        set_global_seed(config.seed)
 
     device = torch.device("cuda" if config.training.cuda == True else "cpu")
 

@@ -48,7 +48,6 @@ class MOVEDataset(TensorDataset):
 
 
 def concat_cat_list(cat_list):
-    n_cat = 0
     cat_shapes = list()
     first = 0
 

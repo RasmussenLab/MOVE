@@ -112,8 +112,8 @@ def make_dataloader(cat_list=None, con_list=None, batchsize=10, cuda=False):
     if not (cat_list is None):
         cat_shapes, mask, cat_all = concat_cat_list(cat_list)
 
-    else:
-        mask = [True] * len(con_list[0])
+    #else:
+    mask = [True] * len(con_list[0])
 
     # Concetenate con datasetsand make final mask
     if not (con_list is None):
@@ -133,7 +133,6 @@ def make_dataloader(cat_list=None, con_list=None, batchsize=10, cuda=False):
             cat_all=cat_all,
             cat_shapes=cat_shapes,
         )
-
     elif not (con_list is None):
         con_all = con_all[mask]
         con_all = torch.from_numpy(con_all)

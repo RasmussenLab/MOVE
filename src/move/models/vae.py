@@ -7,15 +7,13 @@ class VAE(nn.Module):
     """Variational autoencoder, subclass of torch.nn.Module.
 
     Instantiate with:
-        ncategorical: Length of categorical variabel encoding if any
-        ncontinuous: Number of continuous variables if any
-        con_shapes: shape of the different continuous datasets if any
-        cat_shapes: shape of the different categorical datasets if any
-        nhiddens: List of n_neurons in the hidden layers [[200, 200]]
-        nlatent: Number of neurons in the latent layer [15]
+        continuous_shapes: shape of the different continuous datasets if any
+        categorical_shapes: shape of the different categorical datasets if any
+        num_hidden: List of n_neurons in the hidden layers [[200, 200]]
+        num_latent: Number of neurons in the latent layer [15]
         beta: Multiply KLD by the inverse of this value [0.0001]
-        con_weights: list of weights for each continuous dataset
-        cat_weights: list of weights for each categorical dataset
+        continuous_weights: list of weights for each continuous dataset
+        categorical_weights: list of weights for each categorical dataset
         dropout: Probability of dropout on forward pass [0.2]
         cuda: Use CUDA (GPU accelerated training) [False]
 
@@ -28,72 +26,69 @@ class VAE(nn.Module):
 
     def __init__(
         self,
-        ncategorical=None,
-        ncontinuous=None,
-        con_shapes=None,
-        cat_shapes=None,
-        con_weights=None,
-        cat_weights=None,
-        nhiddens=[200, 200],
-        nlatent=20,
-        beta=0.01,
-        dropout=0.2,
-        cuda=False,
+        categorical_shapes: list[tuple] = None,
+        continuous_shapes: list[tuple] = None,
+        categorical_weights: list[int] = None,
+        continuous_weights: list[int] = None,
+        num_hidden: list[int] = [200, 200],
+        num_latent: int = 20,
+        beta: float = 0.01,
+        dropout: float = 0.2,
+        cuda: bool = False,
     ):
-
-        if nlatent < 1:
-            raise ValueError("Minimum 1 latent neuron, not {}".format(nlatent))
+        if num_latent < 1:
+            raise ValueError(f"Minimum 1 latent unit. Input was {num_latent}.")
 
         if beta <= 0:
-            raise ValueError("beta must be > 0")
+            raise ValueError("Beta must be greater than zero.")
 
         if not (0 <= dropout < 1):
-            raise ValueError("dropout must be 0 <= dropout < 1")
+            raise ValueError("Dropout must be between zero and one.")
 
-        if ncategorical is None and ncontinuous is None:
-            raise ValueError("At least one type of data must be in the input")
+        if continuous_shapes is None and categorical_shapes is None:
+            raise ValueError("Shapes of the input data must be provided.")
 
-        if con_shapes is None and cat_shapes is None:
-            raise ValueError("Shapes of the input data must be provided")
+        num_categorical = sum([int.__mul__(*shape[1:]) for shape in categorical_shapes])
+        num_continuous = sum(continuous_shapes)
 
         self.input_size = 0
-        if not (ncontinuous is None or con_shapes is None):
-            self.ncontinuous = ncontinuous
-            self.input_size += self.ncontinuous
-            self.con_shapes = con_shapes
+        if not (num_continuous is None or continuous_shapes is None):
+            self.num_continuous = num_continuous
+            self.input_size += self.num_continuous
+            self.continuous_shapes = continuous_shapes
 
-            if not (con_weights is None):
-                self.con_weights = con_weights
-                if not len(con_shapes) == len(con_weights):
+            if not (continuous_weights is None):
+                self.continuous_weights = continuous_weights
+                if not len(continuous_shapes) == len(continuous_weights):
                     raise ValueError(
                         "Number of continuous weights must be the same as"
                         " number of continuous datasets"
                     )
         else:
-            self.ncontinuous = None
+            self.num_continuous = None
 
-        if not (ncategorical is None or cat_shapes is None):
-            self.ncategorical = ncategorical
-            self.input_size += self.ncategorical
-            self.cat_shapes = cat_shapes
+        if not (num_categorical is None or categorical_shapes is None):
+            self.num_categorical = num_categorical
+            self.input_size += self.num_categorical
+            self.categorical_shapes = categorical_shapes
 
-            if not (cat_weights is None):
-                self.cat_weights = cat_weights
-                if not len(cat_shapes) == len(cat_weights):
+            if not (categorical_weights is None):
+                self.categorical_weights = categorical_weights
+                if not len(categorical_shapes) == len(categorical_weights):
                     raise ValueError(
                         "Number of categorical weights must be the same as"
                         " number of categorical datasets"
                     )
         else:
-            self.ncategorical = None
+            self.num_categorical = None
 
         super(VAE, self).__init__()
 
         # Initialize simple attributes
         self.usecuda = cuda
         self.beta = beta
-        self.nhiddens = nhiddens
-        self.nlatent = nlatent
+        self.num_hidden = num_hidden
+        self.num_latent = num_latent
         self.dropout = dropout
 
         self.device = torch.device("cuda" if self.usecuda == True else "cpu")
@@ -113,21 +108,23 @@ class VAE(nn.Module):
 
         ### Layers
         # Hidden layers
-        for nin, nout in zip([self.input_size] + self.nhiddens, self.nhiddens):
+        for nin, nout in zip([self.input_size] + self.num_hidden, self.num_hidden):
             self.encoderlayers.append(nn.Linear(nin, nout))
             self.encodernorms.append(nn.BatchNorm1d(nout))
 
         # Latent layers
-        self.mu = nn.Linear(self.nhiddens[-1], self.nlatent)  # mu layer
-        self.var = nn.Linear(self.nhiddens[-1], self.nlatent)  # logvariance layer
+        self.mu = nn.Linear(self.num_hidden[-1], self.num_latent)  # mu layer
+        self.var = nn.Linear(self.num_hidden[-1], self.num_latent)  # logvariance layer
 
         # Decoding layers
-        for nin, nout in zip([self.nlatent] + self.nhiddens[::-1], self.nhiddens[::-1]):
+        for nin, nout in zip(
+            [self.num_latent] + self.num_hidden[::-1], self.num_hidden[::-1]
+        ):
             self.decoderlayers.append(nn.Linear(nin, nout))
             self.decodernorms.append(nn.BatchNorm1d(nout))
 
         # Reconstruction - output layers
-        self.out = nn.Linear(self.nhiddens[0], self.input_size)  # to output
+        self.out = nn.Linear(self.num_hidden[0], self.input_size)  # to output
 
     def encode(self, tensor):
         tensors = list()
@@ -147,12 +144,12 @@ class VAE(nn.Module):
         return eps.mul(std).add_(mu)
 
     def decompose_categorical(self, reconstruction):
-        cat_tmp = reconstruction.narrow(1, 0, self.ncategorical)
+        cat_tmp = reconstruction.narrow(1, 0, self.num_categorical)
 
         # handle soft max for each categorical dataset
         cat_out = []
         pos = 0
-        for cat_shape in self.cat_shapes:
+        for cat_shape in self.categorical_shapes:
             cat_dataset = cat_tmp[:, pos : (cat_shape[1] * cat_shape[2] + pos)]
 
             cat_out_tmp = cat_dataset.view(
@@ -177,15 +174,17 @@ class VAE(nn.Module):
 
         # Decompose reconstruction to categorical and continuous variables
         # if both types are in the input
-        if not (self.ncategorical is None or self.ncontinuous is None):
+        if not (self.num_categorical is None or self.num_continuous is None):
             cat_out = self.decompose_categorical(reconstruction)
-            con_out = reconstruction.narrow(1, self.ncategorical, self.ncontinuous)
-        elif not (self.ncategorical is None):
+            con_out = reconstruction.narrow(
+                1, self.num_categorical, self.num_continuous
+            )
+        elif not (self.num_categorical is None):
             cat_out = self.decompose_categorical(reconstruction)
             con_out = None
-        elif not (self.ncontinuous is None):
+        elif not (self.num_continuous is None):
             cat_out = None
-            con_out = reconstruction.narrow(1, 0, self.ncontinuous)
+            con_out = reconstruction.narrow(1, 0, self.num_continuous)
 
         return cat_out, con_out
 
@@ -203,7 +202,7 @@ class VAE(nn.Module):
         count = 0
         cat_errors = []
         pos = 0
-        for cat_shape in self.cat_shapes:
+        for cat_shape in self.categorical_shapes:
             cat_dataset = cat_in[:, pos : (cat_shape[1] * cat_shape[2] + pos)]
 
             cat_dataset = cat_dataset.view(cat_in.shape[0], cat_shape[1], cat_shape[2])
@@ -227,7 +226,7 @@ class VAE(nn.Module):
         batch_size = con_in.shape[0]
         total_shape = 0
         con_errors = []
-        for s in self.con_shapes:
+        for s in self.continuous_shapes:
             c_in = con_in[:, total_shape : (s + total_shape - 1)]
             c_re = con_out[:, total_shape : (s + total_shape - 1)]
             error = loss(c_re, c_in) / batch_size
@@ -235,8 +234,8 @@ class VAE(nn.Module):
             total_shape += s
 
         con_errors = torch.stack(con_errors)
-        con_errors = con_errors / torch.Tensor(self.con_shapes)
-        MSE = torch.sum(con_errors * torch.Tensor(self.con_weights))
+        con_errors = con_errors / torch.Tensor(self.continuous_shapes)
+        MSE = torch.sum(con_errors * torch.Tensor(self.continuous_weights))
         return MSE
 
     # Reconstruction + KL divergence losses summed over all elements and batch
@@ -246,8 +245,8 @@ class VAE(nn.Module):
         # calculate loss for catecorical data if in the input
         if not (cat_out is None):
             cat_errors = self.calculate_cat_error(cat_in, cat_out)
-            if not (self.cat_weights is None):
-                CE = torch.sum(cat_errors * torch.Tensor(self.cat_weights))
+            if not (self.categorical_weights is None):
+                CE = torch.sum(cat_errors * torch.Tensor(self.categorical_weights))
             else:
                 CE = torch.sum(cat_errors) / len(cat_errors)
 
@@ -260,10 +259,10 @@ class VAE(nn.Module):
             con_out[con_in == 0] == 0
 
             # include different weights for each omics dataset
-            if not (self.con_weights is None):
+            if not (self.continuous_weights is None):
                 MSE = self.calculate_con_error(con_in, con_out, loss)
             else:
-                MSE = loss(con_out, con_in) / (batch_size * self.ncontinuous)
+                MSE = loss(con_out, con_in) / (batch_size * self.num_continuous)
 
         # see Appendix B from VAE paper:
         # Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014
@@ -293,11 +292,11 @@ class VAE(nn.Module):
             cat = cat.to(self.device)
             con = con.to(self.device)
 
-            if not (self.ncategorical is None or self.ncontinuous is None):
+            if not (self.num_categorical is None or self.num_continuous is None):
                 tensor = torch.cat((cat, con), 1)
-            elif not (self.ncategorical is None):
+            elif not (self.num_categorical is None):
                 tensor = cat
-            elif not (self.ncontinuous is None):
+            elif not (self.num_continuous is None):
                 tensor = con
 
             optimizer.zero_grad()
@@ -312,10 +311,10 @@ class VAE(nn.Module):
             epoch_loss += loss.data.item()
             epoch_kldloss += kld.data.item()
 
-            if not (self.ncontinuous is None):
+            if not (self.num_continuous is None):
                 epoch_sseloss += sse.data.item()
 
-            if not (self.ncategorical is None):
+            if not (self.num_categorical is None):
                 epoch_bceloss += bce.data.item()
 
             optimizer.step()
@@ -340,7 +339,7 @@ class VAE(nn.Module):
 
     def make_cat_recon_out(self, length):
         cat_total_shape = 0
-        for cat_shape in self.cat_shapes:
+        for cat_shape in self.categorical_shapes:
             cat_total_shape += cat_shape[1]
 
         cat_class = np.empty((length, cat_total_shape), dtype=np.int32)
@@ -353,7 +352,7 @@ class VAE(nn.Module):
         cat_target = np.empty((batch, cat_total_shape), dtype=np.int32)
         pos = 0
         shape_1 = 0
-        for cat_shape in self.cat_shapes:
+        for cat_shape in self.categorical_shapes:
             # Get input categorical data
             cat_in_tmp = cat[:, pos : (cat_shape[1] * cat_shape[2] + pos)]
             cat_in_tmp = cat_in_tmp.view(cat.shape[0], cat_shape[1], cat_shape[2])
@@ -384,18 +383,18 @@ class VAE(nn.Module):
         test_likelihood = 0
 
         length = test_loader.dataset.npatients
-        latent = np.empty((length, self.nlatent), dtype=np.float32)
-        latent_var = np.empty((length, self.nlatent), dtype=np.float32)
+        latent = np.empty((length, self.num_latent), dtype=np.float32)
+        latent_var = np.empty((length, self.num_latent), dtype=np.float32)
 
         # reconstructed output
-        if not (self.ncategorical is None):
+        if not (self.num_categorical is None):
             cat_class, cat_recon, cat_total_shape = self.make_cat_recon_out(length)
         else:
             cat_class = None
             cat_recon = None
 
-        if not (self.ncontinuous is None):
-            con_recon = np.empty((length, self.ncontinuous), dtype=np.float32)
+        if not (self.num_continuous is None):
+            con_recon = np.empty((length, self.num_continuous), dtype=np.float32)
         else:
             con_recon = None
 
@@ -408,11 +407,11 @@ class VAE(nn.Module):
                 con.requires_grad = False
 
                 # get dataset
-                if not (self.ncategorical is None or self.ncontinuous is None):
+                if not (self.num_categorical is None or self.num_continuous is None):
                     tensor = torch.cat((cat, con), 1)
-                elif not (self.ncategorical is None):
+                elif not (self.num_categorical is None):
                     tensor = cat
-                elif not (self.ncontinuous is None):
+                elif not (self.num_continuous is None):
                     tensor = con
 
                 # Evaluate
@@ -428,14 +427,14 @@ class VAE(nn.Module):
                 test_likelihood += bce + sse
                 test_loss += loss.data.item()
 
-                if not (self.ncategorical is None):
+                if not (self.num_categorical is None):
                     cat_out_class, cat_target = self.get_cat_recon(
                         batch, cat_total_shape, cat, cat_out
                     )
                     cat_recon[row : row + len(cat_out_class)] = cat_out_class
                     cat_class[row : row + len(cat_target)] = cat_target
 
-                if not (self.ncontinuous is None):
+                if not (self.num_continuous is None):
                     con_recon[row : row + len(con_out)] = con_out
 
                 latent_var[row : row + len(logvar)] = logvar

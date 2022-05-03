@@ -9,7 +9,7 @@ from move.data.dataloaders import make_dataloader
 from move.data.io import read_data
 from move.models.vae import VAE
 
-
+@hydra.main(config_path="../conf", config_name="main")
 def train_model(config: MOVEConfig):
 
     device = torch.device("cuda" if config.training.cuda == True else "cpu")
@@ -22,11 +22,11 @@ def train_model(config: MOVEConfig):
     )  # Added drop_last
 
     # Make model
-    # TODO: Rename parameters in VAE class to match config
     model: VAE = hydra.utils.instantiate(
         config.model,
         continuous_shapes=train_loader.dataset.con_shapes,
         categorical_shapes=train_loader.dataset.cat_shapes,
+        _convert_="partial"
     ).to(device)
 
     kld_w = 0
@@ -68,3 +68,7 @@ def train_model(config: MOVEConfig):
         best_model = copy.deepcopy(model)
 
     return best_model, losses, ce, sse, KLD
+
+if __name__ == "__main__":
+    train_model()
+

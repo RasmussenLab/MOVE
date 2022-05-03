@@ -40,7 +40,7 @@ def read_data(config: MOVEConfig):
     categorical_headers = []
     continuous_headers = []
 
-    output_path = Path(config.data.output_path)
+    output_path = Path(config.data.interim_data_path)
 
     for var_list, header_list, input_configs in [
         (categorical_vars, categorical_headers, config.data.categorical_inputs),
@@ -50,6 +50,6 @@ def read_data(config: MOVEConfig):
             var, _ = read_cat(output_path / f"{input_config.name}.npy")
             header = read_header(output_path / f"{input_config.name}.tsv")
             var_list.append(var)
-            header_list.append(header)
+            header_list += header
 
     return categorical_vars, categorical_headers, continuous_vars, continuous_headers

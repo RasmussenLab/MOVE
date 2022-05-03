@@ -25,6 +25,7 @@ class DataConfig:
 @dataclass
 class ModelConfig:
     _target_: str
+    cuda: bool
 
 
 @dataclass

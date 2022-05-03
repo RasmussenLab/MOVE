@@ -10,3 +10,5 @@ num_hidden:
 num_latent: 20
 beta: 0.01
 dropout: 0.2
+
+cuda: ${training.cuda}

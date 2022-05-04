@@ -126,16 +126,15 @@ class VAE(nn.Module):
         # Reconstruction - output layers
         self.out = nn.Linear(self.num_hidden[0], self.input_size)  # to output
 
-    def encode(self, tensor):
-        tensors = list()
-
+    def encode(self, x):
         # Hidden layers
         for encoderlayer, encodernorm in zip(self.encoderlayers, self.encodernorms):
-            tensor = encodernorm(self.dropoutlayer(self.relu(encoderlayer(tensor))))
-            tensors.append(tensor)
+            x = encoderlayer(x)
+            x = self.relu(x)
+            x = self.dropoutlayer(x)
+            x = encodernorm(x)
 
-        # h1 = self.relu(self.fc1(x))
-        return self.mu(tensor), self.var(tensor)
+        return self.mu(x), self.var(x)
 
     def reparameterize(self, mu, logvar):
         std = torch.exp(0.5 * logvar)
@@ -163,14 +162,14 @@ class VAE(nn.Module):
 
         return cat_out
 
-    def decode(self, tensor):
-        tensors = list()
-
+    def decode(self, x):
         for decoderlayer, decodernorm in zip(self.decoderlayers, self.decodernorms):
-            tensor = decodernorm(self.dropoutlayer(self.relu(decoderlayer(tensor))))
-            tensors.append(tensor)
+            x = decoderlayer(x)
+            x = self.relu(x)
+            x = self.dropoutlayer(x)
+            x = decodernorm(x)
 
-        reconstruction = self.out(tensor)
+        reconstruction = self.out(x)
 
         # Decompose reconstruction to categorical and continuous variables
         # if both types are in the input
@@ -405,8 +404,6 @@ class VAE(nn.Module):
         for (cat, con) in dataloader:
             cat = cat.to(self.device)
             con = con.to(self.device)
-            cat.requires_grad = False
-            con.requires_grad = False
 
             # get dataset
             if not (self.num_categorical is None or self.num_continuous is None):

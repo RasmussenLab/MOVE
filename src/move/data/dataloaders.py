@@ -8,43 +8,40 @@ from torch.utils.data import DataLoader, TensorDataset
 class MOVEDataset(TensorDataset):
     "Characterizes a dataset for PyTorch"
 
-    def __init__(self, cat_all=None, con_all=None, con_shapes=None, cat_shapes=None):
-        "Initialization"
-        # self.IDs = IDs
-        if not (cat_all is None):
-            self.cat_all = cat_all
-            self.cat_shapes = cat_shapes
-            self.npatients = cat_all.shape[0]
-        else:
-            self.cat = None
-        if not (con_all is None):
-            self.con_all = con_all
-            self.npatients = con_all.shape[0]
-            self.con_shapes = con_shapes
-        else:
-            self.con_all = None
+    def __init__(
+        self,
+        cat_all: torch.Tensor = None,
+        con_all: torch.Tensor = None,
+        cat_shapes: list = None,
+        con_shapes: list = None,
+    ) -> None:
+        # Check
+        num_samples = None if cat_all is None else cat_all.shape[0]            
+        if con_all is not None:
+            if num_samples is None:
+                num_samples = con_all.shape[0]
+            elif num_samples != con_all.shape[0]:
+                raise ValueError(
+                    "Number of samples between categorical and continuous "
+                    "datasets must match."
+                )
+        elif num_samples is None:
+            raise ValueError(
+                "Categorical and continuous data cannot be both empty."
+            )
+        self.num_samples = num_samples
+        self.cat_all = cat_all
+        self.cat_shapes = cat_shapes
+        self.con_all = con_all
+        self.con_shapes = con_shapes
 
-    def __len__(self):
-        "Denotes the total number of samples"
-        return self.npatients
+    def __len__(self) -> int:
+        return self.num_samples
 
-    def __getitem__(self, index):
-        "Generates one sample of data"
-        # Select sample
-        # ID = self.IDs[index]
-
-        # Load data and get label
-        if not (self.cat_all is None):
-            cat_all_data = self.cat_all[index]
-        else:
-            cat_all_data = 0
-
-        if not (self.con_all is None):
-            con_all_data = self.con_all[index]
-        else:
-            con_all_data = 0
-
-        return cat_all_data, con_all_data
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor]:
+        cat_slice = None if self.cat_all is None else self.cat_all[idx]
+        con_slice = None if self.con_all is None else self.con_all[idx]
+        return cat_slice, con_slice
 
 
 def concat_cat_list(cat_list):
@@ -111,7 +108,7 @@ def make_dataloader(cat_list=None, con_list=None, batchsize=10, cuda=False):
     if not (cat_list is None):
         cat_shapes, mask, cat_all = concat_cat_list(cat_list)
 
-    #else:
+    # else:
     mask = [True] * len(con_list[0])
 
     # Concetenate con datasetsand make final mask

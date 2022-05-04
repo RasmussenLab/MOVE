@@ -1,11 +1,12 @@
-import numpy as np  # TODO: use torch instead of NumPy
+__all__ = ["VAE"]
+
 import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader
 
 
 class VAE(nn.Module):
-    """Variational autoencoder, subclass of torch.nn.Module.
+    """Variational autoencoder.
 
     Instantiate with:
         continuous_shapes: shape of the different continuous datasets if any
@@ -341,14 +342,14 @@ class VAE(nn.Module):
         for cat_shape in self.categorical_shapes:
             cat_total_shape += cat_shape[1]
 
-        cat_class = np.empty((length, cat_total_shape), dtype=np.int32)
-        cat_recon = np.empty((length, cat_total_shape), dtype=np.int32)
+        cat_class = torch.empty((length, cat_total_shape)).int()
+        cat_recon = torch.empty((length, cat_total_shape)).int()
         return cat_class, cat_recon, cat_total_shape
 
     def get_cat_recon(self, batch, cat_total_shape, cat, cat_out):
         count = 0
-        cat_out_class = np.empty((batch, cat_total_shape), dtype=np.int32)
-        cat_target = np.empty((batch, cat_total_shape), dtype=np.int32)
+        cat_out_class = torch.empty((batch, cat_total_shape)).int()
+        cat_target = torch.empty((batch, cat_total_shape)).int()
         pos = 0
         shape_1 = 0
         for cat_shape in self.categorical_shapes:
@@ -358,15 +359,15 @@ class VAE(nn.Module):
 
             # Calculate target values for input
             cat_target_tmp = cat_in_tmp
-            cat_target_tmp = np.argmax(cat_target_tmp.detach(), 2)
+            cat_target_tmp = torch.argmax(cat_target_tmp.detach(), dim=2)
             cat_target_tmp[cat_in_tmp.sum(dim=2) == 0] = -1
             cat_target[:, shape_1 : (cat_shape[1] + shape_1)] = cat_target_tmp.numpy()
 
             # Get reconstructed categorical data
             cat_out_tmp = cat_out[count]
             cat_out_tmp = cat_out_tmp.transpose(1, 2)
-            cat_out_class[:, shape_1 : (cat_shape[1] + shape_1)] = np.argmax(
-                cat_out_tmp, 2
+            cat_out_class[:, shape_1 : (cat_shape[1] + shape_1)] = torch.argmax(
+                cat_out_tmp, dim=2
             ).numpy()
 
             # make counts for next dataset

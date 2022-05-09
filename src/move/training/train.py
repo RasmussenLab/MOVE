@@ -1,9 +1,8 @@
+__all__ = ["train_model"]
+
 import copy
-import random
-from typing import Optional
 
 import hydra
-import numpy as np
 import torch
 from torch.utils.data import DataLoader
 

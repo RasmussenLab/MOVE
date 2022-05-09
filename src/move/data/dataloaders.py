@@ -1,4 +1,4 @@
-__all__ = ["MOVEDataset"]
+__all__ = ["MOVEDataset", "make_dataloader"]
 
 import numpy as np
 import torch
@@ -16,7 +16,7 @@ class MOVEDataset(TensorDataset):
         con_shapes: list = None,
     ) -> None:
         # Check
-        num_samples = None if cat_all is None else cat_all.shape[0]            
+        num_samples = None if cat_all is None else cat_all.shape[0]
         if con_all is not None:
             if num_samples is None:
                 num_samples = con_all.shape[0]
@@ -26,9 +26,7 @@ class MOVEDataset(TensorDataset):
                     "datasets must match."
                 )
         elif num_samples is None:
-            raise ValueError(
-                "Categorical and continuous data cannot be both empty."
-            )
+            raise ValueError("Categorical and continuous data cannot be both empty.")
         self.num_samples = num_samples
         self.cat_all = cat_all
         self.cat_shapes = cat_shapes

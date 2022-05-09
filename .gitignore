@@ -1,0 +1,30 @@
+# Jupyter NB checkpoints
+.ipynb_checkpoints
+
+# Python compiled bytecode
+__pycache__/
+*.py[cod]
+
+# NumPy binary files
+data*/*.npy
+
+# Distribution and packaging files
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg
+*.egg-info/
+.installed.cfg
+MANIFEST
+
+# Hydra logs
+outputs/

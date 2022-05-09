@@ -1,8 +1,34 @@
+__all__ = ["read_config"]
+
 from pathlib import Path
+from typing import Union
 
+import hydra
 import numpy as np
+from omegaconf import OmegaConf
 
+from move import conf
 from move.conf.schema import MOVEConfig
+
+
+def read_config(filepath: Union[str, Path]) -> MOVEConfig:
+    """Composes configuration for the MOVE framework.
+
+    Parameters
+    ----------
+    filepath : Union[str, Path]
+        Path to YAML configuration file
+
+    Returns
+    -------
+    move.conf.MOVEConfig
+    """
+    with hydra.initialize_config_module(conf.__name__):
+        base_config = hydra.compose("main")
+
+    user_config = OmegaConf.load(filepath)
+    return OmegaConf.merge(base_config, user_config)
+
 
 # NOTE: Adapted from Notebook #4
 

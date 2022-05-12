@@ -141,8 +141,8 @@ def make_dataloader(cat_list=None, con_list=None, batchsize=10, cuda=False):
       cat_all = torch.from_numpy(cat_all)
       dataset = Dataset(cat_all=cat_all, cat_shapes=cat_shapes)
     # Create dataloader
-    dataloader = DataLoader(dataset=dataset, batch_size=batchsize, drop_last=True,
-                             shuffle=True) #Changed num_workers and pin_memory
+    dataloader = DataLoader(dataset=dataset, batch_size=batchsize, drop_last=False,
+                             shuffle=True) #Changed num_workers and pin_memory; Changed drop_last to False
     return mask, dataloader
   
 class VAE(nn.Module):
@@ -294,10 +294,8 @@ class VAE(nn.Module):
 
       for decoderlayer, decodernorm in zip(self.decoderlayers, self.decodernorms):
         tensor = decodernorm(self.dropoutlayer(self.relu(decoderlayer(tensor))))
-        tensors.append(tensor)
-      
+        tensors.append(tensor)    
       reconstruction = self.out(tensor)
-      
       # Decompose reconstruction to categorical and continuous variables
       # if both types are in the input
       if not (self.ncategorical is None or self.ncontinuous is None):
@@ -316,7 +314,7 @@ class VAE(nn.Module):
       mu, logvar = self.encode(tensor)
       z = self.reparameterize(mu, logvar)
       cat_out, con_out = self.decode(z)
-      
+
       return cat_out, con_out, mu, logvar
     
     def calculate_cat_error(self, cat_in, cat_out):
@@ -424,7 +422,7 @@ class VAE(nn.Module):
             optimizer.zero_grad()
             
             cat_out, con_out, mu, logvar = self(tensor)
-            
+ 
             loss, bce, sse, kld = self.loss_function(cat, cat_out, con, con_out, mu, logvar, kld_w)
             loss.backward()
             
@@ -526,7 +524,7 @@ class VAE(nn.Module):
                 
               # Evaluate
               cat_out, con_out, mu, logvar = self(tensor)
-              
+              con_out
               mu = mu.to(self.device)
               logvar = logvar.to(self.device)
               batch = len(mu)
@@ -547,8 +545,10 @@ class VAE(nn.Module):
               latent[row: row + len(mu)] = mu
               row += len(mu)
         
+
+           
+        
         test_loss /= len(test_loader)
         print('====> Test set loss: {:.4f}'.format(test_loss))
-        
         assert row == length
         return latent, latent_var, cat_recon, cat_class, con_recon, test_loss, test_likelihood

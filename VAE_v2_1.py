@@ -1,13 +1,10 @@
 #!/usr/bin/env python
 
-import os, sys
 import torch
 import numpy as np
-from torch.utils import data
 
 from torch import nn
 from torch import optim
-import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torch.utils.data.dataset import TensorDataset
 
@@ -173,7 +170,7 @@ class VAE(nn.Module):
                  beta=0.01, dropout=0.2, cuda=False):
       
       if nlatent < 1:
-        raise ValueError('Minimum 1 latent neuron, not {}'.format(latent))
+        raise ValueError('Minimum 1 latent neuron, not {}'.format(nlatent))
 
       if beta <= 0:
         raise ValueError('beta must be > 0')
@@ -184,7 +181,7 @@ class VAE(nn.Module):
       if (ncategorical is None and ncontinuous is None):
         raise ValueError('At least one type of data must be in the input')
       
-      if (con_shapes is None and cat_shape is None):
+      if (con_shapes is None and cat_shapes is None):
         raise ValueError('Shapes of the input data must be provided')
       
       self.input_size = 0
@@ -329,7 +326,7 @@ class VAE(nn.Module):
         
         cat_dataset = cat_dataset.view(cat_in.shape[0], cat_shape[1], cat_shape[2])
         cat_target = cat_dataset
-        cat_target = np.argmax(cat_target.detach(), 2)
+        cat_target = cat_target.argmax(2)
         cat_target[cat_dataset.sum(dim = 2) == 0] = -1
         cat_target = cat_target.to(self.device)
         
@@ -339,7 +336,7 @@ class VAE(nn.Module):
         count += 1
         pos += cat_shape[1]*cat_shape[2]
       
-      cat_errors = np.asarray(cat_errors)
+      cat_errors = torch.stack(cat_errors)
       return cat_errors
     
     def calculate_con_error(self, con_in, con_out, loss):
@@ -353,9 +350,9 @@ class VAE(nn.Module):
         con_errors.append(error)
         total_shape += s
       
-      con_errors = np.asarray(con_errors)
-      con_errors = con_errors / self.con_shapes
-      MSE = np.sum(con_errors * self.con_weights)
+      con_errors = torch.stack(con_errors)
+      con_errors = con_errors / torch.Tensor(self.con_shapes)
+      MSE = torch.sum(con_errors * torch.Tensor(self.con_weights))
       return MSE
     
     # Reconstruction + KL divergence losses summed over all elements and batch
@@ -366,9 +363,9 @@ class VAE(nn.Module):
       if not (cat_out is None):
         cat_errors = self.calculate_cat_error(cat_in, cat_out)
         if not (self.cat_weights is None):
-          CE = np.sum(cat_errors * self.cat_weights)
+          CE = torch.sum(cat_errors * torch.Tensor(self.cat_weights))
         else:
-          CE = np.sum(cat_errors) / len(cat_errors)
+          CE = torch.sum(cat_errors) / len(cat_errors)
       
       # calculate loss for continuous data if in the input
       if not (con_out is None):

@@ -3,7 +3,7 @@ __all__ = ["MOVEDataset", "make_dataloader"]
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, TensorDataset
-
+from typing import Tuple
 
 class MOVEDataset(TensorDataset):
     "Characterizes a dataset for PyTorch"
@@ -36,7 +36,7 @@ class MOVEDataset(TensorDataset):
     def __len__(self) -> int:
         return self.num_samples
 
-    def __getitem__(self, idx: int) -> tuple[torch.Tensor]:
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor]:
         cat_slice = None if self.cat_all is None else self.cat_all[idx]
         con_slice = None if self.con_all is None else self.con_all[idx]
         return cat_slice, con_slice

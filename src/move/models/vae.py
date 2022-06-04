@@ -3,7 +3,7 @@ __all__ = ["VAE"]
 import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader
-
+from typing import List
 
 class VAE(nn.Module):
     """Variational autoencoder.
@@ -28,11 +28,11 @@ class VAE(nn.Module):
 
     def __init__(
         self,
-        categorical_shapes: list[tuple] = None,
-        continuous_shapes: list[tuple] = None,
-        categorical_weights: list[int] = None,
-        continuous_weights: list[int] = None,
-        num_hidden: list[int] = [200, 200],
+        categorical_shapes: List[tuple] = None,
+        continuous_shapes: List[tuple] = None,
+        categorical_weights: List[int] = None,
+        continuous_weights: List[int] = None,
+        num_hidden: List[int] = [200, 200],
         num_latent: int = 20,
         beta: float = 0.01,
         dropout: float = 0.2,

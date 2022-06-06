@@ -26,7 +26,7 @@ import tqdm
 
 path="./"
 sys.path.append(path + "src/")
-import VAE_v2_1
+from move import VAE_v2_1
 import os
 import yaml 
 from scipy import stats

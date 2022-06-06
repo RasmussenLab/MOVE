@@ -7,6 +7,7 @@ categorical_weights: ${weights:${data.categorical_inputs}}
 continuous_weights: ${weights:${data.continuous_inputs}}
 
 num_hidden: 200
+nLantent_04: 200
 num_latent:
     - 150
     - 200

@@ -35,6 +35,7 @@ class VAEConfig(ModelConfig):
     num_hidden: int
     num_layers: int
     num_latent: List[int]
+    nLatent_04: int
     beta: float
     dropout: float
 

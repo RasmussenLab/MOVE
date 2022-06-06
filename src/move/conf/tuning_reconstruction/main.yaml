@@ -4,7 +4,7 @@ nHiddens:
   
 nLatents:
   - 20
-  - 50
+#   - 50
   
 nLayers: 
   - 1
@@ -12,11 +12,11 @@ nLayers:
   
 nDropout: 
   - 0.1
-  - 0.2
+#   - 0.2
   
 nBeta: 
   - 0.00001 
-  - 0.0001
+#   - 0.0001
   
 batch_sizes: 
   - 10

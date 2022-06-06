@@ -1,4 +1,3 @@
-from utils.data_utils import *
 import os, sys
 import torch
 import numpy as np
@@ -27,10 +26,12 @@ import tqdm
 
 path="./"
 sys.path.append(path + "src/")
-import VAE_v2_1
 import os
 import yaml 
 import plot_importance
+
+from move._utils.data_utils import *
+from move import VAE_v2_1
 
 def visualize_likelihood(nLayers, nHiddens, nDropout, nBeta, nLatents, likelihood_tests):
     # Figure for test error/likelihood

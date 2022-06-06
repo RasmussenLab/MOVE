@@ -27,11 +27,11 @@ import tqdm
 
 path="./"
 sys.path.append(path + "src/")
-import VAE_v2_1
+from move import VAE_v2_1
 import os
 import yaml 
-from utils.model_utils import *
-from utils.data_utils import *
+from move._utils.model_utils import *
+from move._utils.data_utils import *
 
 def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_sizes, nepochs, repeat, lrate, kldsteps, batchsteps, patience, cuda, path, cat_list, con_list):
     
@@ -171,7 +171,7 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
          cat_recons_tests[combi].append(cat_recon_test)
          loss_tests[combi].append(loss_test)
          likelihood_tests[combi].append(likelihood_test)
-            
+      
         #          recon_acc, latents, con_recons, cat_recons, loss_train, likelihoods, best_epochs, recon_acc_tests,\
 #          latents_tests, con_recons_tests, cat_recons_tests, loss_tests, likelihood_tests = save_input(\
 #                 combi,cat_true_recon,true_recon,latent,con_recon,cat_recon,loss,likelihood,best_epoch,\
@@ -193,6 +193,7 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
    np.save(path + "hyperparameters/test_loss_benchmark_final.npy", loss_tests)
    np.save(path + "hyperparameters/test_likelihood_benchmark_final.npy", likelihood_tests)
     
+   return(likelihood_tests, recon_acc_tests, recon_acc)
 # def get_list_value(*args):
 #     arg_tuple = [arg[0] if len(arg) == 1 else arg for arg in args]
 #     return(arg_tuple)

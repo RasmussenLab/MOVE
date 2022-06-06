@@ -84,7 +84,7 @@ def main(config: MOVEConfig):
     cuda = config.training.cuda
     path = config.data.processed_data_path
     nHiddens = config.model.num_hidden
-    nLatents = config.model.num_latent
+    nLatents = config.model.nLantent_04
     nLayers = config.model.num_layers
     nDropout = config.model.dropout
     nBeta = config.model.beta

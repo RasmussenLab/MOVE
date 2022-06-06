@@ -27,8 +27,8 @@ from collections import defaultdict
 import itertools 
 from tqdm import tqdm
 
-from utils.data_utils import initiate_default_dicts
-import VAE_v2_1
+from move._utils.data_utils import initiate_default_dicts
+from move import VAE_v2_1
 
 def get_top10_stability(nHiddens, nLatents, drop_outs, repeat, nl, latents):
    # Todo: TOP10 not used description by Rosa

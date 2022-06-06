@@ -82,7 +82,7 @@ def main(config: MOVEConfig):
                                                                                 cuda, path, 
                                                                                 con_list, cat_list)
     
-    stability_top10 = get_top10_stability(nHiddens, nLatents, drop_outs, repeat, nLayers, latents)
+    stability_top10 = get_top10_stability(nHiddens, nLatents, nDropout, repeat, nLayers, latents)
     
     stability_total, rand_index = calculate_latent(nHiddens, nLatents, nDropout, repeat, nLayers, latents) # Todo add priting or smth
     

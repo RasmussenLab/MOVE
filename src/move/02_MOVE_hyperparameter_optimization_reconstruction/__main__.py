@@ -65,14 +65,14 @@ def main(config: MOVEConfig):
     cat_list, con_list, cat_names, con_names, headers_all, drug, drug_h = get_data(path, categorical_names, continuous_names, data_of_interest)
     
     #Perform hyperparameter tuning
-    optimize_reconstruction(nHiddens, nLatents, 
-                            nLayers, nDropout, 
-                            nBeta, batch_sizes, 
-                            nepochs, repeat, 
-                            lrate, kld_steps, 
-                            batch_steps, patience, 
-                            cuda, path, 
-                            cat_list, con_list)
+    likelihood_tests, recon_acc_tests, recon_acc = optimize_reconstruction(nHiddens, nLatents, 
+                                                                            nLayers, nDropout, 
+                                                                            nBeta, batch_sizes, 
+                                                                            nepochs, repeat, 
+                                                                            lrate, kld_steps, 
+                                                                            batch_steps, patience, 
+                                                                            cuda, path, 
+                                                                            cat_list, con_list)
 
     #Visualize the data
     visualize_likelihood(nLayers, nHiddens, nDropout, nBeta, nLatents, likelihood_tests)

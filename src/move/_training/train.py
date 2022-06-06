@@ -408,6 +408,10 @@ def train_model_association(path, cuda, nepochs, nLatents, con_list, cat_list, v
    isExist = os.path.exists(path + 'wp2.2/sig_overlap/')
    if not isExist:
       os.makedirs(path + 'wp2.2/sig_overlap/')
+    
+   isExist = os.path.exists(path + 'results/')
+   if not isExist:
+      os.makedirs(path + 'results/')
 
    with open(path + "results/results_" + version + ".npy", 'wb') as f:
       np.save(f, results)

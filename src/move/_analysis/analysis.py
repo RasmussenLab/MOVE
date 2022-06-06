@@ -372,7 +372,7 @@ def get_feat_importance_on_weights(path, model, train_loader, cat_names, con_nam
    tmp_pd = pd.DataFrame(w_sum_con[feature_order], index=features_w_con)
    tmp_pd.T.to_csv(path + "results/importance_w_con.txt")
     
-def cal_reconstruction_change(recon_results):
+def cal_reconstruction_change(recon_results, repeats):
    recon_average = dict()
    for l in recon_results.keys():
       average = defaultdict(dict)
@@ -491,8 +491,8 @@ def report_values(path, sig_hits, median_p_val, drug_h, all_hits, con_names): #T
 
     
 
-def get_change_in_reconstruction(recon_average, groups, drug, drug_h, con_names, collected_overlap, sig_hits, con_all, version, path): 
-   types = [[1, 0]] #TODOs: Should types be really like this?  #Change only in this notebook
+def get_change_in_reconstruction(recon_average, groups, drug, drug_h, con_names, collected_overlap, sig_hits, con_all, version, path, types): 
+#    types = [[1, 0]] #TODOs: Should types be really like this?  #Change only in this notebook
 
    recon_average_corr_all = dict()
    counts_average_all = dict()
@@ -563,12 +563,11 @@ def get_change_in_reconstruction(recon_average, groups, drug, drug_h, con_names,
    return(recon_average_corr_new_all, recon_average_corr_all_indi_new)
 
 
-def write_omics_results(path, up_down_list, collected_overlap, recon_average_corr_new_all, headers_all): #Todo why only cotinuous data?
+def write_omics_results(path, up_down_list, collected_overlap, recon_average_corr_new_all, headers_all, con_types, data_of_interest): #Todo why only cotinuous data?
     #Todo: since where was no significant hits, couldn't test the function
-   con_types = data_dict['continuous_data_files']
  
-   for i in range(len(data_types)):
-      if data_types[i] != data_dict['data_of_interest']:
+   for i in range(len(con_types)):
+      if con_types[i] != data_of_interest:
          for d in collected_overlap:
             n = np.intersect1d(collected_overlap[d], headers_all[i])
             
@@ -586,7 +585,7 @@ def write_omics_results(path, up_down_list, collected_overlap, recon_average_cor
                with open(path + f"results/{con_types[i]}_down_" + d.replace(" ", "_")  + ".txt", "w") as o:
                   o.write("\n".join(down))
                 
-def make_files(collected_overlap, groups, con_all, path, recon_average_corr_all_indi_new, con_names, con_dataset_names, drug_h, drug, all_hits, version = "v1"):
+def make_files(collected_overlap, groups, con_all, path, recon_average_corr_all_indi_new, con_names, con_dataset_names, drug_h, drug, all_hits, types, version = "v1"):
    all_db_names = [item for sublist in con_names for item in sublist]
    ci_dict = {}
    for i,n in enumerate(con_dataset_names):
@@ -594,6 +593,7 @@ def make_files(collected_overlap, groups, con_all, path, recon_average_corr_all_
       sig_drug_names = np.intersect1d(all_hits, n)
       for d in drug_h:
          f = drug_h.index(d)
+#          print(f'f: {recon_average_corr_all_indi_new.shape}')
          recon_data_d = recon_average_corr_all_indi_new[f]
          
          gr = groups[f]
@@ -621,7 +621,7 @@ def make_files(collected_overlap, groups, con_all, path, recon_average_corr_all_
       ci_collected_df.T.to_csv(path + "results/" + con_dataset_names[i] + "_ci_sig_" + version +  ".txt", sep = "\t")
 
     
-def get_inter_drug_variation(con_names, drug_h, recon_average_corr_all_indi_new, groups, collected_overlap, drug, con_all, path):
+def get_inter_drug_variation(con_names, drug_h, recon_average_corr_all_indi_new, groups, collected_overlap, drug, con_all, path, types):
    # Inter drug variation 
    all_db_names = [item for sublist in con_names for item in sublist]
    inter_drug_variance = []
@@ -645,7 +645,7 @@ def get_inter_drug_variation(con_names, drug_h, recon_average_corr_all_indi_new,
    return(df_indi_var)
 
 
-def get_drug_similar_each_omics(con_names, con_dataset_names, all_hits, recon_average_corr_new_all, drug_h, version):
+def get_drug_similar_each_omics(con_names, con_dataset_names, all_hits, recon_average_corr_new_all, drug_h, version, path):
 
 #    con_names = [con_h, diet_wearables_h, pro_h, targm_h, untargm_h, tran_h, meta_h]
 #    con_dataset_names_v1 = ['Clinical continuous', 'Diet and wearables','Proteomics','Targeted metabolomics','Unargeted metabolomics', 'Transcriptomics', 'Metagenomics'] #TODOs define outside maybe

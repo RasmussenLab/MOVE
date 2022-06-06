@@ -397,7 +397,7 @@ def plot_continuous_importance(path, train_loader, sum_diffs, feature_names, fig
                       fig_name='importance_SHAP_con')
     
 
-def visualize_indi_var(df_indi_var, version):
+def visualize_indi_var(df_indi_var, version, path):
 
    plt.style.use('seaborn-whitegrid')
    fig = plt.figure(figsize=(12,10))
@@ -413,7 +413,7 @@ def visualize_indi_var(df_indi_var, version):
    plt.show()   
 
 
-def visualize_drug_similarity_across_all(recon_average_corr_new_all, drug_h, version):
+def visualize_drug_similarity_across_all(recon_average_corr_new_all, drug_h, version, path):
     
    cos_sim = cosine_similarity(recon_average_corr_new_all)
 

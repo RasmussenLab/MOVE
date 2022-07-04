@@ -18,7 +18,8 @@ import itertools
 from tqdm import tqdm
 
 from move._utils.data_utils import initiate_default_dicts
-from move import VAE_v2_1
+# from move import VAE_v2_1
+from move.data import dataloaders
 from move.models import vae
 
 def get_top10_stability(nHiddens, nLatents, drop_outs, repeat, nl, latents):
@@ -246,7 +247,7 @@ def get_feature_importance_categorical(model, train_loader, latent, kld_w=1): #W
          input_cat[:, pos:(cat_shape[1]*cat_shape[2] + pos)] = new_cat
          input_cat = torch.from_numpy(input_cat)
 
-         dataset = VAE_v2_1.Dataset(input_cat, train_loader.dataset.con_all, 
+         dataset = dataloaders.MOVEDataset(input_cat, train_loader.dataset.con_all, 
                                     train_loader.dataset.con_shapes, 
                                     train_loader.dataset.cat_shapes)
 
@@ -288,7 +289,7 @@ def get_feature_importance_continuous(model, train_loader, mask, latent, kld_w=1
         new_con[:,feature_index] = 0
         new_con = torch.from_numpy(new_con)
 
-        dataset = VAE_v2_1.Dataset(train_loader.dataset.cat_all, new_con,
+        dataset = dataloaders.MOVEDataset(train_loader.dataset.cat_all, new_con,
                                    train_loader.dataset.con_shapes,
                                    train_loader.dataset.cat_shapes)
 

@@ -11,9 +11,13 @@ import random
 import itertools 
 
 from move import VAE_v2_1
+
 from move.models import vae
+from move.data import dataloaders
+
 from move._utils.model_utils import get_latent, cal_recon, cal_cat_recon, cal_con_recon, get_baseline, change_drug, cal_sig_hits, correction_new, get_start_end_positions 
 from move._utils.data_utils import initiate_default_dicts
+
 
 def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_sizes, nepochs, repeat, lrate, kldsteps, batchsteps, patience, cuda, path, cat_list, con_list):
     
@@ -50,7 +54,7 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
    cat_recons_tests, recon_acc_tests, loss_tests, likelihood_tests = initiate_default_dicts(0, 13)
 
     # Getting the data
-   mask_test, test_loader = VAE_v2_1.make_dataloader(cat_list=cat_list_test, con_list=con_list_test, batchsize=1)
+   mask_test, test_loader = dataloaders.make_dataloader(cat_list=cat_list_test, con_list=con_list_test, batchsize=1)
    test_loader = DataLoader(dataset=test_loader.dataset, batch_size=1, drop_last=False, shuffle=False) #, num_workers=1, pin_memory=test_loader.pin_memory
    
 
@@ -217,9 +221,9 @@ def train_model(cat_list, con_list, batch_size, nHidden, nl, nLatent, b, drop, c
          device = torch.device("cuda" if cuda == True else "cpu")
         
          # Initiate loader
-         mask, train_loader = VAE_v2_1.make_dataloader(cat_list=cat_list, 
-                                                       con_list=con_list, 
-                                                       batchsize=batch_size)
+         mask, train_loader = dataloaders.make_dataloader(cat_list=cat_list, 
+                                                          con_list=con_list, 
+                                                          batchsize=batch_size)
             
 
 #          ncategorical = train_loader.dataset.cat_all.shape[1]

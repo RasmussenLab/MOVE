@@ -52,18 +52,8 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
     # Getting the data
    mask_test, test_loader = VAE_v2_1.make_dataloader(cat_list=cat_list_test, con_list=con_list_test, batchsize=1)
    test_loader = DataLoader(dataset=test_loader.dataset, batch_size=1, drop_last=False, shuffle=False) #, num_workers=1, pin_memory=test_loader.pin_memory
-
-   mask, train_loader = VAE_v2_1.make_dataloader(cat_list=cat_list_train, con_list=con_list_train, batchsize=10)
-
-   ncontinuous = train_loader.dataset.con_all.shape[1]
-   con_shapes = train_loader.dataset.con_shapes
-
-   ncategorical = train_loader.dataset.cat_all.shape[1]
-   cat_shapes = train_loader.dataset.cat_shapes
-
-   l = len(kldsteps) # TODOs: not really clear this l
-   rate = 20/l 
    
+
    iters = itertools.product(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_sizes)
    for nHidden, nLatent, nl, drop, b, batch_size in iters:
       for r in range(repeat):
@@ -164,13 +154,11 @@ def train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHidden,
    results, recon_results, recon_results_1, mean_bas = initiate_default_dicts(n_empty_dicts=0, n_list_dicts=4)
 
    start, end = get_start_end_positions(cat_list, categorical_names, data_of_interest)
-    
-#    l = len(kldsteps)
-#    rate = 20/l
+
     
    iters = itertools.product(nLatents, range(repeats))
-   # Running the framework
-    
+
+   # Running the framework    
    for nLatent, repeat in iters: 
       best_model, loss, ce, sse, KLD, train_loader, mask, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, batch_sizes, nHidden, nl, nLatent, nBeta, drop, cuda, kldsteps, batchsteps, nepochs, lrate, test_loader=None, patience=None, early_stopping=False)
     
@@ -195,7 +183,6 @@ def train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHidden,
       mean_bas[nLatent].append(mean_baseline)
       recon_results[nLatent].append(recon_diff_corr)
       recon_results_1[nLatent].append(recon_diff)
-    
     
     
     # Saving results
@@ -229,15 +216,14 @@ def train_model(cat_list, con_list, batch_size, nHidden, nl, nLatent, b, drop, c
     
          device = torch.device("cuda" if cuda == True else "cpu")
         
-        
          # Initiate loader
          mask, train_loader = VAE_v2_1.make_dataloader(cat_list=cat_list, 
                                                        con_list=con_list, 
                                                        batchsize=batch_size)
             
-            
-         ncategorical = train_loader.dataset.cat_all.shape[1]
-         ncontinuous = train_loader.dataset.con_all.shape[1]
+
+#          ncategorical = train_loader.dataset.cat_all.shape[1]
+#          ncontinuous = train_loader.dataset.con_all.shape[1]
          con_shapes = train_loader.dataset.con_shapes
          cat_shapes = train_loader.dataset.cat_shapes
         
@@ -254,15 +240,15 @@ def train_model(cat_list, con_list, batch_size, nHidden, nl, nLatent, b, drop, c
          # Create lists for saving loss
          loss = list();ce = list();sse = list();KLD = list();loss_test = list()
          
-         # Train model
-        
+
          l = len(kldsteps) # TODOs: not really clear this l
          rate = 20/l 
          kld_w = 0
          update = 1 + rate
          l_min = None
          count = 0
-
+        
+         # Train model
          for epoch in range(1, nepochs + 1):
             if epoch in kldsteps:
                kld_w = 1/20 * update
@@ -274,7 +260,7 @@ def train_model(cat_list, con_list, batch_size, nHidden, nl, nLatent, b, drop, c
 
             l, c, s, k = model.encoding(train_loader, epoch, lrate, kld_w)
             
-            
+
             loss.append(l)
             ce.append(c)
             sse.append(s)

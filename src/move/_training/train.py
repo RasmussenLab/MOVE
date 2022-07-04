@@ -11,6 +11,7 @@ import random
 import itertools 
 
 from move import VAE_v2_1
+from move.models import vae
 from move._utils.model_utils import get_latent, cal_recon, cal_cat_recon, cal_con_recon, get_baseline, change_drug, cal_sig_hits, correction_new, get_start_end_positions 
 from move._utils.data_utils import initiate_default_dicts
 
@@ -60,7 +61,6 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
    ncategorical = train_loader.dataset.cat_all.shape[1]
    cat_shapes = train_loader.dataset.cat_shapes
 
-   device = torch.device("cuda" if cuda == True else "cpu")
    l = len(kldsteps) # TODOs: not really clear this l
    rate = 20/l 
    
@@ -70,67 +70,7 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
          combi = str([nHidden] * nl) + "+" + str(nLatent) + ", drop: " + str(drop) +", b: " + str(b) + ", batch: " + str(batch_size)
          
          best_model, loss, ce, sse, KLD, train_loader, mask, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, batch_size, nHidden, nl, nLatent, b, drop, cuda, kldsteps, batchsteps, nepochs, lrate, test_loader, patience, early_stopping=True)   
-#          # Initiate loader
-#          mask, train_loader = VAE_v2_1.make_dataloader(cat_list=cat_list_train, 
-#                                                        con_list=con_list_train, 
-#                                                        batchsize=batch_size)
-
-#          # Initate model
-#          model = VAE_v2_1.VAE(ncategorical=ncategorical, ncontinuous=ncontinuous,
-#                            con_shapes=con_shapes, cat_shapes=cat_shapes, nhiddens=[nHidden]*nl,
-#                            nlatent=nLatent,  beta=b, con_weights=[1,1,1,1,1,1,1],
-#                            cat_weights=[1,1,1], dropout=drop, cuda=cuda).to(device) # removed alpha=0.01,
-
-#          # Create lists for saving loss
-#          loss = list();ce = list();sse = list();KLD = list();loss_test = list()
-
-#          # Train model
-#          kld_w = 0
-#          update = 1 + rate
-#          l_min = None
-#          count = 0
-
-        
-#          for epoch in range(1, nepochs + 1):
-#             if epoch in kldsteps:
-#                kld_w = 1/20 * update
-#                #lrate = lrate - lrate*0.1
-#                update += rate
-
-#             if epoch in batchsteps:
-#                train_loader = DataLoader(dataset=train_loader.dataset,batch_size=int(train_loader.batch_size * 1.5),shuffle=True,drop_last=True) #,num_workers=train_loader.num_workers,pin_memory=train_loader.pin_memory  Is it really?: batch_size=int(train_loader.batch_size * 1.5)
-
-#             l, c, s, k = model.encoding(train_loader, epoch, lrate, kld_w)
-
-#             out = model.latent(test_loader, kld_w)
-#             loss_test.append(out[-2])
             
-#             print("Likelihood: " + str(out[-1]))
-
-#             loss.append(l)
-#             ce.append(c)
-#             sse.append(s)
-#             KLD.append(k)
-
-#             if (l_min != None and out[-1] > l_min) and count < patience: # Change to infinite value
-#                if count % 5 == 0:
-#                   lrate = lrate - lrate*0.10
-            
-#             elif count == patience: #Changed from 100
-#                break
-
-
-#             else:
-#                l_min = out[-1]
-#                best_model = copy.deepcopy(model)
-#                best_epoch = epoch
-#                count = 0
-
-#                if epoch > 3: # Added
-#                   break      # Added
-            
-#             if epoch > 10: # Added
-#                break      # Added
 
          # get results
          con_recon, train_test_loader, latent, latent_var, cat_recon, cat_class, loss, likelihood, latent_test, latent_var_test, cat_recon_test, cat_class_test, con_recon_test, loss_test, likelihood_test = get_latent(best_model, train_loader, test_loader, kld_w)
@@ -154,11 +94,6 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
          loss_tests[combi].append(loss_test)
          likelihood_tests[combi].append(likelihood_test)
       
-        #          recon_acc, latents, con_recons, cat_recons, loss_train, likelihoods, best_epochs, recon_acc_tests,\
-#          latents_tests, con_recons_tests, cat_recons_tests, loss_tests, likelihood_tests = save_input(\
-#                 combi,cat_true_recon,true_recon,latent,con_recon,cat_recon,loss,likelihood,best_epoch,\
-#                 cat_true_recon_test,true_recon_test,latent_test,con_recon_test,cat_recon_test,loss_test,likelihood_test)
-        
    # Save output
    np.save(path + "hyperparameters/latent_benchmark_final.npy", latents)
    np.save(path + "hyperparameters/con_recon_benchmark_final.npy", con_recons)
@@ -181,7 +116,6 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
     
 def optimize_stability(nHiddens, nLatents, drop_outs, nBeta, repeat, nepochs, nl, batch_sizes, lrate, kldsteps, batchsteps, cuda, path, con_list, cat_list):
     
-   device = torch.device("cuda" if cuda == True else "cpu") #TODO: repeat is not included anywhere, I think
    models, latents, embeddings, con_recons, cat_recons, recon_acc, los, likelihood = initiate_default_dicts(1, 7)
    
  
@@ -189,48 +123,10 @@ def optimize_stability(nHiddens, nLatents, drop_outs, nBeta, repeat, nepochs, nl
    for nHidden, nLatent, drop, r in iters:
       combi = str([nHidden] * nl) + "+" + str(nLatent) + ", Drop-out:" + str(drop)
       print(combi)
+    
       best_model, loss, ce, sse, KLD, train_loader, mask, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, batch_sizes, nHidden, nl, nLatent, nBeta, drop, cuda, kldsteps, batchsteps, nepochs, lrate, test_loader=None, patience=None, early_stopping=False)
     
-#       mask, train_loader = VAE_v2_1.make_dataloader(cat_list=cat_list, con_list=con_list, batchsize=batch_sizes)
-
-#       ncategorical = train_loader.dataset.cat_all.shape[1]
-#       ncontinuous = train_loader.dataset.con_all.shape[1]
-#       con_shapes = train_loader.dataset.con_shapes
-#       cat_shapes = train_loader.dataset.cat_shapes
-
-#       model = VAE_v2_1.VAE(ncategorical=ncategorical, ncontinuous= ncontinuous,
-#                         con_shapes=con_shapes, cat_shapes=cat_shapes, nhiddens=[nHidden]*nl,
-#                         nlatent=nLatent,  beta=0.0001, con_weights=[1,1,1,1,1,1,1],
-#                         cat_weights=[1,1,1], dropout=do, cuda=cuda).to(device) #alpha=0.1, 
-
-#       loss = list(); ce = list(); sse = list(); KLD = list()
-      
-#       kld_w = 0
-#       l = len(kldsteps)
-#       rate = 20/l 
-#       update = 1
     
-#       for epoch in range(1, nepochs + 1):
-
-#          if epoch in kldsteps:
-#             kld_w = 1/20 * update
-#             update += rate
-
-#          if epoch in batchsteps:
-#                   train_loader = DataLoader(dataset=train_loader.dataset,
-#                                           batch_size=int(train_loader.batch_size * 1.25), 
-#                                           shuffle=True,
-#                                           drop_last=True,
-#                                           num_workers=train_loader.num_workers,
-#                                           pin_memory=train_loader.pin_memory)
-                
-#          l, c, s, k = model.encoding(train_loader, epoch, lrate, kld_w)
-        
-#          loss.append(l)
-#          ce.append(c)
-#          sse.append(s)
-#          KLD.append(k)
-
       test_loader = DataLoader(dataset=train_loader.dataset, batch_size=1, drop_last=False,
                      shuffle=False, pin_memory=train_loader.pin_memory) #num_workers=1,
 
@@ -263,65 +159,10 @@ def optimize_stability(nHiddens, nLatents, drop_outs, nBeta, repeat, nepochs, nl
 
 
 
-# def train_model_latent(path, cuda, nepochs, kldsteps, batchsteps, lrate, con_list, cat_list, nHiddens, nLatent, nl, beta, dropout):
-        
-#     device = torch.device("cuda" if cuda == True else "cpu")
-    
-#     # Making the dataloader
-#     mask, train_loader = VAE_v2_1.make_dataloader(cat_list=cat_list, con_list=con_list, batchsize=10) #Added drop_last
-
-#     # Get variabels needed to initialize the model
-#     ncontinuous = train_loader.dataset.con_all.shape[1]
-#     con_shapes = train_loader.dataset.con_shapes
-
-#     ncategorical = train_loader.dataset.cat_all.shape[1]
-#     cat_shapes = train_loader.dataset.cat_shapes
-    
-#     # Make model
-#     model = VAE_v2_1.VAE(ncategorical=ncategorical, ncontinuous=ncontinuous, 
-#                          con_shapes=con_shapes, cat_shapes=cat_shapes,
-#                          nhiddens=[nHiddens]*nl, nlatent=nLatent, beta=beta, 
-#                          cat_weights=[1,1,1], con_weights=[2,1,1,1,1,1,1], 
-#                          dropout=dropout, cuda=cuda).to(device)
-    
-#     kld_w = 0
-#     l = len(kldsteps)
-#     rate = 20/l
-#     update = 1 + rate
-    
-#     # Lists for saving the results
-#     losses = list(); ce = list(); sse = list(); KLD = list()
-
-#     # Training the model
-#     for epoch in range(1, nepochs + 1):
-
-#         if epoch in kldsteps:
-#             kld_w = 1/20 * update
-#             update += r
-
-#         if epoch in batchsteps:
-#                 train_loader = DataLoader(dataset=train_loader.dataset,
-#                                           batch_size=int(train_loader.batch_size * 1.25),
-#                                           shuffle=True,
-#                                           drop_last=False, #Added
-#                                           num_workers=train_loader.num_workers,
-#                                           pin_memory=train_loader.pin_memory)
-
-#         l, c, s, k = model.encoding(train_loader, epoch, lrate, kld_w)
-
-#         losses.append(l)
-#         ce.append(c)
-#         sse.append(s)
-#         KLD.append(k)
-
-#         best_model = copy.deepcopy(model)
-#     return(best_model, mask, train_loader, losses, ce, sse, KLD, cat_shapes, con_shapes)
-
 def train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHidden, nl, nBeta, drop, con_list, cat_list, version, repeats, kldsteps, batchsteps, lrate, drug, categorical_names, data_of_interest):
 
    results, recon_results, recon_results_1, mean_bas = initiate_default_dicts(n_empty_dicts=0, n_list_dicts=4)
 
-   device = torch.device("cuda" if cuda == True else "cpu")
    start, end = get_start_end_positions(cat_list, categorical_names, data_of_interest)
     
 #    l = len(kldsteps)
@@ -333,36 +174,6 @@ def train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHidden,
    for nLatent, repeat in iters: 
       best_model, loss, ce, sse, KLD, train_loader, mask, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, batch_sizes, nHidden, nl, nLatent, nBeta, drop, cuda, kldsteps, batchsteps, nepochs, lrate, test_loader=None, patience=None, early_stopping=False)
     
-    
-#       mask, train_loader = VAE_v2_1.make_dataloader(cat_list=cat_list, con_list=con_list, batchsize=10)
-
-#       ncontinuous = train_loader.dataset.con_all.shape[1]
-#       con_shapes = train_loader.dataset.con_shapes
-
-#       ncategorical = train_loader.dataset.cat_all.shape[1]
-#       cat_shapes = train_loader.dataset.cat_shapes
-
-#       model = VAE_v2_1.VAE(ncategorical=ncategorical, ncontinuous=ncontinuous, con_shapes=con_shapes,
-#                      cat_shapes=cat_shapes, nhiddens=[2000], nlatent=l,
-#                      beta=0.0001, cat_weights=[1,1,1], con_weights=[2,1,1,1,1,1,1], dropout=0.1, cuda=cuda).to(device)
-
-#       update = 1 + rate
-#       kld_w = 0
-    
-#       for epoch in range(1, nepochs + 1):
-
-#          if epoch in kldsteps:
-#             kld_w = 1/20 * update
-#             update += rate
-
-#          if epoch in batchsteps:
-#                   train_loader = DataLoader(dataset=train_loader.dataset,
-#                                           batch_size=int(train_loader.batch_size * 1.5),
-#                                           shuffle=True,
-#                                           drop_last=True,
-#                                           pin_memory=train_loader.pin_memory) # num_workers=train_loader.num_workers,
-
-#          tmp_res = model.encoding(train_loader, epoch, lrate, kld_w)
 
       train_test_loader = DataLoader(dataset=train_loader.dataset, batch_size=train_loader.batch_size, drop_last=False,
                               shuffle=False, pin_memory=train_loader.pin_memory) #num_workers=1,
@@ -430,12 +241,16 @@ def train_model(cat_list, con_list, batch_size, nHidden, nl, nLatent, b, drop, c
          con_shapes = train_loader.dataset.con_shapes
          cat_shapes = train_loader.dataset.cat_shapes
         
-         # Initate model
-         model = VAE_v2_1.VAE(ncategorical=ncategorical, ncontinuous=ncontinuous,
-                           con_shapes=con_shapes, cat_shapes=cat_shapes, nhiddens=[nHidden]*nl,
-                           nlatent=nLatent,  beta=b, con_weights=[1,1,1,1,1,1,1],
-                           cat_weights=[1,1,1], dropout=drop, cuda=cuda).to(device) # removed alpha=0.01,
-
+         model = vae.VAE(continuous_shapes=con_shapes, 
+                         categorical_shapes=cat_shapes, 
+                         num_hidden=[nHidden]*nl,
+                         num_latent=nLatent,  
+                         beta=b, 
+                         continuous_weights=[1,1,1,1,1,1,1],
+                         categorical_weights=[1,1,1], 
+                         dropout=drop, 
+                         cuda=cuda).to(device) # removed alpha=0.01,       
+        
          # Create lists for saving loss
          loss = list();ce = list();sse = list();KLD = list();loss_test = list()
          
@@ -447,7 +262,6 @@ def train_model(cat_list, con_list, batch_size, nHidden, nl, nLatent, b, drop, c
          update = 1 + rate
          l_min = None
          count = 0
-
 
          for epoch in range(1, nepochs + 1):
             if epoch in kldsteps:

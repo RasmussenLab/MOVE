@@ -1,34 +1,25 @@
-import os, sys
+import os
 import torch
 import numpy as np
-from torch.utils import data
-
-from torch import nn
-from torch import optim
-import torch.nn.functional as F
 from torch.utils.data import DataLoader
-from torch.utils.data.dataset import TensorDataset
-
-# import umap
 import umap.umap_ as umap
 
 import matplotlib.pyplot as plt
 plt.style.use('seaborn-whitegrid')
+
 from scipy.stats.stats import pearsonr
-from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.cluster import KMeans
+from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.metrics import adjusted_rand_score
 import pandas as pd
 import seaborn as sns
-import matplotlib
-import re
-import random
 from collections import defaultdict
 import itertools 
 from tqdm import tqdm
 
 from move._utils.data_utils import initiate_default_dicts
 from move import VAE_v2_1
+from move.models import vae
 
 def get_top10_stability(nHiddens, nLatents, drop_outs, repeat, nl, latents):
    # Todo: TOP10 not used description by Rosa
@@ -124,7 +115,7 @@ def get_latents(best_model, train_loader, kld_w=1): #TODOs: get right train_load
                                    pin_memory=train_loader.pin_memory) # removed num_workers=1,
 
     latent, latent_var, cat_recon, cat_class, \
-    con_recon, loss, likelihood = best_model.latent(train_test_loader, kld_w=1)
+    con_recon, loss, likelihood = best_model.latent(train_test_loader, 1)
 
     con_recon = np.array(con_recon)
     con_recon = torch.from_numpy(con_recon)
@@ -148,6 +139,7 @@ def calc_categorical_reconstruction_acc(cat_shapes, cat_class, cat_recon):
       diff_cat[diff_cat != 0] = -1
       true_cat = diff_cat[diff_cat == 0]
       false_cat = diff_cat[diff_cat != 0]
+
       cat_true = len(true_cat)/(float(diff_cat.size) - missing_cat.size)
       cat_true_recon.append(cat_true)
       diff_cat[diff_cat == 0] = 1

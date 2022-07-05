@@ -10,16 +10,13 @@ import umap.umap_ as umap
 import random
 import itertools 
 
-from move import VAE_v2_1
-
 from move.models import vae
 from move.data import dataloaders
-
 from move._utils.model_utils import get_latent, cal_recon, cal_cat_recon, cal_con_recon, get_baseline, change_drug, cal_sig_hits, correction_new, get_start_end_positions 
 from move._utils.data_utils import initiate_default_dicts
 
 
-def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_sizes, nepochs, repeat, lrate, kldsteps, batchsteps, patience, cuda, path, cat_list, con_list):
+def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_sizes, nepochs, repeat, lrate, kldsteps, batchsteps, patience, cuda, path, cat_list, con_list, continuous_weights, categorical_weights):
     
     # Preparing the data
     isExist = os.path.exists(path + 'hyperparameters/')
@@ -63,7 +60,7 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
         for r in range(repeat):
             combi = str([nHidden] * nl) + "+" + str(nLatent) + ", drop: " + str(drop) +", b: " + str(b) + ", batch: " + str(batch_size)
 
-            best_model, loss, ce, sse, KLD, train_loader, mask, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, batch_size, nHidden, nl, nLatent, b, drop, cuda, kldsteps, batchsteps, nepochs, lrate, test_loader, patience, early_stopping=True)   
+            best_model, loss, ce, sse, KLD, train_loader, mask, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_size, nHidden, nl, nLatent, b, drop, cuda, kldsteps, batchsteps, nepochs, lrate, test_loader, patience, early_stopping=True)   
 
 
             # get results
@@ -108,7 +105,7 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
 
     
     
-def optimize_stability(nHiddens, nLatents, drop_outs, nBeta, repeat, nepochs, nl, batch_sizes, lrate, kldsteps, batchsteps, cuda, path, con_list, cat_list):
+def optimize_stability(nHiddens, nLatents, drop_outs, nBeta, repeat, nepochs, nl, batch_sizes, lrate, kldsteps, batchsteps, cuda, path, con_list, cat_list, continuous_weights, categorical_weights):
     
     models, latents, embeddings, con_recons, cat_recons, recon_acc, los, likelihood = initiate_default_dicts(1, 7)
 
@@ -118,7 +115,7 @@ def optimize_stability(nHiddens, nLatents, drop_outs, nBeta, repeat, nepochs, nl
         combi = str([nHidden] * nl) + "+" + str(nLatent) + ", Drop-out:" + str(drop)
         print(combi)
 
-        best_model, loss, ce, sse, KLD, train_loader, mask, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, batch_sizes, nHidden, nl, nLatent, nBeta, drop, cuda, kldsteps, batchsteps, nepochs, lrate, test_loader=None, patience=None, early_stopping=False)
+        best_model, loss, ce, sse, KLD, train_loader, mask, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_sizes, nHidden, nl, nLatent, nBeta, drop, cuda, kldsteps, batchsteps, nepochs, lrate, test_loader=None, patience=None, early_stopping=False)
 
 
         test_loader = DataLoader(dataset=train_loader.dataset, batch_size=1, drop_last=False,
@@ -153,7 +150,7 @@ def optimize_stability(nHiddens, nLatents, drop_outs, nBeta, repeat, nepochs, nl
 
 
 
-def train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHidden, nl, nBeta, drop, con_list, cat_list, version, repeats, kldsteps, batchsteps, lrate, drug, categorical_names, data_of_interest):
+def train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHidden, nl, nBeta, drop, con_list, cat_list, continuous_weights, categorical_weights, version, repeats, kldsteps, batchsteps, lrate, drug, categorical_names, data_of_interest):
 
     results, recon_results, recon_results_1, mean_bas = initiate_default_dicts(n_empty_dicts=0, n_list_dicts=4)
 
@@ -164,7 +161,7 @@ def train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHidden,
 
     # Running the framework    
     for nLatent, repeat in iters: 
-        best_model, loss, ce, sse, KLD, train_loader, mask, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, batch_sizes, nHidden, nl, nLatent, nBeta, drop, cuda, kldsteps, batchsteps, nepochs, lrate, test_loader=None, patience=None, early_stopping=False)
+        best_model, loss, ce, sse, KLD, train_loader, mask, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_sizes, nHidden, nl, nLatent, nBeta, drop, cuda, kldsteps, batchsteps, nepochs, lrate, test_loader=None, patience=None, early_stopping=False)
 
 
         train_test_loader = DataLoader(dataset=train_loader.dataset, batch_size=train_loader.batch_size, drop_last=False,
@@ -182,7 +179,7 @@ def train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHidden,
         results[nLatent].append(stat)
         recon_diff_corr = dict()
         for r_diff in recon_diff.keys():
-         recon_diff_corr[r_diff] = recon_diff[r_diff] - np.abs(mean_baseline[groups[r_diff]])
+            recon_diff_corr[r_diff] = recon_diff[r_diff] - np.abs(mean_baseline[groups[r_diff]])
 
         mean_bas[nLatent].append(mean_baseline)
         recon_results[nLatent].append(recon_diff_corr)
@@ -216,7 +213,7 @@ def train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHidden,
         
     
     
-def train_model(cat_list, con_list, batch_size, nHidden, nl, nLatent, b, drop, cuda, kldsteps, batchsteps, nepochs, lrate, test_loader, patience, early_stopping):
+def train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_size, nHidden, nl, nLatent, b, drop, cuda, kldsteps, batchsteps, nepochs, lrate, test_loader, patience, early_stopping):
     
     device = torch.device("cuda" if cuda == True else "cpu")
 
@@ -236,8 +233,8 @@ def train_model(cat_list, con_list, batch_size, nHidden, nl, nLatent, b, drop, c
                  num_hidden=[nHidden]*nl,
                  num_latent=nLatent,  
                  beta=b, 
-                 continuous_weights=[1,1,1,1,1,1,1],
-                 categorical_weights=[1,1,1], 
+                 continuous_weights=continuous_weights,
+                 categorical_weights=categorical_weights, 
                  dropout=drop, 
                  cuda=cuda).to(device) # removed alpha=0.01,       
 
@@ -249,7 +246,7 @@ def train_model(cat_list, con_list, batch_size, nHidden, nl, nLatent, b, drop, c
     rate = 20/l 
     kld_w = 0
     update = 1 + rate
-    l_min = None
+    l_min = float('inf')
     count = 0
 
     # Train model
@@ -277,13 +274,15 @@ def train_model(cat_list, con_list, batch_size, nHidden, nl, nLatent, b, drop, c
             print("Likelihood: " + str(out[-1]))
 
 
-            if (l_min != None and out[-1] > l_min) and count < patience: # Change to infinite value
+            if out[-1] > l_min and count < patience: # Change to infinite value
+                count+=1
+                
                 if count % 5 == 0:
                     lrate = lrate - lrate*0.10
 
+
             elif count == patience: #Changed from 100
                 break
-
 
             else:
                 l_min = out[-1]

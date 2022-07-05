@@ -20,7 +20,7 @@ categorical_inputs:
 
 continuous_inputs:
   - name: baseline_continuous
-    weight: 1
+    weight: 2
   - name: baseline_transcriptomics
     weight: 1
   - name: baseline_diet_wearables

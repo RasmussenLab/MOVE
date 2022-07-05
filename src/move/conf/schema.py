@@ -32,22 +32,28 @@ class ModelConfig:
 class VAEConfig(ModelConfig):
     categorical_weights: List[int]
     continuous_weights: List[int]
-    num_hidden: int
-    num_layers: int
-    num_latent: List[int]
-    nLatent_04: int
-    beta: float
-    dropout: float
-
-
-@dataclass
-class TrainingConfig:
     cuda: bool
     lr: float
     num_epochs: int
     kld_steps: List[int]
     batch_steps: List[int]
     version: str
+#     num_hidden: int
+#     num_layers: int
+#     num_latent: List[int]
+#     nLatent_04: int
+#     beta: float
+#     dropout: float
+
+
+# @dataclass
+# class TrainingConfig:
+#     cuda: bool
+#     lr: float
+#     num_epochs: int
+#     kld_steps: List[int]
+#     batch_steps: List[int]
+#     version: str
 
 @dataclass
 class TuningReconstructionConfig:
@@ -57,6 +63,7 @@ class TuningReconstructionConfig:
     beta: List[float]
     dropout: List[float]
     batch_sizes: List[int]
+    repeat: int
 
 @dataclass
 class TuningStabilityConfig:
@@ -65,15 +72,37 @@ class TuningStabilityConfig:
     num_layers: List[int]
     beta: List[float]
     dropout: List[float]
-    batch_sizes: List[int]        
+    batch_sizes: List[int]
+    repeat: int   
+        
+@dataclass
+class TrainingLatentConfig:
+    num_hidden: int
+    num_latent: int
+    num_layers: int
+    beta: float
+    dropout: float
+    batch_sizes: int 
+        
+@dataclass
+class TrainingFinalConfig:
+    num_hidden: int
+    num_latent: List[int]
+    num_layers: int
+    beta: float
+    dropout: float
+    batch_sizes: int 
+    repeat: int   
+
     
 @dataclass
 class MOVEConfig:
     data: DataConfig
     model: VAEConfig
-    training: TrainingConfig
-    tuning_reconstruction: TuningReconstructionConfig
-    tuning_stability: TuningStabilityConfig
+    tune_reconstruction: TuningReconstructionConfig
+    tune_stability: TuningStabilityConfig
+    train_latent: TrainingLatentConfig
+    train_final: TrainingFinalConfig
     name: str
     seed: int
 

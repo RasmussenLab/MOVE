@@ -1,75 +1,47 @@
 # Load functions
-from scipy.stats.stats import pearsonr
-from sklearn.metrics.pairwise import cosine_similarity
-import pandas as pd
-import seaborn as sns
-from collections import defaultdict
-from statsmodels.stats.multitest import multipletests
-from functools import reduce
-
-import matplotlib
-import matplotlib.pyplot as plt
-import random
-import copy
-import scipy
-from scipy import stats
-matplotlib.use('agg')
-plt.style.use('seaborn-whitegrid')
-
-import os, sys
-import torch
-import numpy as np
-from torch.utils import data
-import re 
-
-from torch import nn
-from torch import optim
-import torch.nn.functional as F
-from torch.utils.data import DataLoader
-from torch.utils.data.dataset import TensorDataset
-import itertools
-
-from move._utils.data_utils import *
-from move._analysis.analysis import *
-from move._training.train import train_model_association
-from move._utils.model_utils import *
-from move._utils.visualization_utils import *
-from move._utils.data_utils import get_data
-
-from move import VAE_v2_1
 import hydra 
 from move.conf.schema import MOVEConfig
+
+from move._utils.data_utils import get_data
+from move._training.train import train_model_association
+from move._utils.visualization_utils import visualize_indi_var, visualize_drug_similarity_across_all
+from move._analysis.analysis import cal_reconstruction_change, overlapping_hits, identify_high_supported_hits, report_values, get_change_in_reconstruction, write_omics_results, make_files, get_inter_drug_variation, get_drug_similar_each_omics
+
+import numpy as np #for some reason when I import numpy before move functions - stucks in running
+
 
 @hydra.main(config_path="../conf", config_name="main")
 def main(config: MOVEConfig): 
     
     #Get needed variables
-    cuda = config.training.cuda
     path = config.data.processed_data_path
-    nHiddens = config.model.num_hidden
-    nLatents = config.model.num_latent
-    nLayers = config.model.num_layers
-    nDropout = config.model.dropout
-    nBeta = config.model.beta
-    batch_sizes = config.model.batch_sizes
-    nepochs = config.training.num_epochs
-    repeats = config.training.repeat
-    lrate = config.training.lr
-    kld_steps = config.training.kld_steps
-    batch_steps = config.training.batch_steps
-    patience = config.training.patience
-    path = config.data.processed_data_path
+    data_of_interest = config.data.data_of_interest
+    version = config.data.version
+    
+    cuda = config.model.cuda
+    nepochs = config.model.num_epochs
+
+    lrate = config.model.lr
+    kld_steps = config.model.kld_steps
+    batch_steps = config.model.batch_steps
     categorical_names = config.model.categorical_names
     continuous_names = config.model.continuous_names
-    data_of_interest = config.data.data_of_interest
-    version = config.training.version
+
+    nHiddens = config.training_final.num_hidden
+    nLatents = config.training_final.num_latent
+    nLayers = config.training_final.num_layers
+    nDropout = config.training_final.dropout
+    nBeta = config.training_final.beta
+    batch_sizes = config.training_final.batch_sizes
+    repeats = config.training_final.repeats
     
     types = [[1, 0]]
+
     
     cat_list, con_list, cat_names, con_names, headers_all, drug, drug_h = get_data(path, categorical_names, continuous_names, data_of_interest)
     
-#     #train model
-    train_model_association(path, cuda, nepochs, nLatents, con_list, cat_list, version, repeats, kld_steps, batch_steps, lrate, drug)
+    #train model
+    train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHiddens, nLayers, nBeta, nDropout, con_list, cat_list, version, repeats, kld_steps, batch_steps, lrate, drug, categorical_names, data_of_interest)
     
     # Load files 
     results = np.load(path + "results/results_" + version + ".npy", allow_pickle=True).item()
@@ -92,19 +64,14 @@ def main(config: MOVEConfig):
     con_list_concat = np.concatenate(con_list, axis=-1)
     
     recon_average_corr_new_all, recon_average_corr_all_indi_new = get_change_in_reconstruction(recon_average, groups, drug, drug_h, con_names, collected_overlap, sig_hits, con_list_concat, version, path, types)
-        
     
     recon_average_corr_new_all = np.load(path + "results/results_confidence_recon_all_" + version + ".npy", allow_pickle=True)
     
     recon_average_corr_all_indi_new = np.load(path + "results/results_confidence_recon_all_indi_" + version + ".npy", allow_pickle=True).item()
-#     print(f'recon_average_corr_all_indi_new: {recon_average_corr_all_indi_new}')
+
     up_down_list = ['baseline_target_metabolomics', 'baseline_untarget_metabolomics']         
     
     write_omics_results(path, up_down_list, collected_overlap, recon_average_corr_new_all, headers_all, continuous_names, data_of_interest)
-
-
-    # con_dataset_names = ['Clinical_continuous', 'Diet_wearables','Proteomics','Targeted_metabolomics','Unargeted_metabolomics', 'Transcriptomics', 'Metagenomics']
-    
     
     make_files(collected_overlap, groups, con_list_concat, path, recon_average_corr_all_indi_new, con_names, continuous_names, drug_h, drug, all_hits, types, version)
     

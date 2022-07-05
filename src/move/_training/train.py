@@ -17,6 +17,12 @@ from move._utils.data_utils import initiate_default_dicts
 
 
 def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_sizes, nepochs, repeat, lrate, kldsteps, batchsteps, patience, cuda, path, cat_list, con_list, continuous_weights, categorical_weights):
+    """
+    Performs hyperparameter tuning in terms of reconstruction
+    
+    inputs:
+    returns:
+    """ 
     
     # Preparing the data
     isExist = os.path.exists(path + 'hyperparameters/')
@@ -55,35 +61,34 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
     test_loader = DataLoader(dataset=test_loader.dataset, batch_size=1, drop_last=False, shuffle=False) #, num_workers=1, pin_memory=test_loader.pin_memory
 
 
-    iters = itertools.product(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_sizes)
-    for nHidden, nLatent, nl, drop, b, batch_size in iters:
-        for r in range(repeat):
-            combi = str([nHidden] * nl) + "+" + str(nLatent) + ", drop: " + str(drop) +", b: " + str(b) + ", batch: " + str(batch_size)
+    iters = itertools.product(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_sizes, range(repeat))
+    for nHidden, nLatent, nl, drop, b, batch_size, r in iters:
+        combi = str([nHidden] * nl) + "+" + str(nLatent) + ", drop: " + str(drop) +", b: " + str(b) + ", batch: " + str(batch_size)
 
-            best_model, loss, ce, sse, KLD, train_loader, mask, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_size, nHidden, nl, nLatent, b, drop, cuda, kldsteps, batchsteps, nepochs, lrate, test_loader, patience, early_stopping=True)   
+        best_model, loss, ce, sse, KLD, train_loader, mask, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_size, nHidden, nl, nLatent, b, drop, cuda, kldsteps, batchsteps, nepochs, lrate, test_loader, patience, early_stopping=True)   
 
 
-            # get results
-            con_recon, train_test_loader, latent, latent_var, cat_recon, cat_class, loss, likelihood, latent_test, latent_var_test, cat_recon_test, cat_class_test, con_recon_test, loss_test, likelihood_test = get_latent(best_model, train_loader, test_loader, kld_w)
+        # get results
+        con_recon, train_test_loader, latent, latent_var, cat_recon, cat_class, loss, likelihood, latent_test, latent_var_test, cat_recon_test, cat_class_test, con_recon_test, loss_test, likelihood_test = get_latent(best_model, train_loader, test_loader, kld_w)
 
-            # Calculate reconstruction
-            cat_true_recon,true_recon,cat_true_recon_test,true_recon_test = cal_recon(cat_shapes, cat_recon, cat_class, train_loader, con_recon, con_shapes, cat_recon_test, cat_class_test, test_loader, con_recon_test)
+        # Calculate reconstruction
+        cat_true_recon,true_recon,cat_true_recon_test,true_recon_test = cal_recon(cat_shapes, cat_recon, cat_class, train_loader, con_recon, con_shapes, cat_recon_test, cat_class_test, test_loader, con_recon_test)
 
-            # Save output
-            recon_acc[combi].append(cat_true_recon + true_recon)
-            latents[combi].append(latent)
-            con_recons[combi].append(con_recon)
-            cat_recons[combi].append(cat_recon)
-            loss_train[combi].append(loss)
-            likelihoods[combi].append(likelihood)
-            best_epochs[combi].append(best_epoch)
+        # Save output
+        recon_acc[combi].append(cat_true_recon + true_recon)
+        latents[combi].append(latent)
+        con_recons[combi].append(con_recon)
+        cat_recons[combi].append(cat_recon)
+        loss_train[combi].append(loss)
+        likelihoods[combi].append(likelihood)
+        best_epochs[combi].append(best_epoch)
 
-            recon_acc_tests[combi].append(cat_true_recon_test + true_recon_test)
-            latents_tests[combi].append(latent_test)
-            con_recons_tests[combi].append(con_recon_test)
-            cat_recons_tests[combi].append(cat_recon_test)
-            loss_tests[combi].append(loss_test)
-            likelihood_tests[combi].append(likelihood_test)
+        recon_acc_tests[combi].append(cat_true_recon_test + true_recon_test)
+        latents_tests[combi].append(latent_test)
+        con_recons_tests[combi].append(con_recon_test)
+        cat_recons_tests[combi].append(cat_recon_test)
+        loss_tests[combi].append(loss_test)
+        likelihood_tests[combi].append(likelihood_test)
 
     # Save output
     np.save(path + "hyperparameters/latent_benchmark_final.npy", latents)

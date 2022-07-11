@@ -13,7 +13,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.metrics import adjusted_rand_score
 import pandas as pd
 import seaborn as sns
-from collections import defaultdict
+# from collections import defaultdict
 import itertools 
 from tqdm import tqdm
 
@@ -22,17 +22,30 @@ from move._utils.data_utils import initiate_default_dicts
 from move.data import dataloaders
 from move.models import vae
 
-def get_top10_stability(nHiddens, nLatents, drop_outs, repeat, nl, latents):
+from collections import Counter, defaultdict
+# import numpy as np 
+# import pandas as pd
+from scipy import stats
+
+def get_top10_stability(nHiddens, nLatents, drop_outs, nLayers, repeat, latents, batch_sizes, nBeta):
     # Todo: TOP10 not used description by Rosa
     npatient = list(latents.values())[0][0].shape[0]
     top10_changes, stability_top10 = initiate_default_dicts(0, 2) #TODOS: top10 changes not needed? - mention, not used
-     
-    iters = itertools.product(nHiddens, nLatents, drop_outs)
-    for nHidden, nLatent, do in iters: 
+    
+    stability_top10_df = [] 
+        
+#     iters = itertools.product(nHiddens, nLatents, drop_outs)
+#     for nHidden, nLatent, do in iters: 
+    iters = itertools.product(nHiddens, nLatents, nLayers, drop_outs, nBeta)
+    for nHidden, nLatent, nl, drop, b in iters:
+       
+        
         max_pos_values_init = list()
         old_sum_max = list()
+        
+        name = str([nHidden] * nl) + "+" + str(nLatent) + ", do: " + str(drop) +", b: " + str(b)
+#         name = str([nHidden] * nl) + "+" + str(nLatent) + ", Drop-out:" + str(do)
 
-        name = str([nHidden] * nl) + "+" + str(nLatent) + ", Drop-out:" + str(do)
         print(name)
         top10_changes[name] = [ [] for i in range(npatient) ]
      
@@ -56,21 +69,35 @@ def get_top10_stability(nHiddens, nLatents, drop_outs, repeat, nl, latents):
             print(r)
             if r != 0:
                 stability_top10[name].append(np.mean(step))
+                stability_top10_df.append({
+                    'num_hidden': nHidden,
+                    'num_latent': nLatent,
+                    'num_layers': nl,
+                    'dropout': drop,
+                    'beta': b,
+                    'batch_sizes': batch_sizes, 
+                    'repeats': r,
+                    'difference': np.mean(step)
+                    })
+    stability_top10_df = pd.DataFrame(stability_top10_df)
+    return(stability_top10, stability_top10_df)
 
-    return(stability_top10)
 
-
-def calculate_latent(nHiddens, nLatents, drop_outs, repeat, nl, latents):
+def calculate_latent(nHiddens, nLatents, drop_outs, repeat, nLayers, nBeta, latents):
 #     npatient = cat.shape[0] # Change into smthg better
     npatient = list(latents.values())[0][0].shape[0]
     total_changes, stability_total, rand_index = initiate_default_dicts(0, 3)
      
-    iters = itertools.product(nHiddens, nLatents, drop_outs)
-    for nHidden, nLatent, do in iters:  
+#     iters = itertools.product(nHiddens, nLatents, drop_outs)
+#     for nHidden, nLatent, do in iters:  
+    iters = itertools.product(nHiddens, nLatents, nLayers, drop_outs, nBeta)
+    for nHidden, nLatent, nl, drop, b in iters:
+       
         pos_values_init = list() 
         old_rows = list()
           
-        name = str([nHidden] * nl) + "+" + str(nLatent) + ", Drop-out:" + str(do)
+#         name = str([nHidden] * nl) + "+" + str(nLatent) + ", Drop-out:" + str(do)
+        name = str([nHidden] * nl) + "+" + str(nLatent) + ", do: " + str(drop) +", b: " + str(b)
         total_changes[name] = [ [] for i in range(npatient) ]
 
         for r in range(repeat):
@@ -95,7 +122,7 @@ def calculate_latent(nHiddens, nLatents, drop_outs, repeat, nl, latents):
                 for i in range(0,100):
                     kmeans = kmeans.fit(latents[name][r])
                     labels = kmeans.predict(latents[name][r])
-                    rand_tmp.append(adjusted_rand_score(true_labels, labels)) #Changed to adjusted_rand_score
+                    rand_tmp.append(adjusted_rand_score(true_labels, labels))
 
                 rand_index[name].append(np.mean(rand_tmp))
                 stability_total[name].append(np.mean(step))
@@ -106,6 +133,114 @@ def calculate_latent(nHiddens, nLatents, drop_outs, repeat, nl, latents):
 
     stability_total = pd.DataFrame(stability_total)
     return(stability_total, rand_index)
+
+
+# def get_top10_stability(nHiddens, nLatents, drop_outs, nl, repeat, latents, batch_sizes, nBeta):
+#     # Todo: TOP10 not used description by Rosa
+#     npatient = list(latents.values())[0][0].shape[0]
+#     top10_changes, stability_top10 = initiate_default_dicts(0, 2) #TODOS: top10 changes not needed? - mention, not used
+    
+#     stability_top10_df = [] 
+        
+#     iters = itertools.product(nHiddens, nLatents, drop_outs)
+#     for nHidden, nLatent, do in iters: 
+# #     iters = itertools.product(nHiddens, nLatents, nLayers, drop_outs, nBeta, range(repeat))
+# #     for nHidden, nLatent, nl, drop, b, r in iters:
+       
+        
+#         max_pos_values_init = list()
+#         old_sum_max = list()
+        
+# #         name = str([nHidden] * nl) + "+" + str(nLatent) + ", do: " + str(drop) +", b: " + str(b)
+#         name = str([nHidden] * nl) + "+" + str(nLatent) + ", Drop-out:" + str(do)
+
+#         print(name)
+#         top10_changes[name] = [ [] for i in range(npatient) ]
+     
+#         for r in range(repeat):
+#             cos_sim = cosine_similarity(latents[name][r])
+#             corr = pd.DataFrame(cos_sim)
+                
+#             step = list()
+#             for index, row in corr.iterrows():
+#                 if r == 0:
+#                     max_pos = np.asarray(row.argsort()[11:][::-1][1:11])
+#                     max_pos_values_init.append(max_pos)
+#                     #summed_max = np.mean(row[max_pos])
+#                     old_sum_max.append(row[max_pos])
+#                 else:
+#                     old_pos = max_pos_values_init[index]
+#                     old_sum = old_sum_max[index]
+#                     #summed_max = np.mean(row[old_pos])
+#                     top10_changes[name][index].append(np.mean(abs(old_sum - row[old_pos])))
+#                     step.append(np.mean(abs(old_sum - row[old_pos])))
+#             print(r)
+#             if r != 0:
+#                 stability_top10[name].append(np.mean(step))
+#                 stability_top10_df.append({
+#                     'num_hidden': nHidden,
+#                     'num_latent': nLatent,
+#                     'num_layers': nl,
+#                     'dropout': drop_outs,
+#                     'beta': nBeta,
+#                     'batch_sizes': batch_sizes, 
+#                     'repeats': r,
+#                     'difference': np.mean(step)
+#                     })
+#     stability_top10_df = pd.DataFrame(stability_top10_df)
+#     return(stability_top10, stability_top10_df)
+
+
+# def calculate_latent(nHiddens, nLatents, drop_outs, repeat, nl, nBeta, latents):
+# #     npatient = cat.shape[0] # Change into smthg better
+#     npatient = list(latents.values())[0][0].shape[0]
+#     total_changes, stability_total, rand_index = initiate_default_dicts(0, 3)
+     
+#     iters = itertools.product(nHiddens, nLatents, drop_outs)
+#     for nHidden, nLatent, do in iters:  
+# #     iters = itertools.product(nHiddens, nLatents, nLayers, drop_outs, nBeta, range(repeat))
+# #     for nHidden, nLatent, nl, drop, b, r in iters:
+       
+#         pos_values_init = list() 
+#         old_rows = list()
+          
+#         name = str([nHidden] * nl) + "+" + str(nLatent) + ", Drop-out:" + str(do)
+# #         name = str([nHidden] * nl) + "+" + str(nLatent) + ", do: " + str(drop) +", b: " + str(b)
+#         total_changes[name] = [ [] for i in range(npatient) ]
+
+#         for r in range(repeat):
+#             cos_sim = cosine_similarity(latents[name][r])
+
+#             corr = pd.DataFrame(cos_sim)
+#             step = list()
+#             for index, row in corr.iterrows():
+#                 if r == 0:
+#                     max_pos = np.asarray(row.argsort()[:][::-1][1:])
+#                     pos_values_init.append(max_pos)
+#                     old_rows.append(row[max_pos])
+#                 else:
+#                     old_pos = pos_values_init[index]
+#                     old_row = old_rows[index]
+#                     total_changes[name][index].append(np.mean(abs(old_row - row[old_pos])))
+#                     step.append(np.mean(abs(old_row - row[old_pos])))
+
+#             if r != 0:
+#                 kmeans = KMeans(n_clusters=4)
+#                 rand_tmp = []
+#                 for i in range(0,100):
+#                     kmeans = kmeans.fit(latents[name][r])
+#                     labels = kmeans.predict(latents[name][r])
+#                     rand_tmp.append(adjusted_rand_score(true_labels, labels))
+
+#                 rand_index[name].append(np.mean(rand_tmp))
+#                 stability_total[name].append(np.mean(step))
+#             else:
+#                 kmeans = KMeans(n_clusters=4)
+#                 kmeans = kmeans.fit(latents[name][r])
+#                 true_labels = kmeans.predict(latents[name][r])
+
+#     stability_total = pd.DataFrame(stability_total)
+#     return(stability_total, rand_index)
 
 
 def get_latents(best_model, train_loader, kld_w=1): #TODOs: get right train_loader; what is right kld_w? - change to 1 testi if it works
@@ -665,3 +800,87 @@ def get_drug_similar_each_omics(con_names, con_dataset_names, all_hits, recon_av
          i += 1
 
     plt.close('all')
+
+
+    
+def get_best_epoch(results_df):
+    
+    #Rounding best_epoch to closest 10 (just in case if best_epoch is less than 5 - to closest number)
+    round_epoch = lambda x : round(x, 1) if (x >= 5) else round(x, 0)   
+    best_epoch = results_df['best_epochs'].mean()
+    best_epoch = int(round_epoch(best_epoch))
+    
+    return(best_epoch)
+
+
+def get_significant_param_values(results_df, list_of_params, stat_test='t_test'):
+    params_dict_to_remove = defaultdict(list)
+    for col in list_of_params:
+
+        unique_values = results_df[col].unique()
+
+        # finding which pairs of parameter values do not have significant differences
+        insignif_pairs_list = []
+        for i in range(len(unique_values)):
+            for j in range(i+1, len(unique_values)):
+                if stat_test=='t_test':
+                    diff_signif = stats.ttest_rel(results_df[results_df[col]==unique_values[i]]['likelihood_test'], results_df[results_df[col]==unique_values[j]]['likelihood_test'])[1]
+                elif stat_test=='wilcoxon': 
+                    diff_signif = stats.wilcoxon(results_df[results_df[col]==unique_values[i]]['likelihood_test'], results_df[results_df[col]==unique_values[j]]['likelihood_test'])[1]
+                if diff_signif > 0.05:
+                    a = tuple([unique_values[i], unique_values[j]])
+                    insignif_pairs_list.append(tuple([unique_values[j], unique_values[i]]))
+
+        while insignif_pairs_list:
+            insignif_values_dict = Counter(value for values_pair in insignif_pairs_list for value in values_pair)
+            value_max_occurs = max(insignif_values_dict, key=insignif_values_dict.get)
+            insignif_pairs_list = [x for x in insignif_pairs_list if value_max_occurs not in x]
+            
+            unique_values = np.delete(unique_values, np.where(unique_values == value_max_occurs))
+            
+            params_dict_to_remove[col].append(value_max_occurs)
+
+    results_df_rm_nonsignifs = pd.DataFrame(results_df)
+    for key, value_list in params_dict_to_remove.items():
+        for value in value_list:
+            results_df_rm_nonsignifs = results_df_rm_nonsignifs[results_df_rm_nonsignifs[key]!=value]
+
+    return(results_df_rm_nonsignifs, params_dict_to_remove)
+
+
+def get_sort_list(results_df):
+    
+    #Gets mean values of test accuracy reconstruction
+    results_df['recon_acc_test_mean'] = results_df['recon_acc_test'].map(lambda x: x.mean())
+    
+    # Sort values by reconstruction accuracy
+    results_df = results_df.sort_values('recon_acc_test_mean', ascending=False)
+    return (results_df)
+
+
+def get_length(hyperpars_vals_dict, hyperpar_name):
+    lengths = 1
+    for key in hyperpars_vals_dict:  
+        length = len(hyperpars_vals_dict[key])
+        # Adding +1 since we want to check if adding a parameter it overreaches
+        if key == hyperpar_name:
+            length+=1
+        lengths *= length
+
+    return(lengths)
+
+def get_best_params(results_df_sorted, n_combos_opt, hyperpars_names):
+
+    hyperpars_vals_dict = defaultdict(list)
+    for index, row in results_df_sorted.iterrows():
+        
+        for hyperpar_name in hyperpars_names:
+            if row[hyperpar_name] not in hyperpars_vals_dict[hyperpar_name]:
+                
+                length = get_length(hyperpars_vals_dict, hyperpar_name)
+                if length <= n_combos_opt:
+                    hyperpars_vals_dict[hyperpar_name].append(row[hyperpar_name])
+                else:
+                    break
+    hyperpars_vals_dict = dict(hyperpars_vals_dict)
+    return(hyperpars_vals_dict)

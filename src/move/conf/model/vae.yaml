@@ -1,17 +1,18 @@
-_target_: move.models.vae.VAE
+user_config: model.yaml
 
-# Use a custom resolver to extract the weights input in 'data/main.yaml'
-categorical_names: ${names:${data.categorical_inputs}}
-continuous_names: ${names:${data.continuous_inputs}}
-categorical_weights: ${weights:${data.categorical_inputs}}
-continuous_weights: ${weights:${data.continuous_inputs}}
+_target_: move.models.vae.VAE
+# # Use a custom resolver to extract the weights input in 'data/main.yaml'
+# categorical_names: ${names:${data.categorical_inputs}}
+# continuous_names: ${names:${data.continuous_inputs}}
+# categorical_weights: ${weights:${data.categorical_inputs}}
+# continuous_weights: ${weights:${data.continuous_inputs}}
 
 cuda: False
 
-lr: 0.0001
+lrate: 0.0001
 num_epochs: 4 # for testing
 patience: 2 #for testing
-repeat: 2
+# repeat: 2
 kld_steps:
   - 20
   - 30

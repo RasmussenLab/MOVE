@@ -1,3 +1,4 @@
+user_config: data.yaml
 na_value: NA
 
 # raw - for raw data (e.g., the TSVs)
@@ -35,3 +36,8 @@ continuous_inputs:
     weight: 1
 
 data_of_interest: baseline_drugs
+
+categorical_names: ${names:${data.categorical_inputs}}
+continuous_names: ${names:${data.continuous_inputs}}
+categorical_weights: ${weights:${data.categorical_inputs}}
+continuous_weights: ${weights:${data.continuous_inputs}}

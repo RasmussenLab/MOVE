@@ -1,3 +1,5 @@
+user_config: tuning_stability.yaml
+
 num_hidden: 
   - 500
 #   - 1000
@@ -21,3 +23,5 @@ batch_sizes:
   - 10
   
 repeats: 2
+
+tuned_num_epochs: 250

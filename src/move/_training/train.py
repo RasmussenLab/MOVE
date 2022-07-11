@@ -3,6 +3,7 @@ import os
 import torch
 import numpy as np
 import copy
+import pandas as pd 
 
 from torch.utils.data import DataLoader
 
@@ -23,6 +24,7 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
     inputs:
     returns:
     """ 
+
     
     # Preparing the data
     isExist = os.path.exists(path + 'hyperparameters/')
@@ -60,7 +62,9 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
     mask_test, test_loader = dataloaders.make_dataloader(cat_list=cat_list_test, con_list=con_list_test, batchsize=1)
     test_loader = DataLoader(dataset=test_loader.dataset, batch_size=1, drop_last=False, shuffle=False) #, num_workers=1, pin_memory=test_loader.pin_memory
 
-
+    results_df = []
+    
+    print('Beginning the hyperparameter tuning for reconstruction.\n')
     iters = itertools.product(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_sizes, range(repeat))
     for nHidden, nLatent, nl, drop, b, batch_size, r in iters:
         combi = str([nHidden] * nl) + "+" + str(nLatent) + ", drop: " + str(drop) +", b: " + str(b) + ", batch: " + str(batch_size)
@@ -89,7 +93,33 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
         cat_recons_tests[combi].append(cat_recon_test)
         loss_tests[combi].append(loss_test)
         likelihood_tests[combi].append(likelihood_test)
-
+        
+        results_df.append({
+            'num_hidden': nHidden,
+            'num_latent': nLatent,
+            'num_layers': nl,
+            'dropout': drop,
+            'beta': b,
+            'batch_sizes': batch_size, 
+            'repeats': r,
+            'recon_acc': cat_true_recon + true_recon, 
+            'latents': np.array(latent), 
+            'con_recons': np.array(con_recon),
+            'cat_recons': np.array(cat_recon),
+            'loss_train': np.array(loss),
+            'likelihoods': np.array(likelihood),
+            'best_epochs': np.array(best_epoch),
+            'recon_acc_test': np.array(cat_true_recon_test + true_recon_test),
+            'latents_test': np.array(latent_test),
+            'con_recons_test': np.array(con_recon_test),
+            'cat_recons_test': np.array(cat_recon_test),
+            'loss_test': np.array(loss_test),
+            'likelihood_test': np.array(likelihood_test)
+        })
+        
+    results_df = pd.DataFrame(results_df)
+    
+    print('\nFinished the hyperparameter tuning for reconstruction. Saving the results.')
     # Save output
     np.save(path + "hyperparameters/latent_benchmark_final.npy", latents)
     np.save(path + "hyperparameters/con_recon_benchmark_final.npy", con_recons)
@@ -105,22 +135,24 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
     np.save(path + "hyperparameters/test_recon_acc_benchmark_final.npy", recon_acc_tests)
     np.save(path + "hyperparameters/test_loss_benchmark_final.npy", loss_tests)
     np.save(path + "hyperparameters/test_likelihood_benchmark_final.npy", likelihood_tests)
-
-    return(likelihood_tests, recon_acc_tests, recon_acc)
+    
+    print('The results saved.\n')
+    
+    return(likelihood_tests, recon_acc_tests, recon_acc, results_df)
 
     
     
-def optimize_stability(nHiddens, nLatents, drop_outs, nBeta, repeat, nepochs, nl, batch_sizes, lrate, kldsteps, batchsteps, cuda, path, con_list, cat_list, continuous_weights, categorical_weights):
+def optimize_stability(nHiddens, nLatents, nDropout, nBeta, repeat, nepochs, nLayers, batch_sizes, lrate, kldsteps, batchsteps, cuda, path, con_list, cat_list, continuous_weights, categorical_weights):
     
     models, latents, embeddings, con_recons, cat_recons, recon_acc, los, likelihood = initiate_default_dicts(1, 7)
-
-
-    iters = itertools.product(nHiddens, nLatents, drop_outs, range(repeat))
-    for nHidden, nLatent, drop, r in iters:
-        combi = str([nHidden] * nl) + "+" + str(nLatent) + ", Drop-out:" + str(drop)
+    
+    print('Beginning the hyperparameter tuning for stability.\n')
+    iters = itertools.product(nHiddens, nLatents, nLayers, nDropout, nBeta, range(repeat))
+    for nHidden, nLatent, nl, drop, b, r in iters:
+        combi = str([nHidden] * nl) + "+" + str(nLatent) + ", do: " + str(drop) +", b: " + str(b)
         print(combi)
 
-        best_model, loss, ce, sse, KLD, train_loader, mask, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_sizes, nHidden, nl, nLatent, nBeta, drop, cuda, kldsteps, batchsteps, nepochs, lrate, test_loader=None, patience=None, early_stopping=False)
+        best_model, loss, ce, sse, KLD, train_loader, mask, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_sizes, nHidden, nl, nLatent, b, drop, cuda, kldsteps, batchsteps, nepochs, lrate, test_loader=None, patience=None, early_stopping=False)
 
 
         test_loader = DataLoader(dataset=train_loader.dataset, batch_size=1, drop_last=False,
@@ -143,16 +175,20 @@ def optimize_stability(nHiddens, nLatents, drop_outs, nBeta, repeat, nepochs, nl
         embeddings[combi].append(embedding)
         con_recons[combi].append(con_recon)
         cat_recons[combi].append(cat_recon)
+        
 
     # Saving the results
+    print('\nFinished the hyperparameter tuning for stability. Saving the results.')
+    
     np.save(path + "hyperparameters/embedding_stab.npy", embeddings)
     np.save(path + "hyperparameters/latent_stab.npy", latents)
     np.save(path + "hyperparameters/con_recon_stab.npy", con_recons)
     np.save(path + "hyperparameters/cat_recon_stab.npy", cat_recons)
     np.save(path + "hyperparameters/recon_acc_stab.npy", recon_acc)
-
+    
+    print('The results saved.\n')
+    
     return(embeddings, latents, con_recons, cat_recons, recon_acc)
-
 
 
 def train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHidden, nl, nBeta, drop, con_list, cat_list, continuous_weights, categorical_weights, version, repeats, kldsteps, batchsteps, lrate, drug, categorical_names, data_of_interest):

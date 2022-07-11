@@ -13,19 +13,16 @@ from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.metrics import adjusted_rand_score
 import pandas as pd
 import seaborn as sns
-# from collections import defaultdict
+from omegaconf import OmegaConf
 import itertools 
 from tqdm import tqdm
+from collections import Counter, defaultdict
+from scipy import stats
 
 from move._utils.data_utils import initiate_default_dicts
-# from move import VAE_v2_1
 from move.data import dataloaders
 from move.models import vae
 
-from collections import Counter, defaultdict
-# import numpy as np 
-# import pandas as pd
-from scipy import stats
 
 def get_top10_stability(nHiddens, nLatents, drop_outs, nLayers, repeat, latents, batch_sizes, nBeta):
     # Todo: TOP10 not used description by Rosa
@@ -131,18 +128,18 @@ def calculate_latent(nHiddens, nLatents, drop_outs, repeat, nLayers, nBeta, late
 
 def get_latents(best_model, train_loader, kld_w=1): 
      
-     # Extracting the latent space
-     train_test_loader = DataLoader(dataset=train_loader.dataset, batch_size=1, 
-                                              drop_last=False, shuffle=False, 
-                                              pin_memory=train_loader.pin_memory) 
+    # Extracting the latent space
+    train_test_loader = DataLoader(dataset=train_loader.dataset, batch_size=1, 
+                                             drop_last=False, shuffle=False, 
+                                             pin_memory=train_loader.pin_memory) 
 
-     latent, latent_var, cat_recon, cat_class, \
-     con_recon, loss, likelihood = best_model.latent(train_test_loader, 1)
+    latent, latent_var, cat_recon, cat_class, \
+    con_recon, loss, likelihood = best_model.latent(train_test_loader, 1)
 
-     con_recon = np.array(con_recon)
-     con_recon = torch.from_numpy(con_recon)
+    con_recon = np.array(con_recon)
+    con_recon = torch.from_numpy(con_recon)
      
-     return latent, latent_var, cat_recon, cat_class, con_recon, loss, likelihood
+    return latent, latent_var, cat_recon, cat_class, con_recon, loss, likelihood
 
 
 def calc_categorical_reconstruction_acc(cat_shapes, cat_class, cat_recon):
@@ -204,46 +201,46 @@ def calc_continuous_reconstruction_acc(con_shapes, con_recon, train_loader):
     return(all_values)
 
 def get_embedding(path, latent):
-     results_folder = path + 'results/'
-     isExist = os.path.exists(results_folder)
-     if not isExist:
-          os.makedirs(results_folder)
+    results_folder = path + 'results/'
+    isExist = os.path.exists(results_folder)
+    if not isExist:
+         os.makedirs(results_folder)
 
      # UMAP
-     reducer = umap.UMAP()
-     embedding = reducer.fit_transform(latent)
-     np.save(path + "results/embedding.npy", embedding)
-     return(embedding)
+    reducer = umap.UMAP()
+    embedding = reducer.fit_transform(latent)
+    np.save(path + "results/embedding.npy", embedding)
+    return(embedding)
 
 def get_feature_data(data_type, feature_of_interest, cat_list, #TODO: negative values goes down to -2, while positive only until 1
-                            con_list, cat_names, con_names):
+                           con_list, cat_names, con_names):
      
-     if data_type=='categorical':
-          cat_list_integer = [np.argmax(cat, axis=-1) for cat in cat_list]
-          np_data_ints = np.concatenate(cat_list_integer, axis=-1)
-          headers = cat_names
-     elif data_type=='continuous':
-          np_data_ints = np.concatenate(con_list, axis=-1)
-          headers = con_names
-     else:
-          raise ValueError("Wrong data type was selected")
+    if data_type=='categorical':
+        cat_list_integer = [np.argmax(cat, axis=-1) for cat in cat_list]
+        np_data_ints = np.concatenate(cat_list_integer, axis=-1)
+        headers = cat_names
+    elif data_type=='continuous':
+        np_data_ints = np.concatenate(con_list, axis=-1)
+        headers = con_names
+    else:
+        raise ValueError("Wrong data type was selected")
      
-     feature_data = np_data_ints[:,list(headers).index(feature_of_interest)]
+    feature_data = np_data_ints[:,list(headers).index(feature_of_interest)]
      
-     return(feature_data, headers)
+    return(feature_data, headers)
 
 def get_pearsonr(data_type, feature_of_interest, embedding, 
                       cat_list, con_list, cat_names, con_names):
      
-     feature_data, _ = get_feature_data(data_type, feature_of_interest, 
-                                                    cat_list, con_list, 
-                                                    cat_names, con_names)
+    feature_data, _ = get_feature_data(data_type, feature_of_interest, 
+                                                   cat_list, con_list, 
+                                                   cat_names, con_names)
      
-     # Correlate embedding with variable 
-     pearson_0dim = pearsonr(embedding[:,0], feature_data)
-     pearson_1dim = pearsonr(embedding[:,1], feature_data)
+    # Correlate embedding with variable 
+    pearson_0dim = pearsonr(embedding[:,0], feature_data)
+    pearson_1dim = pearsonr(embedding[:,1], feature_data)
      
-     return(pearson_0dim, pearson_1dim)
+    return(pearson_0dim, pearson_1dim)
 
 def get_feature_importance_categorical(model, train_loader, latent, kld_w=1): #Which kld_w and train_loader # should not matter equal to 1
 
@@ -298,43 +295,43 @@ def get_feature_importance_categorical(model, train_loader, latent, kld_w=1): #W
 def get_feature_importance_continuous(model, train_loader, mask, latent, kld_w=1):
 # Feature importance continuous
 
-     all_diffs_con = []
-     sum_diffs_con = []
-     sum_diffs_con_abs = []
-     total_diffs_con = []
-     loss_con = []
-     con_shape = train_loader.dataset.con_all.shape[1]
-     for feature_index in tqdm(range(con_shape)):
+    all_diffs_con = []
+    sum_diffs_con = []
+    sum_diffs_con_abs = []
+    total_diffs_con = []
+    loss_con = []
+    con_shape = train_loader.dataset.con_all.shape[1]
+    for feature_index in tqdm(range(con_shape)):
 
-          new_con = np.array(train_loader.dataset.con_all)
-          new_con[:,feature_index] = 0
-          new_con = torch.from_numpy(new_con)
+        new_con = np.array(train_loader.dataset.con_all)
+        new_con[:,feature_index] = 0
+        new_con = torch.from_numpy(new_con)
 
-          dataset = dataloaders.MOVEDataset(train_loader.dataset.cat_all, new_con,
-                                              train_loader.dataset.con_shapes,
-                                              train_loader.dataset.cat_shapes)
+        dataset = dataloaders.MOVEDataset(train_loader.dataset.cat_all, new_con,
+                                            train_loader.dataset.con_shapes,
+                                            train_loader.dataset.cat_shapes)
 
-          new_loader = DataLoader(dataset, batch_size=len(mask), 
-                                        drop_last=False, shuffle=False, 
-                                        pin_memory=train_loader.pin_memory) #removed num_workers=1,
+        new_loader = DataLoader(dataset, batch_size=len(mask), 
+                                      drop_last=False, shuffle=False, 
+                                      pin_memory=train_loader.pin_memory) #removed num_workers=1,
 
-          out = model.latent(new_loader, kld_w)
+        out = model.latent(new_loader, kld_w)
 
-          new_latent_vector = out[0]
-          loss_con.append(out[-1])
-          diff_abs = np.abs(latent-new_latent_vector)
-          diff = latent-new_latent_vector
-          all_diffs_con.append(diff)
-          sum_diffs_con.append(np.sum(diff, axis = 1))
-          sum_diffs_con_abs.append(np.sum(diff_abs, axis = 1))
-          total_diffs_con.append(np.sum(diff))
-          break #added
+        new_latent_vector = out[0]
+        loss_con.append(out[-1])
+        diff_abs = np.abs(latent-new_latent_vector)
+        diff = latent-new_latent_vector
+        all_diffs_con.append(diff)
+        sum_diffs_con.append(np.sum(diff, axis = 1))
+        sum_diffs_con_abs.append(np.sum(diff_abs, axis = 1))
+        total_diffs_con.append(np.sum(diff))
+        break #added
 
-     all_diffs_con_np = np.asarray(all_diffs_con)
-     sum_diffs_con_np = np.asarray(sum_diffs_con)
-     sum_diffs_con_abs_np = np.asarray(sum_diffs_con_abs)
-     total_diffs_con_np = np.asarray(total_diffs_con)
-     return(all_diffs_con_np, sum_diffs_con_np, sum_diffs_con_abs_np, total_diffs_con_np)
+    all_diffs_con_np = np.asarray(all_diffs_con)
+    sum_diffs_con_np = np.asarray(sum_diffs_con)
+    sum_diffs_con_abs_np = np.asarray(sum_diffs_con_abs)
+    total_diffs_con_np = np.asarray(total_diffs_con)
+    return(all_diffs_con_np, sum_diffs_con_np, sum_diffs_con_abs_np, total_diffs_con_np)
 
 
 def save_feat_results(path, all_diffs, sum_diffs, sum_diffs_abs, total_diffs, 
@@ -408,7 +405,7 @@ def overlapping_hits(nLatents, cor_results, repeats, con_names, drug): # TODOs: 
     counts = list()
 
     new_list = nLatents[::-1]
-    # con_names = np.array(con_names)
+
     median_p_val = defaultdict(dict)
     for l in range(len(new_list)):
         for d in range(cor_results[0][new_list[l]].shape[0]):
@@ -429,7 +426,7 @@ def overlapping_hits(nLatents, cor_results, repeats, con_names, drug): # TODOs: 
             overlap = np.array(np.unique(hits_tmp))[np.array(overlap_tmp) >= 5]
             m_p = []
             for o_t in overlap:
-              m_p.append(np.median(p_cors[o_t]))
+                m_p.append(np.median(p_cors[o_t]))
 
             sig_hits[d][new_list[l]] = overlap
             median_p_val[d][new_list[l]] = m_p
@@ -467,43 +464,42 @@ def identify_high_supported_hits(sig_hits, drug_h, version, path): # drug_h come
 
 def report_values(path, sig_hits, median_p_val, drug_h, all_hits, con_names): #TODO: drugs come from defined func
 
-     results_folder = path + 'results/sig_ci_files'
-     isExist = os.path.exists(results_folder)
-     if not isExist:
+    results_folder = path + 'results/sig_ci_files'
+    isExist = os.path.exists(results_folder)
+    if not isExist:
         os.makedirs(results_folder)
 
-     p_vals = list()
-     for d in sig_hits:
-         p_vals_col = []
-         p_vals_tmp = defaultdict(list)
-         for l in sig_hits[d]:
-             name_s = sig_hits[d][l]
-             ps = median_p_val[d][l]
-             for i,ns_1 in enumerate(name_s):
+    p_vals = list()
+    for d in sig_hits:
+        p_vals_col = []
+        p_vals_tmp = defaultdict(list)
+        for l in sig_hits[d]:
+            name_s = sig_hits[d][l]
+            ps = median_p_val[d][l]
+            for i,ns_1 in enumerate(name_s):
                 if ns_1 in collected_overlap[drug_h[d]]:
-                     p_vals_tmp[ns_1].append(ps[i])
+                    p_vals_tmp[ns_1].append(ps[i])
 
-         m_p_vals_tmp = dict()
-         for ns_2 in p_vals_tmp:
-             m_p_vals_tmp[ns_2] = np.median(p_vals_tmp[ns_2])
+        m_p_vals_tmp = dict()
+        for ns_2 in p_vals_tmp:
+            m_p_vals_tmp[ns_2] = np.median(p_vals_tmp[ns_2])
 
-         for a_h in all_hits:
-             if a_h in m_p_vals_tmp:
-                 p_vals_col.append(m_p_vals_tmp[a_h])
-             else:
-                 p_vals_col.append('ns')
+        for a_h in all_hits:
+            if a_h in m_p_vals_tmp:
+                p_vals_col.append(m_p_vals_tmp[a_h])
+            else:
+                p_vals_col.append('ns')
 
-         p_vals.append(p_vals_col)
+        p_vals.append(p_vals_col)
 
-     p_vals_df = pd.DataFrame(p_vals, index=drug_h, columns=all_hits)
+    p_vals_df = pd.DataFrame(p_vals, index=drug_h, columns=all_hits)
 
-     # Save the files for each continuous dataset
-     for i,al_con in enumerate(con_names):
-         sig_drug_names = np.intersect1d(all_hits, al_con)
-         df_tmp = p_vals_df.loc[:, sig_drug_names]
-         df_tmp.T.to_csv(path + "results/sig_ci_files/" + con_names[i] + "_p_vals.txt", sep = "\t")
+    # Save the files for each continuous dataset
+    for i,al_con in enumerate(con_names):
+        sig_drug_names = np.intersect1d(all_hits, al_con)
+        df_tmp = p_vals_df.loc[:, sig_drug_names]
+        df_tmp.T.to_csv(path + "results/sig_ci_files/" + con_names[i] + "_p_vals.txt", sep = "\t")
 
-     
 
 def get_change_in_reconstruction(recon_average, groups, drug, drug_h, con_names, collected_overlap, sig_hits, con_all, version, path, types): 
 #     types = [[1, 0]] #TODOs: Should types be really like this?  #Change only in this notebook
@@ -598,8 +594,10 @@ def write_omics_results(path, up_down_list, collected_overlap, recon_average_cor
 
                     with open(path + f"results/{con_types[i]}_down_" + d.replace(" ", "_")  + ".txt", "w") as o:
                         o.write("\n".join(down))
-                     
-def make_files(collected_overlap, groups, con_all, path, recon_average_corr_all_indi_new, con_names, con_dataset_names, drug_h, drug, all_hits, types, version = "v1"):
+                        
+                        
+def make_files(collected_overlap, groups, con_all, path, recon_average_corr_all_indi_new, 
+               con_names, con_dataset_names, drug_h, drug, all_hits, types, version = "v1"):
     all_db_names = [item for sublist in con_names for item in sublist]
     ci_dict = {}
     for i,n in enumerate(con_dataset_names):
@@ -633,9 +631,10 @@ def make_files(collected_overlap, groups, con_all, path, recon_average_corr_all_
         
         ci_collected_df = pd.DataFrame(ci_collected, index = drug_h, columns=sig_names_sort)
         ci_collected_df.T.to_csv(path + "results/" + con_dataset_names[i] + "_ci_sig_" + version +  ".txt", sep = "\t")
-
-     
-def get_inter_drug_variation(con_names, drug_h, recon_average_corr_all_indi_new, groups, collected_overlap, drug, con_all, path, types):
+        
+        
+def get_inter_drug_variation(con_names, drug_h, recon_average_corr_all_indi_new, 
+                             groups, collected_overlap, drug, con_all, path, types):
     # Inter drug variation 
     all_db_names = [item for sublist in con_names for item in sublist]
     inter_drug_variance = []
@@ -668,22 +667,22 @@ def get_drug_similar_each_omics(con_names, con_dataset_names, all_hits, recon_av
     con_dataset_names_v1 = con_dataset_names # TODO define the names for plot drawing 
     i = 0
     for n in con_names:
-         tmp = np.intersect1d(all_hits, n)
-         if len(tmp) == 0:
-              continue
+        tmp = np.intersect1d(all_hits, n)
+        if len(tmp) == 0:
+             continue
 
-         sig_data = recon_average_corr_new_all[:,np.where(np.isin(all_hits,n))[0]]
-         sim = cosine_similarity(sig_data)
-         corr = pd.DataFrame(sim, columns = drug_h, index = drug_h)
-         sig_data = pd.DataFrame(corr, columns = drug_h, index = drug_h)
-         g = sns.clustermap(sig_data, cmap=cmap, center=0, xticklabels = True,
-                            yticklabels = True, metric='correlation',
-                            linewidths=0, row_cluster=True, col_cluster=True, figsize=(10,10))
+        sig_data = recon_average_corr_new_all[:,np.where(np.isin(all_hits,n))[0]]
+        sim = cosine_similarity(sig_data)
+        corr = pd.DataFrame(sim, columns = drug_h, index = drug_h)
+        sig_data = pd.DataFrame(corr, columns = drug_h, index = drug_h)
+        g = sns.clustermap(sig_data, cmap=cmap, center=0, xticklabels = True,
+                           yticklabels = True, metric='correlation',
+                           linewidths=0, row_cluster=True, col_cluster=True, figsize=(10,10))
 
-         g.fig.suptitle(con_dataset_names_v1[i])
-         g.fig.subplots_adjust(top=0.9)
-         plt.savefig(path + "results/" + con_dataset_names[i] + "_heatmap_" + version + "_all.pdf", format = 'pdf', dpi = 800)
-         i += 1
+        g.fig.suptitle(con_dataset_names_v1[i])
+        g.fig.subplots_adjust(top=0.9)
+        plt.savefig(path + "results/" + con_dataset_names[i] + "_heatmap_" + version + "_all.pdf", format = 'pdf', dpi = 800)
+        i += 1
 
     plt.close('all')
 
@@ -771,6 +770,31 @@ def get_best_params(results_df_sorted, n_combos_opt, hyperpars_names):
     hyperpars_vals_dict = dict(hyperpars_vals_dict)
     return(hyperpars_vals_dict)
 
+def make_and_save_best_reconstruct_params(results_df, hyperparams_names, max_param_combos_to_save):
+    
+    # Getting the best number of epochs used in further trainings
+    best_epoch = get_best_epoch(results_df)
+    
+    print('Starting calculating the best hyperparameter values for further optimization') 
+    
+    # Removing insignificant hyperparameter values
+    results_df_rm_insignifs, params_dict_to_remove = get_significant_param_values(results_df, hyperparams_names)
+    
+    #Printing the removed parameter values
+    print(f'\nRemoved insignificant parameters:\n {OmegaConf.to_yaml(dict(params_dict_to_remove))}')
+    
+    # Getting up to n combinations of parameters that will be used further to optimize stability
+    results_df_sorted = get_sort_list(results_df_rm_insignifs)
+    best_hyperpars_vals_dict = get_best_params(results_df_sorted, max_param_combos_to_save, hyperparams_names)
+    best_hyperpars_vals_dict['tuned_num_epochs'] = best_epoch
+    
+    # Saving the best hyperparameter values (it will overwrite the file if it already exists)
+    with open('tuning_stability.yaml', "w") as f:
+        OmegaConf.save(OmegaConf.create(best_hyperpars_vals_dict), f)
+
+    #Printing the saved hyper parameter values
+    print(f'Saving the best hyperparameter values in tuning_stability.yaml for further optimization: \n{OmegaConf.to_yaml(best_hyperpars_vals_dict)}\n')
+    
 
 def get_best_stability_paramset(stability_df, hyperparams_names):
     
@@ -801,3 +825,29 @@ def get_best_4_latent_spaces(results_df_sorted):
         best_latent.append(min(best_latent) - diff_from_zero)
         best_latent.append(max(best_latent) + diff_from_zero)
     return(best_latent)
+
+def make_and_save_best_stability_params(results_df, hyperparams_names, nepochs):
+    
+    print('Starting calculating the best hyperparameter values used in further model trainings') 
+    
+    # Getting best set of hyperparameters
+    params_to_save, results_df_sorted = get_best_stability_paramset(results_df, hyperparams_names)
+    params_to_save['tuned_num_epochs'] = nepochs
+
+    # Saving best set of hyperparameters    
+    with open('training_latent.yaml', "w") as f:
+        OmegaConf.save(OmegaConf.create(dict(params_to_save)), f)
+        
+    # Printing the configuration saved 
+    print(f'Saving best hyperparameter values in training_latent.yaml: \n {OmegaConf.to_yaml(dict(params_to_save))}')
+    
+    # Getting the latent spaces for training_association script and using them with the best hyperparam set
+    best_latent = get_best_4_latent_spaces(results_df_sorted)
+    params_to_save['num_latent'] = list(best_latent)
+    
+    # Saving best set of hyperparameters for training_association script
+    with open('training_association.yaml', "w") as f:
+        OmegaConf.save(OmegaConf.create(dict(params_to_save)), f)
+
+    # Printing the configuration saved 
+    print(f'Saving best hyperparameter values in training_association.yaml: \n{OmegaConf.to_yaml(dict(params_to_save))}')

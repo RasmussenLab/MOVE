@@ -9,7 +9,7 @@ from collections import defaultdict
 import itertools 
 import tqdm    
 
-from move import VAE_v2_1
+from move.data import dataloaders
 from scipy import stats
 from statsmodels.stats.multitest import multipletests
 
@@ -176,7 +176,7 @@ def change_drug_atc(train_loader, trans_table, con_recon, drug, types = [[1,0]],
             
             none_groups[feature_index] = none_group
             new_data = new_data[none_group,:]
-            dataset = VAE_v2_1.Dataset(new_data, train_loader.dataset.con_all[none_group,:], train_loader.dataset.con_shapes, train_loader.dataset.cat_shapes)
+            dataset = dataloaders.MOVEDataset(new_data, train_loader.dataset.con_all[none_group,:], train_loader.dataset.con_shapes, train_loader.dataset.cat_shapes)
             
             new_loader = DataLoader(dataset, batch_size=train_loader.batch_size, drop_last=False,
                                     shuffle=False, num_workers=1, pin_memory=train_loader.pin_memory)
@@ -212,7 +212,7 @@ def change_drug(model, train_loader, con_recon, drug, start, end, kld_w, types =
             new_data = torch.from_numpy(new_data)
             
             none_groups[feature_index] = none_group
-            dataset = VAE_v2_1.Dataset(new_data, train_loader.dataset.con_all, train_loader.dataset.con_shapes, train_loader.dataset.cat_shapes)
+            dataset = dataloaders.MOVEDataset(new_data, train_loader.dataset.con_all, train_loader.dataset.con_shapes, train_loader.dataset.cat_shapes)
             
             new_loader = DataLoader(dataset, batch_size=train_loader.batch_size, drop_last=False,
                                     shuffle=False,  pin_memory=train_loader.pin_memory) #num_workers=1,
@@ -312,35 +312,35 @@ def correction_new(results):
 
 def get_start_end_positions(cat_list, categorical_names, data_of_interest):
   
-  n_cat = 0
-  cat_shapes = list()
-  cat_all = []
-  first = 0
-  for i in range(len(categorical_names)):
-     cat_d = cat_list[i]
+    n_cat = 0
+    cat_shapes = list()
+    cat_all = []
+    first = 0
+    for i in range(len(categorical_names)):
+        cat_d = cat_list[i]
      
-     cat_shapes.append(cat_d.shape)
-     cat_input = cat_d.reshape(cat_d.shape[0], -1)
+        cat_shapes.append(cat_d.shape)
+        cat_input = cat_d.reshape(cat_d.shape[0], -1)
      
      
-     if first == 0:
-        cat_all = cat_input
-        del cat_input
-        first = 1
+        if first == 0:
+            cat_all = cat_input
+            del cat_input
+            first = 1
      
-        if data_of_interest == categorical_names[i]:
-          start = 0
-          end = cat_all.shape[-1]
+            if data_of_interest == categorical_names[i]:
+                start = 0
+                end = cat_all.shape[-1]
           
-     else:
-        cat_all = np.concatenate((cat_all, cat_input), axis=1)
+        else: 
+            cat_all = np.concatenate((cat_all, cat_input), axis=1)
         
-        if data_of_interest == categorical_names[i]:
-          start = cat_all.shape[-1] - cat_input.shape[-1]
-          end = cat_all.shape[-1]
+            if data_of_interest == categorical_names[i]:
+                start = cat_all.shape[-1] - cat_input.shape[-1]
+                end = cat_all.shape[-1]
      
-  # Make mask for patients with no measurments
-  catsum = cat_all.sum(axis=1)
-  mask = catsum > 5
-  del catsum
-  return start, end
+    # Make mask for patients with no measurments
+    catsum = cat_all.sum(axis=1)
+    mask = catsum > 5
+    del catsum
+    return start, end

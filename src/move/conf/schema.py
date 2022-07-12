@@ -9,19 +9,27 @@ from typing import List
 @dataclass
 class InputConfig:
     name: str
-    weight: int
+    weight: float
 
 
 @dataclass
 class DataConfig:
+    user_conf: str
     na_value: str
     raw_data_path: str
     interim_data_path: str
     processed_data_path: str
+    version: str
+    ids_file_name: str
     categorical_inputs: List[InputConfig]
     continuous_inputs: List[InputConfig]
-
-
+    data_of_interest: str
+    data_features_to_visualize: List[str]
+    categorical_names: List[str]
+    continuous_names: List[str]
+    categorical_weights: List[float]
+    continuous_weights: List[float]
+        
 @dataclass
 class ModelConfig:
     _target_: str
@@ -30,14 +38,18 @@ class ModelConfig:
 
 @dataclass
 class VAEConfig(ModelConfig):
-    categorical_weights: List[int]
-    continuous_weights: List[int]
+#     categorical_weights: List[int]
+#     continuous_weights: List[int]
+    user_conf: str
     cuda: bool
-    lr: float
+    lrate: float
     num_epochs: int
+    patience: int
     kld_steps: List[int]
     batch_steps: List[int]
-    version: str
+        
+#     version: str
+
 #     num_hidden: int
 #     num_layers: int
 #     num_latent: List[int]
@@ -57,42 +69,50 @@ class VAEConfig(ModelConfig):
 
 @dataclass
 class TuningReconstructionConfig:
+    user_config: str
     num_hidden: List[int]
     num_latent: List[int]
     num_layers: List[int]
     beta: List[float]
     dropout: List[float]
     batch_sizes: List[int]
-    repeat: int
+    repeats: int
+    max_param_combos_to_save: int
 
 @dataclass
 class TuningStabilityConfig:
+    user_config: str
     num_hidden: List[int]
     num_latent: List[int]
     num_layers: List[int]
     beta: List[float]
     dropout: List[float]
     batch_sizes: List[int]
-    repeat: int   
+    repeat: int  
+    tuned_num_epochs: int
         
 @dataclass
 class TrainingLatentConfig:
+    user_config: str
     num_hidden: int
     num_latent: int
     num_layers: int
-    beta: float
     dropout: float
+    beta: float
     batch_sizes: int 
+    tuned_num_epochs: int
         
 @dataclass
-class TrainingFinalConfig:
+class TrainingAssociationConfig:
+    user_config: str
     num_hidden: int
     num_latent: List[int]
     num_layers: int
-    beta: float
     dropout: float
+    beta: float
     batch_sizes: int 
-    repeat: int   
+    repeats: int 
+    tuned_num_epochs: int
 
     
 @dataclass
@@ -102,7 +122,7 @@ class MOVEConfig:
     tune_reconstruction: TuningReconstructionConfig
     tune_stability: TuningStabilityConfig
     train_latent: TrainingLatentConfig
-    train_final: TrainingFinalConfig
+    train_final: TrainingAssociationConfig
     name: str
     seed: int
 

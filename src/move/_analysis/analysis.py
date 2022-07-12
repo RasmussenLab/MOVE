@@ -611,7 +611,6 @@ def make_files(collected_overlap, groups, con_all, path, recon_average_corr_all_
         sig_drug_names = np.intersect1d(all_hits, n)
         for d in drug_h:
             f = drug_h.index(d)
-#             print(f'f: {recon_average_corr_all_indi_new.shape}')
             recon_data_d = recon_average_corr_all_indi_new[f]
             
             gr = groups[f]
@@ -706,22 +705,28 @@ def get_best_epoch(results_df):
 
 def get_significant_param_values(results_df, list_of_params, stat_test='t_test'):
     params_dict_to_remove = defaultdict(list)
+    
+    # Iterating through each of the hypeparameter
     for col in list_of_params:
-
+        
+        # Getting each value of the hyperparameter
         unique_values = results_df[col].unique()
-
+        
         # finding which pairs of parameter values do not have significant differences
         insignif_pairs_list = []
         for i in range(len(unique_values)):
             for j in range(i+1, len(unique_values)):
+                # Getting the p-value of statistical results by comparing hyperparameter values sets where only the tested hyperparameter is different  
                 if stat_test=='t_test':
                     diff_signif = stats.ttest_rel(results_df[results_df[col]==unique_values[i]]['likelihood_test'], results_df[results_df[col]==unique_values[j]]['likelihood_test'])[1]
                 elif stat_test=='wilcoxon': 
                     diff_signif = stats.wilcoxon(results_df[results_df[col]==unique_values[i]]['likelihood_test'], results_df[results_df[col]==unique_values[j]]['likelihood_test'])[1]
-                if diff_signif > 0.05:
+                    
+                if diff_signif < 0.05:
                     a = tuple([unique_values[i], unique_values[j]])
                     insignif_pairs_list.append(tuple([unique_values[j], unique_values[i]]))
-
+        
+        # Removing the parameter that did not show significant differences (in the order from the most insignificant pairs)
         while insignif_pairs_list:
             insignif_values_dict = Counter(value for values_pair in insignif_pairs_list for value in values_pair)
             value_max_occurs = max(insignif_values_dict, key=insignif_values_dict.get)
@@ -730,7 +735,8 @@ def get_significant_param_values(results_df, list_of_params, stat_test='t_test')
             unique_values = np.delete(unique_values, np.where(unique_values == value_max_occurs))
             
             params_dict_to_remove[col].append(value_max_occurs)
-
+    
+    # Removing the selected parameters to remove from the dataframe 
     results_df_rm_nonsignifs = pd.DataFrame(results_df)
     for key, value_list in params_dict_to_remove.items():
         for value in value_list:

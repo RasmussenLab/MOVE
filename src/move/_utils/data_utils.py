@@ -1,5 +1,59 @@
 import numpy as np
 from collections import defaultdict
+from omegaconf import OmegaConf
+# from omegaconf import OmegaConf
+# def merge_configs(base_config, config_type):
+#     """Composes configuration for the MOVE framework.
+
+#     Parameters
+#     ----------
+#     filepath : Union[str, Path]
+#         Path to YAML configuration file
+
+#     Returns
+#     -------
+#     move.conf.MOVEConfig
+#     """
+# #     print(OmegaConf.to_yaml(config))
+# #     base_config = getattr(base_config, config_type)
+#     user_config = OmegaConf.load(base_config.data.user_config)
+
+#     config = OmegaConf.merge(base_config, user_config)
+    
+#     print(OmegaConf.to_yaml(config))
+#     return config
+
+def merge_configs(base_config, config_types):
+    """Composes configuration for the MOVE framework.
+
+    Parameters
+    ----------
+    filepath : Union[str, Path]
+        Path to YAML configuration file
+
+    Returns
+    -------
+    move.conf.MOVEConfig
+    """
+    user_config_dict = dict()
+    for config_type in config_types:
+        # Getting name of user config file and loading it 
+        user_config_name = base_config[config_type]['user_config']
+        user_config = OmegaConf.load(user_config_name)
+
+        # Making dict with the same key as in configuration file
+        user_config_dict[config_type] = user_config
+
+    # Merging the base and user defined config file
+    config = OmegaConf.merge(base_config, user_config_dict)
+
+    # Getting a subsection of data used for printing 
+    config_section_dict = {x: config[x] for x in config_types if x in config}
+    config_section = OmegaConf.create(config_section_dict)
+
+    print(f'\nConfiguration used: \n---\n{OmegaConf.to_yaml(config_section)}---\n')
+    return(config_section)
+
 
 # Functions for loading data
 def read_cat(file):
@@ -13,16 +67,14 @@ def read_con(file):
     data = np.load(file)
     data = data.astype(np.float32)
     data[np.isnan(data)] = 0
-    consum = data.sum(axis=0)
+    consum = np.absolute(data).sum(axis=0)
     mask_col = consum != 0
     data = data[:,mask_col]
-    
     return data, mask_col
 
 def read_header(file, mask=None, start=1):
     with open(file, "r") as f:
         h = f.readline().rstrip().split("\t")[start:]
-    
     if not mask is None:
         h = np.array(h)
         h = h[mask]
@@ -36,55 +88,44 @@ def initiate_default_dicts(n_empty_dicts, n_list_dicts):
      
     return(tuple(dicts))
 
-# def read_yaml(file_name):
-#      with open(rf'{file_name}.yaml') as file:
-#            data_dict = yaml.load(file, Loader=yaml.FullLoader)
-#      return(data_dict)
-
 def get_data(data_path, categorical_data, continuous_data, data_of_interest):
      
-     # Define variables
-#      data_path = data_dict['path'] 
-#      categorical_data = data_dict['categorical_data_files']
-#      continuous_data = data_dict['continuous_data_files']
-#      data_of_interest = data_dict['data_of_interest']
+    # Initiate lists
+    cat_list, cat_names, con_list, con_names = [], [], [], []
      
-     # Initiate lists
-     cat_list, cat_names, con_list, con_names = [], [], [], []
-     
-     # Get categorical variables
-     for cat_data in categorical_data:
-          cat, cat_input = read_cat(data_path + f"{cat_data}.npy")
-          cat_h = read_header(data_path + f"{cat_data}.tsv")
+    # Get categorical variables
+    for cat_data in categorical_data:
+        cat, cat_input = read_cat(data_path + f"{cat_data}.npy")
+        cat_h = read_header(data_path + f"{cat_data}.tsv")
           
-          cat_list.append(cat)
-          cat_names.append(cat_h)
-            
-     # Get continuous variables
-     for con_data in continuous_data:
-          con, con_mask = read_con(data_path + f"{con_data}.npy")
-          con_h = read_header(data_path + f"{con_data}.tsv", con_mask)
-          
-          con_list.append(con)
-          con_names.append(con_h)
-     
-     #Change data types
-     headers_all = tuple(cat_names+con_names)
-     con_names = np.concatenate(con_names)
-     cat_names = np.concatenate(cat_names)
+        cat_list.append(cat)
+        cat_names.append(cat_h)
 
-     # Select dataset of interest
-     if data_of_interest in categorical_data:
-          drug, drug_input = read_cat(data_path + f"{data_of_interest}.npy")
-          drug_h = read_header(data_path + f"{data_of_interest}.tsv")
-     elif data_of_interest in continuous_data:
-          drug, drug_mask = read_con(data_path + f"{data_of_interest}.npy")
-          drug_h = read_header(data_path + f"{data_of_interest}.tsv", drug_mask)  
-     else:
-          raise ValueError("""In data.yaml file data_of_interest is chosen neither
+     # Get continuous variables
+    for con_data in continuous_data:
+        con, con_mask = read_con(data_path + f"{con_data}.npy")
+        con_h = read_header(data_path + f"{con_data}.tsv", con_mask)
+          
+        con_list.append(con)
+        con_names.append(con_h)
+ 
+    #Change data types
+    headers_all = tuple(cat_names+con_names)
+    con_names = np.concatenate(con_names)
+    cat_names = np.concatenate(cat_names)
+
+    # Select dataset of interest
+    if data_of_interest in categorical_data:
+        drug, drug_input = read_cat(data_path + f"{data_of_interest}.npy")
+        drug_h = read_header(data_path + f"{data_of_interest}.tsv")
+    elif data_of_interest in continuous_data:
+        drug, drug_mask = read_con(data_path + f"{data_of_interest}.npy")
+        drug_h = read_header(data_path + f"{data_of_interest}.tsv", drug_mask)  
+    else:
+        raise ValueError("""In data.yaml file data_of_interest is chosen neither
                                  from defined continuous nor categorical data types""")
      
-     return(cat_list, con_list, cat_names, con_names, headers_all, drug, drug_h)
+    return(cat_list, con_list, cat_names, con_names, headers_all, drug, drug_h)
 
 
 # Functions for encoding
@@ -171,81 +212,81 @@ def encode_con(raw_input):
 
 
 def sort_data(data, ids, labels):
-     """
-     Sorts data based on the ids file
-     
-     Inputs:
-          data: a dictionary with the data to encode
-          ids: a list of personal identfiers (ID) from baseline_ids.txt file
-          labels: a list of column names from the source data file
-     Returns:
-          sorted_data: a list of source data sorted by IDs from baseline_ids.txt file
-     """
+    """
+    Sorts data based on the ids file
+    
+    Inputs:
+         data: a dictionary with the data to encode
+         ids: a list of personal identfiers (ID) from baseline_ids.txt file
+         labels: a list of column names from the source data file
+    Returns:
+         sorted_data: a list of source data sorted by IDs from baseline_ids.txt file
+    """
 
-     n_labels = len(labels)
-     sorted_data = list()
+    n_labels = len(labels)
+    sorted_data = list()
 
-     for _ids in ids: #check: ids/ids
+    for _ids in ids: #check: ids/ids
         if _ids in data:
             sorted_data.append(data[_ids])
         else:
             tmp = [0]*n_labels
             sorted_data.append(tmp)
-     return sorted_data
+    return sorted_data
 
 def read_files(path, data_type, ids_file_name, na):
-     """
-     Function reads the input file into the dictionary
+    """
+    Function reads the input file into the dictionary
      
-     Inputs:
-          data_type: a string that defines a name of .tsv file to encode
-          na: a string that defines how NA values are defined in the source data file
-     Returns:
-          ids: a list of personal identfiers (ID) from baseline_ids.txt file
-          raw_input: a dictionary with the data to encode
-          header: a list of column names from the source data file
-     """
+    Inputs:
+         data_type: a string that defines a name of .tsv file to encode
+         na: a string that defines how NA values are defined in the source data file
+    Returns:
+         ids: a list of personal identfiers (ID) from baseline_ids.txt file
+         raw_input: a dictionary with the data to encode
+         header: a list of column names from the source data file
+    """
      
-     ids = list()
-     with open(path + f"{ids_file_name}.txt", "r") as f:
-          for line in f:
-                ids.append(line.rstrip()) 
+    ids = list()
+    with open(path + f"{ids_file_name}.txt", "r") as f:
+        for line in f:
+            ids.append(line.rstrip()) 
                  
-     raw_input = dict()
-     with open(path + f"{data_type}.tsv", "r") as f:
-          header = f.readline()
-          for line in f:
-                line = line.rstrip()
-                tmp = np.array(line.split("\t"))
-                vals = tmp[1:]
-                vals[vals == na] = np.nan
-                vals = list(map(float, vals))
-                raw_input[tmp[0]] = vals
-     header = header.split("\t")
+    raw_input = dict()
+    with open(path + f"{data_type}.tsv", "r") as f:
+        header = f.readline()
+        for line in f:
+            line = line.rstrip()
+            tmp = np.array(line.split("\t"))
+            vals = tmp[1:]
+            vals[vals == na] = np.nan
+            vals = list(map(float, vals))
+            raw_input[tmp[0]] = vals
+    header = header.split("\t")
      
-     return ids, raw_input, header
+    return ids, raw_input, header
 
 def generate_file(var_type, path, data_type, ids_file_name, na='NA'):
-     """
-     Function encodes source data type and saves the file
+    """
+    Function encodes source data type and saves the file
      
-     inputs:
-          var_type: a string out of ['categorical', 'continuous'], defines input data type to encode
-          path: a string that defines a path to the directory the input data is stored
-          data_type: a string that defines a name of .tsv file to encode
-          na: a string that defines how NA values are defined in the source data file
-     """
+    inputs:
+         var_type: a string out of ['categorical', 'continuous'], defines input data type to encode
+         path: a string that defines a path to the directory the input data is stored
+         data_type: a string that defines a name of .tsv file to encode
+         na: a string that defines how NA values are defined in the source data file
+    """
      
-     ids, raw_input, header = read_files(path, data_type, ids_file_name, na)
-     sorted_data = sort_data(raw_input, ids, header)
+    ids, raw_input, header = read_files(path, data_type, ids_file_name, na)
+    sorted_data = sort_data(raw_input, ids, header)
      
-     if var_type == 'categorical':
-          data_input = encode_cat(sorted_data, 'nan')
-     elif var_type == 'continuous':
-          data_input, _ = encode_con(sorted_data)
-     
-     np.save(path + f"{data_type}.npy", data_input)
+    if var_type == 'categorical':
+        data_input = encode_cat(sorted_data, 'nan')
+    elif var_type == 'continuous':
+        data_input, _ = encode_con(sorted_data)
+            
+    np.save(path + f"{data_type}.npy", data_input)
 
 def get_list_value(*args):
-     arg_tuple = [arg[0] if len(arg) == 1 else arg for arg in args]
-     return(arg_tuple)     
+    arg_tuple = [arg[0] if len(arg) == 1 else arg for arg in args]
+    return(arg_tuple)     

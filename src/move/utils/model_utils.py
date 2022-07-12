@@ -8,12 +8,10 @@ from sklearn.metrics.pairwise import cosine_similarity
 from collections import defaultdict
 import itertools 
 import tqdm    
-
-from move.data import dataloaders
 from scipy import stats
 from statsmodels.stats.multitest import multipletests
 
-
+from move.utils import dataloaders
 # Funtions for calculations
 
 def get_latent(best_model, train_loader, test_loader, kld_w):

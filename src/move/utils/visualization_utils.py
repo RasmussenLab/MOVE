@@ -7,7 +7,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib
 
-from move._utils import plot_importance
+from move.utils import plot_importance
 
 def visualize_likelihood(path, nLayers, nHiddens, nDropout, nBeta, nLatents, likelihood_tests):
     # Figure for test error/likelihood
@@ -316,8 +316,16 @@ def get_feature_data(data_type, feature_of_interest, cat_list, #TODO: negative v
     return(feature_data, headers)
     
 
-def visualize_embedding(path, data_type, feature_of_interest, embedding, mask, cat_list, 
+def visualize_embedding(path, feature_of_interest, embedding, mask, cat_list, 
                         con_list, cat_names, con_names):
+    
+    if feature_of_interest in cat_names:
+        data_type = 'categorical'
+    elif feature_of_interest in con_names:
+        data_type = 'continuous'
+    else:
+        raise ValueError("feature_of_interest is not in cat_names or con_names")
+    
     
     feature_data, headers = get_feature_data(data_type, feature_of_interest, 
                                              cat_list=cat_list, con_list=con_list, 

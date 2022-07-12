@@ -19,8 +19,8 @@ from tqdm import tqdm
 from collections import Counter, defaultdict
 from scipy import stats
 
-from move._utils.data_utils import initiate_default_dicts
-from move.data import dataloaders
+from move.utils.data_utils import initiate_default_dicts
+from move.utils import dataloaders
 from move.models import vae
 
 

@@ -33,7 +33,6 @@ def get_top10_stability(nHiddens, nLatents, drop_outs, nLayers, repeat, latents,
         
     iters = itertools.product(nHiddens, nLatents, nLayers, drop_outs, nBeta)
     for nHidden, nLatent, nl, drop, b in iters:
-       
         
         max_pos_values_init = list()
         old_sum_max = list()
@@ -229,9 +228,16 @@ def get_feature_data(data_type, feature_of_interest, cat_list, #TODO: negative v
      
     return(feature_data, headers)
 
-def get_pearsonr(data_type, feature_of_interest, embedding, 
-                      cat_list, con_list, cat_names, con_names):
+def get_pearsonr(feature_of_interest, embedding, 
+                 cat_list, con_list, cat_names, con_names):
      
+    if feature_of_interest in cat_names:
+        data_type = 'categorical'
+    elif feature_of_interest in con_names:
+        data_type = 'continuous'
+    else:
+        raise ValueError("feature_of_interest is not in cat_names or con_names")
+    
     feature_data, _ = get_feature_data(data_type, feature_of_interest, 
                                                    cat_list, con_list, 
                                                    cat_names, con_names)

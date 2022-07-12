@@ -11,7 +11,6 @@ class InputConfig:
     name: str
     weight: float
 
-
 @dataclass
 class DataConfig:
     user_conf: str
@@ -24,22 +23,20 @@ class DataConfig:
     categorical_inputs: List[InputConfig]
     continuous_inputs: List[InputConfig]
     data_of_interest: str
-    data_features_to_visualize: List[str]
     categorical_names: List[str]
     continuous_names: List[str]
     categorical_weights: List[float]
     continuous_weights: List[float]
-        
+    data_features_to_visualize_notebook4: List[str]
+    write_omics_results_notebook5: List[str]
+                
 @dataclass
 class ModelConfig:
     _target_: str
     cuda: bool
 
-
 @dataclass
 class VAEConfig(ModelConfig):
-#     categorical_weights: List[int]
-#     continuous_weights: List[int]
     user_conf: str
     cuda: bool
     lrate: float
@@ -48,25 +45,6 @@ class VAEConfig(ModelConfig):
     kld_steps: List[int]
     batch_steps: List[int]
         
-#     version: str
-
-#     num_hidden: int
-#     num_layers: int
-#     num_latent: List[int]
-#     nLatent_04: int
-#     beta: float
-#     dropout: float
-
-
-# @dataclass
-# class TrainingConfig:
-#     cuda: bool
-#     lr: float
-#     num_epochs: int
-#     kld_steps: List[int]
-#     batch_steps: List[int]
-#     version: str
-
 @dataclass
 class TuningReconstructionConfig:
     user_config: str
@@ -114,7 +92,6 @@ class TrainingAssociationConfig:
     repeats: int 
     tuned_num_epochs: int
 
-    
 @dataclass
 class MOVEConfig:
     data: DataConfig

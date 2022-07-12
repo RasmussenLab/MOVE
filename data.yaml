@@ -36,12 +36,16 @@ continuous_inputs:
 
 data_of_interest: baseline_drugs
 
-data_features_to_visualize:
-  - drug_1
-  - clinical_continuous_2
-  - clinical_continuous_3
-
 categorical_names: ${names:${data.categorical_inputs}}
 continuous_names: ${names:${data.continuous_inputs}}
 categorical_weights: ${weights:${data.categorical_inputs}}
 continuous_weights: ${weights:${data.continuous_inputs}}
+
+data_features_to_visualize_notebook4:
+  - drug_1
+  - clinical_continuous_2
+  - clinical_continuous_3
+
+write_omics_results_notebook5:
+  - baseline_target_metabolomics
+  - baseline_untarget_metabolomics 

@@ -6,7 +6,7 @@ _target_: move.models.vae.VAE
 # continuous_names: ${names:${data.continuous_inputs}}
 # categorical_weights: ${weights:${data.categorical_inputs}}
 # continuous_weights: ${weights:${data.continuous_inputs}}
-
+seed: 1
 cuda: False
 
 lrate: 0.0001

@@ -1,5 +1,6 @@
 user_config: model.yaml
 
+seed: 1
 cuda: False
 lrate: 0.0001
 num_epochs: 4

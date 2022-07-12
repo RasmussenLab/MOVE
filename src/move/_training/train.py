@@ -15,9 +15,10 @@ from move.models import vae
 from move.data import dataloaders
 from move._utils.model_utils import get_latent, cal_recon, cal_cat_recon, cal_con_recon, get_baseline, change_drug, cal_sig_hits, correction_new, get_start_end_positions 
 from move._utils.data_utils import initiate_default_dicts
+from move._utils.seed import set_global_seed
 
 
-def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_sizes, nepochs, repeat, lrate, kldsteps, batchsteps, patience, cuda, path, cat_list, con_list, continuous_weights, categorical_weights):
+def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_sizes, nepochs, repeat, lrate, kldsteps, batchsteps, patience, cuda, path, cat_list, con_list, continuous_weights, categorical_weights, seed):
     """
     Performs hyperparameter tuning in terms of reconstruction
     
@@ -69,7 +70,7 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
     for nHidden, nLatent, nl, drop, b, batch_size, r in iters:
         combi = str([nHidden] * nl) + "+" + str(nLatent) + ", drop: " + str(drop) +", b: " + str(b) + ", batch: " + str(batch_size)
 
-        best_model, loss, ce, sse, KLD, train_loader, mask, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_size, nHidden, nl, nLatent, b, drop, cuda, kldsteps, batchsteps, nepochs, lrate, test_loader, patience, early_stopping=True)   
+        best_model, loss, ce, sse, KLD, train_loader, mask, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_size, nHidden, nl, nLatent, b, drop, cuda, kldsteps, batchsteps, nepochs, lrate, seed, test_loader, patience, early_stopping=True)   
 
 
         # get results
@@ -142,7 +143,7 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
 
     
     
-def optimize_stability(nHiddens, nLatents, nDropout, nBeta, repeat, nepochs, nLayers, batch_sizes, lrate, kldsteps, batchsteps, cuda, path, con_list, cat_list, continuous_weights, categorical_weights):
+def optimize_stability(nHiddens, nLatents, nDropout, nBeta, repeat, nepochs, nLayers, batch_sizes, lrate, kldsteps, batchsteps, cuda, path, con_list, cat_list, continuous_weights, categorical_weights, seed):
     
     models, latents, embeddings, con_recons, cat_recons, recon_acc, los, likelihood = initiate_default_dicts(1, 7)
     
@@ -152,7 +153,7 @@ def optimize_stability(nHiddens, nLatents, nDropout, nBeta, repeat, nepochs, nLa
         combi = str([nHidden] * nl) + "+" + str(nLatent) + ", do: " + str(drop) +", b: " + str(b)
         print(combi)
 
-        best_model, loss, ce, sse, KLD, train_loader, mask, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_sizes, nHidden, nl, nLatent, b, drop, cuda, kldsteps, batchsteps, nepochs, lrate, test_loader=None, patience=None, early_stopping=False)
+        best_model, loss, ce, sse, KLD, train_loader, mask, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_sizes, nHidden, nl, nLatent, b, drop, cuda, kldsteps, batchsteps, nepochs, lrate, seed, test_loader=None, patience=None, early_stopping=False)
 
 
         test_loader = DataLoader(dataset=train_loader.dataset, batch_size=1, drop_last=False,
@@ -191,7 +192,7 @@ def optimize_stability(nHiddens, nLatents, nDropout, nBeta, repeat, nepochs, nLa
     return(embeddings, latents, con_recons, cat_recons, recon_acc)
 
 
-def train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHidden, nl, nBeta, drop, con_list, cat_list, continuous_weights, categorical_weights, version, repeats, kldsteps, batchsteps, lrate, drug, categorical_names, data_of_interest):
+def train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHidden, nl, nBeta, drop, con_list, cat_list, continuous_weights, categorical_weights, version, repeats, kldsteps, batchsteps, lrate, drug, categorical_names, data_of_interest, seed):
 
     results, recon_results, recon_results_1, mean_bas = initiate_default_dicts(n_empty_dicts=0, n_list_dicts=4)
 
@@ -202,7 +203,7 @@ def train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHidden,
 
     # Running the framework    
     for nLatent, repeat in iters: 
-        best_model, loss, ce, sse, KLD, train_loader, mask, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_sizes, nHidden, nl, nLatent, nBeta, drop, cuda, kldsteps, batchsteps, nepochs, lrate, test_loader=None, patience=None, early_stopping=False)
+        best_model, loss, ce, sse, KLD, train_loader, mask, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_sizes, nHidden, nl, nLatent, nBeta, drop, cuda, kldsteps, batchsteps, nepochs, lrate, seed, test_loader=None, patience=None, early_stopping=False)
 
 
         train_test_loader = DataLoader(dataset=train_loader.dataset, batch_size=train_loader.batch_size, drop_last=False,
@@ -254,10 +255,13 @@ def train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHidden,
         
     
     
-def train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_size, nHidden, nl, nLatent, b, drop, cuda, kldsteps, batchsteps, nepochs, lrate, test_loader, patience, early_stopping):
+def train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_size, nHidden, nl, nLatent, b, drop, cuda, kldsteps, batchsteps, nepochs, lrate, seed, test_loader, patience, early_stopping):
     
     device = torch.device("cuda" if cuda == True else "cpu")
-
+    
+    if seed is not None:
+        set_global_seed(seed)
+    
     # Initiate loader
     mask, train_loader = dataloaders.make_dataloader(cat_list=cat_list, 
                                                      con_list=con_list, 

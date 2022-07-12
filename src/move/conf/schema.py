@@ -38,6 +38,7 @@ class ModelConfig:
 @dataclass
 class VAEConfig(ModelConfig):
     user_conf: str
+    seed: int
     cuda: bool
     lrate: float
     num_epochs: int
@@ -101,7 +102,6 @@ class MOVEConfig:
     train_latent: TrainingLatentConfig
     train_final: TrainingAssociationConfig
     name: str
-    seed: int
 
 
 def extract_weights(configs: List[InputConfig]) -> List[int]:

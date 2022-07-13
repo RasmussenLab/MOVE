@@ -289,7 +289,7 @@ def get_feature_importance_categorical(model, train_loader, latent, kld_w=1): #W
             sum_diffs.append(np.sum(diff, axis = 1))
             sum_diffs_abs.append(np.sum(diff_abs, axis = 1))
             total_diffs.append(np.sum(diff))
-            break #added
+#             break #added
 
     all_diffs_cat_np = np.asarray(all_diffs)
     sum_diffs_cat_np = np.asarray(sum_diffs)
@@ -331,7 +331,7 @@ def get_feature_importance_continuous(model, train_loader, mask, latent, kld_w=1
         sum_diffs_con.append(np.sum(diff, axis = 1))
         sum_diffs_con_abs.append(np.sum(diff_abs, axis = 1))
         total_diffs_con.append(np.sum(diff))
-        break #added
+#         break #added
 
     all_diffs_con_np = np.asarray(all_diffs_con)
     sum_diffs_con_np = np.asarray(sum_diffs_con)
@@ -553,7 +553,7 @@ def get_change_in_reconstruction(recon_average, groups, drug, drug_h, con_names,
                         if tmp_vals[indi] != 0:
                             recon_average_corr_all_indi[d][indi][f] += tmp_recon[indi,f]
                             counts_indi[d][indi][f] += 1
-        break
+#         break
     recon_average_corr_new_all = list()
     recon_average_corr_all_indi_new = dict()
     for d in recon_average_corr_all.keys():

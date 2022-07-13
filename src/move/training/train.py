@@ -334,11 +334,11 @@ def train_model(cat_list, con_list, categorical_weights, continuous_weights, bat
                 best_epoch = epoch
                 count = 0
 
-                if epoch > 3: # Added
-                    break      # Added
+#                 if epoch > 3: # Added
+#                     break      # Added
 
-            if epoch > 10: # Added
-                break      # Added    
+#             if epoch > 10: # Added
+#                 break      # Added    
         else:
             best_model = copy.deepcopy(model)
             best_epoch = None

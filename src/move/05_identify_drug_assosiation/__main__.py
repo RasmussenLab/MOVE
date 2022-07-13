@@ -2,88 +2,106 @@
 import hydra 
 from move.conf.schema import MOVEConfig
 
-from move._utils.data_utils import get_data
-from move._training.train import train_model_association
-from move._utils.visualization_utils import visualize_indi_var, visualize_drug_similarity_across_all
-from move._analysis.analysis import cal_reconstruction_change, overlapping_hits, identify_high_supported_hits, report_values, get_change_in_reconstruction, write_omics_results, make_files, get_inter_drug_variation, get_drug_similar_each_omics
+from move.training.train import train_model_association
+from move.utils.data_utils import get_data, merge_configs
+from move.utils.visualization_utils import visualize_indi_var, visualize_drug_similarity_across_all
+from move.utils.analysis import cal_reconstruction_change, overlapping_hits, identify_high_supported_hits, report_values, get_change_in_reconstruction, write_omics_results, make_files, get_inter_drug_variation, get_drug_similar_each_omics
 
-import numpy as np #for some reason when I import numpy before move functions - stucks in running
-
+import numpy as np 
 
 @hydra.main(config_path="../conf", config_name="main")
-def main(config: MOVEConfig): 
+def main(base_config: MOVEConfig): 
     
-    #Get needed variables
-    path = config.data.processed_data_path
-    data_of_interest = config.data.data_of_interest
-    version = config.data.version
+    # Merging the user defined data.yaml, model.yaml and training_association.yaml 
+    # with the base_config to override it.
+    print('Overriding the default config with configs from data.yaml, model.yaml and training_association.yaml')
+    cfg = merge_configs(base_config=base_config, 
+                        config_types=['data', 'model', 'training_association'])
     
-    cuda = config.model.cuda
-    nepochs = config.model.num_epochs
+    #Getting the variables used in the notebook
+    path = cfg.data.processed_data_path
+    data_of_interest = cfg.data.data_of_interest
+    version = cfg.data.version
+    categorical_names = cfg.data.categorical_names
+    continuous_names = cfg.data.continuous_names
+    categorical_weights = cfg.data.categorical_weights
+    continuous_weights = cfg.data.continuous_weights
+    up_down_list = cfg.data.write_omics_results_notebook5
+    
+    seed = cfg.model.seed
+    cuda = cfg.model.cuda
+    lrate = cfg.model.lrate
+    kld_steps = cfg.model.kld_steps
+    batch_steps = cfg.model.batch_steps
 
-    lrate = config.model.lr
-    kld_steps = config.model.kld_steps
-    batch_steps = config.model.batch_steps
-    categorical_names = config.model.categorical_names
-    continuous_names = config.model.continuous_names
-
-    nHiddens = config.training_final.num_hidden
-    nLatents = config.training_final.num_latent
-    nLayers = config.training_final.num_layers
-    nDropout = config.training_final.dropout
-    nBeta = config.training_final.beta
-    batch_sizes = config.training_final.batch_sizes
-    repeats = config.training_final.repeats
+    nHiddens = cfg.training_association.num_hidden
+    nLatents = cfg.training_association.num_latent
+    nLayers = cfg.training_association.num_layers
+    nDropout = cfg.training_association.dropout
+    nBeta = cfg.training_association.beta
+    batch_sizes = cfg.training_association.batch_sizes
+    nepochs = cfg.training_association.tuned_num_epochs
+    repeats = cfg.training_association.repeats
     
     types = [[1, 0]]
-
     
+    # Checking if all data types selected for visualization are in continuous_names
+    for data_type in up_down_list:
+        if data_type not in continuous_names:
+            raise ValueError(f"{data_type} is not in the continuous_names list.")
+    
+    # Getting the data
     cat_list, con_list, cat_names, con_names, headers_all, drug, drug_h = get_data(path, categorical_names, continuous_names, data_of_interest)
     
-    #train model
-    train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHiddens, nLayers, nBeta, nDropout, con_list, cat_list, version, repeats, kld_steps, batch_steps, lrate, drug, categorical_names, data_of_interest)
+    # Training the model
+    print('Beginning training the model.\n')
+    train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHiddens, nLayers, nBeta, nDropout, con_list, cat_list, continuous_weights, categorical_weights, version, repeats, kld_steps, batch_steps, lrate, drug, categorical_names, data_of_interest, seed)
+    print('\nFinished training the model.')
     
-    # Load files 
+    # Loading the saved files by train_model_association() - for using the results without the need to rerun the function
     results = np.load(path + "results/results_" + version + ".npy", allow_pickle=True).item()
     recon_results = np.load(path + "results/results_recon_" + version + ".npy", allow_pickle=True).item()
     groups = np.load(path + "results/results_groups_" + version + ".npy", allow_pickle=True).item()
-    
     mean_bas = np.load(path + "results/results_recon_mean_baseline_" + version + ".npy", allow_pickle=True).item()
     recon_results_1 = np.load(path + "results/results_recon_no_corr_" + version + ".npy", allow_pickle=True).item()
     cor_results = np.load(path + "wp2.2/sig_overlap/cor_results_" + version + ".npy", allow_pickle=True).item()
     
-    # Start analysis
+    ### Starting the analysis
+    
+    # Getting the reconstruction average results
     recon_average = cal_reconstruction_change(recon_results, repeats)
     
+    # Getting overlapping hits
     sig_hits, median_p_val = overlapping_hits(nLatents, cor_results, repeats, con_names, drug)
     
+    # Getting high supported hits
     all_hits, collected_overlap = identify_high_supported_hits(sig_hits, drug_h, version, path)
-    print(collected_overlap)
     
+    # Saving the pi values of results of overlapping_hits() and  identify_high_supported_hits() functions
     report_values(path, sig_hits, median_p_val, drug_h, all_hits, con_names)
-    con_list_concat = np.concatenate(con_list, axis=-1)
     
+    # Calculating average change among different runs
+    con_list_concat = np.concatenate(con_list, axis=-1)
     recon_average_corr_new_all, recon_average_corr_all_indi_new = get_change_in_reconstruction(recon_average, groups, drug, drug_h, con_names, collected_overlap, sig_hits, con_list_concat, version, path, types)
     
+    # Loading the results saved by get_change_in_reconstruction() - for using the results without the need to rerun the function
     recon_average_corr_new_all = np.load(path + "results/results_confidence_recon_all_" + version + ".npy", allow_pickle=True)
-    
     recon_average_corr_all_indi_new = np.load(path + "results/results_confidence_recon_all_indi_" + version + ".npy", allow_pickle=True).item()
-
-    up_down_list = ['baseline_target_metabolomics', 'baseline_untarget_metabolomics']         
     
+    # Writing all the hits for each drug and database separately. Also, writing what features were increased or decreased with the association with the drug 
     write_omics_results(path, up_down_list, collected_overlap, recon_average_corr_new_all, headers_all, continuous_names, data_of_interest)
     
+    # Saving the effect sizes (95 % interval) of results of get_change_in_reconstruction() functions
     make_files(collected_overlap, groups, con_list_concat, path, recon_average_corr_all_indi_new, con_names, continuous_names, drug_h, drug, all_hits, types, version)
     
-    
+    # Getting inter drug variation 
     df_indi_var = get_inter_drug_variation(con_names, drug_h, recon_average_corr_all_indi_new, 
                                            groups, collected_overlap, drug, con_list_concat, path, types)
 
+    # Visualizing variation, heatmap of similarities within drugs across all data and specific for each omics
     visualize_indi_var(df_indi_var, version, path)
     visualize_drug_similarity_across_all(recon_average_corr_new_all, drug_h, version, path)
-    
     get_drug_similar_each_omics(con_names, continuous_names, all_hits, recon_average_corr_new_all, drug_h, version, path)
-
     
 if __name__ == "__main__":
     main()

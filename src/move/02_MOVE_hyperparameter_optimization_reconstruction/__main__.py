@@ -2,52 +2,77 @@
 import hydra 
 from move.conf.schema import MOVEConfig
 
-from move._utils.data_utils import get_data
-from move._training.train import optimize_reconstruction
-from move._utils.visualization_utils import visualize_likelihood, visualize_recon_acc
+from move.training.train import optimize_reconstruction
+from move.utils.data_utils import get_data, merge_configs
+from move.utils.visualization_utils import visualize_likelihood, visualize_recon_acc
+from move.utils.analysis import make_and_save_best_reconstruct_params
 
 @hydra.main(config_path="../conf", config_name="main")
-def main(config: MOVEConfig): 
+def main(base_config: MOVEConfig): 
     
-    #Get needed variables
-    path = config.data.processed_data_path
-    data_of_interest = config.data.data_of_interest
+    # Merging the user defined data.yaml, model.yaml and tuning_reconstruction.yaml 
+    # with the base_config to override it.
+    print('Overriding the default config with configs from data.yaml, model.yaml and tuning_reconstruction.yaml')
+    cfg = merge_configs(base_config=base_config, 
+                        config_types=['data', 'model', 'tuning_reconstruction'])
     
-    cuda = config.model.cuda
-    nepochs = config.model.num_epochs
-    kld_steps = config.model.kld_steps
-    batch_steps = config.model.batch_steps
-    patience = config.model.patience
-    lrate = config.model.lr
-    categorical_names = config.model.categorical_names
-    continuous_names = config.model.continuous_names
+    # Getting the variables used in the notebook
+    path = cfg.data.processed_data_path
+    data_of_interest = cfg.data.data_of_interest
+    categorical_names = cfg.data.categorical_names
+    continuous_names = cfg.data.continuous_names
+    categorical_weights = cfg.data.categorical_weights
+    continuous_weights = cfg.data.continuous_weights
     
-    nHiddens = config.tuning_reconstruction.num_hidden
-    nLatents = config.tuning_reconstruction.num_latent
-    nLayers = config.tuning_reconstruction.num_layers
-    nDropout = config.tuning_reconstruction.dropout
-    nBeta = config.tuning_reconstruction.beta
-    batch_sizes = config.tuning_reconstruction.batch_sizes
-    repeat = config.tuning_reconstruction.repeats
+    seed = cfg.model.seed
+    cuda = cfg.model.cuda
+    nepochs = cfg.model.num_epochs
+    kld_steps = cfg.model.kld_steps
+    batch_steps = cfg.model.batch_steps
+    patience = cfg.model.patience
+    lrate = cfg.model.lrate
     
-        
-    #Get the data
+    nHiddens = cfg.tuning_reconstruction.num_hidden
+    nLatents = cfg.tuning_reconstruction.num_latent
+    nLayers = cfg.tuning_reconstruction.num_layers
+    nDropout = cfg.tuning_reconstruction.dropout
+    nBeta = cfg.tuning_reconstruction.beta
+    batch_sizes = cfg.tuning_reconstruction.batch_sizes
+    repeat = cfg.tuning_reconstruction.repeats  
+    max_param_combos_to_save = cfg.tuning_reconstruction.max_param_combos_to_save
+    
+    #Getting the data
     cat_list, con_list, cat_names, con_names, headers_all, drug, drug_h = get_data(path, categorical_names, continuous_names, data_of_interest)
-    
-    #Perform hyperparameter tuning
-    likelihood_tests, recon_acc_tests, recon_acc = optimize_reconstruction(nHiddens, nLatents, 
-                                                                            nLayers, nDropout, 
-                                                                            nBeta, batch_sizes, 
-                                                                            nepochs, repeat, 
-                                                                            lrate, kld_steps, 
-                                                                            batch_steps, patience, 
-                                                                            cuda, path, 
-                                                                            cat_list, con_list)
 
-    #Visualize the data
-    visualize_likelihood(path, nLayers, nHiddens, nDropout, nBeta, nLatents, likelihood_tests)
-    visualize_recon_acc(path, nLayers, nHiddens, nDropout, nBeta, nLatents, recon_acc_tests, 'test')
-    visualize_recon_acc(path, nLayers, nHiddens, nDropout, nBeta, nLatents, recon_acc, 'train')    
+    #Performing hyperparameter tuning
+
+    likelihood_tests, recon_acc_tests, recon_acc, results_df = optimize_reconstruction(nHiddens, nLatents, 
+                                                                                       nLayers, nDropout, 
+                                                                                       nBeta, batch_sizes, 
+                                                                                       nepochs, repeat, 
+                                                                                       lrate, kld_steps, 
+                                                                                       batch_steps, patience, 
+                                                                                       cuda, path, 
+                                                                                       cat_list, con_list,
+                                                                                       continuous_weights, 
+                                                                                       categorical_weights,
+                                                                                       seed)
+    
+
+    # Visualizing the data
+    try:
+        visualize_likelihood(path, nLayers, nHiddens, nDropout, nBeta, nLatents, likelihood_tests)
+        visualize_recon_acc(path, nLayers, nHiddens, nDropout, nBeta, nLatents, recon_acc_tests, 'test')
+        visualize_recon_acc(path, nLayers, nHiddens, nDropout, nBeta, nLatents, recon_acc, 'train')  
+        print('Visualizing the hyperparameter tuning results\n')
+    except:
+        print('Could not visualize the results\n')
+
+    # Getting and saving the best n hyperparameter set value combinations for further optimisation 
+    hyperparams_names = ['num_hidden','num_latent', 'num_layers', 'dropout', 'beta', 'batch_sizes']
+    make_and_save_best_reconstruct_params(results_df, hyperparams_names, max_param_combos_to_save)
+
+    return()
 
 
 if __name__ == "__main__":

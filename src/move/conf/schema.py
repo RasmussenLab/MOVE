@@ -100,7 +100,7 @@ class MOVEConfig:
     tune_reconstruction: TuningReconstructionConfig
     tune_stability: TuningStabilityConfig
     train_latent: TrainingLatentConfig
-    train_final: TrainingAssociationConfig
+    train_association: TrainingAssociationConfig
     name: str
 
 

@@ -592,7 +592,7 @@ def write_omics_results(path, up_down_list, collected_overlap, recon_average_cor
                 
                 if con_types[i] in up_down_list:
                      
-                    vals = recon_average_corr_new_all[headers_all[i].index(d),np.where(np.isin(con_names,n))[0]]
+                    vals = recon_average_corr_new_all[list(headers_all[i]).index(d),np.where(np.isin(con_names,n))[0]]
                     up = n[vals > 0]
                     down = n[vals < 0]
                     with open(path + f"results/{con_types[i]}_up_" + d.replace(" ", "_") + ".txt", "w") as o:

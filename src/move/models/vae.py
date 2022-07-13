@@ -4,6 +4,7 @@ import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader
 from typing import List
+import numpy as np
 
 class VAE(nn.Module):
     """Variational autoencoder.
@@ -361,20 +362,23 @@ class VAE(nn.Module):
             cat_target_tmp = cat_in_tmp
             cat_target_tmp = torch.argmax(cat_target_tmp.detach(), dim=2)
             cat_target_tmp[cat_in_tmp.sum(dim=2) == 0] = -1
-            cat_target[:, shape_1 : (cat_shape[1] + shape_1)] = cat_target_tmp.numpy()
+            cat_target[:, shape_1 : (cat_shape[1] + shape_1)] = cat_target_tmp#.numpy()
 
             # Get reconstructed categorical data
             cat_out_tmp = cat_out[count]
             cat_out_tmp = cat_out_tmp.transpose(1, 2)
             cat_out_class[:, shape_1 : (cat_shape[1] + shape_1)] = torch.argmax(
                 cat_out_tmp, dim=2
-            ).numpy()
+            )#.numpy()
 
             # make counts for next dataset
             pos += cat_shape[1] * cat_shape[2]
             shape_1 += cat_shape[1]
             count += 1
 
+        cat_target = cat_target.numpy()
+        cat_out_class = cat_out_class.numpy()
+        
         return cat_out_class, cat_target
 
     @torch.no_grad()
@@ -383,7 +387,7 @@ class VAE(nn.Module):
         test_loss = 0
         test_likelihood = 0
 
-        num_samples = dataloader.dataset.npatients
+        num_samples = dataloader.dataset.num_samples
 
         latent = torch.empty((num_samples, self.num_latent))
         latent_var = torch.empty((num_samples, self.num_latent))
@@ -431,8 +435,8 @@ class VAE(nn.Module):
                 cat_out_class, cat_target = self.get_cat_recon(
                     batch, cat_total_shape, cat, cat_out
                 )
-                cat_recon[row : row + len(cat_out_class)] = cat_out_class
-                cat_class[row : row + len(cat_target)] = cat_target
+                cat_recon[row : row + len(cat_out_class)] = torch.Tensor(cat_out_class)
+                cat_class[row : row + len(cat_target)] = torch.Tensor(cat_target)
 
             if not (self.num_continuous is None):
                 con_recon[row : row + len(con_out)] = con_out
@@ -443,7 +447,14 @@ class VAE(nn.Module):
 
         test_loss /= len(dataloader)
         print("====> Test set loss: {:.4f}".format(test_loss))
-
+        
+        latent = latent.numpy()
+        latent_var = latent_var.numpy()
+        cat_recon = cat_recon.numpy()
+        cat_class = cat_class.numpy()
+        con_recon = con_recon.numpy()
+                
+        
         assert row == num_samples
         return (
             latent,

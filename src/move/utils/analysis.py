@@ -604,6 +604,7 @@ def write_omics_results(path, up_down_list, collected_overlap, recon_average_cor
                         
 def make_files(collected_overlap, groups, con_all, path, recon_average_corr_all_indi_new, 
                con_names, con_dataset_names, drug_h, drug, all_hits, types, version = "v1"):
+    
     all_db_names = [item for sublist in con_names for item in sublist]
     ci_dict = {}
     for i,n in enumerate(con_dataset_names):
@@ -723,7 +724,7 @@ def get_significant_param_values(results_df, list_of_params, stat_test='t_test')
                     diff_signif = stats.wilcoxon(results_df[results_df[col]==unique_values[i]]['likelihood_test'], results_df[results_df[col]==unique_values[j]]['likelihood_test'])[1]
                     
                 if diff_signif < 0.05:
-                    a = tuple([unique_values[i], unique_values[j]])
+#                     a = tuple([unique_values[i], unique_values[j]])
                     insignif_pairs_list.append(tuple([unique_values[j], unique_values[i]]))
         
         # Removing the parameter that did not show significant differences (in the order from the most insignificant pairs)
@@ -744,6 +745,103 @@ def get_significant_param_values(results_df, list_of_params, stat_test='t_test')
 
     return(results_df_rm_nonsignifs, params_dict_to_remove)
 
+# def get_significant_param_values(results_df: pd.DataFrame, 
+#                                  list_of_params: list, 
+#                                  metric_name: str = 'likelihood_test', 
+#                                  stat_test: str = 'ttest_rel'):
+    
+#     params_dict_to_remove = defaultdict(list)
+
+#     # Iterating through each of the hypeparameter
+#     for col in list_of_params:
+
+#         # Getting each value of the hyperparameter
+#         unique_values = results_df[col].unique()
+
+#         stat_test = getattr(stats, stat_test)  # might be good to catch errors
+        
+#         # finding which pairs of parameter values do not have significant differences
+#         insignif_pairs_list = []
+#         for i in range(len(unique_values)):
+#             for j in range(i+1, len(unique_values)):
+                
+#                 # Getting the p-value of statistical results by comparing hyperparameter values sets where only the tested hyperparameter is different
+
+#                 _, pvalue = stat_test(
+#                     results_df.loc[results_df[col] == unique_values[i], metric_name],
+#                     results_df.loc[results_df[col] == unique_values[j], metric_name])
+
+#                 if pvalue < 0.05:
+# #                     a = tuple([unique_values[i], unique_values[j]])
+#                     insignif_pairs_list.append(
+#                         tuple([unique_values[j], unique_values[i]]))
+
+#         # Removing the parameter that did not show significant differences (in the order from the most insignificant pairs)
+#         # strategy: remove the unique value with most insignificant results first, repeat until none is left
+#         while insignif_pairs_list:
+#             insignif_values_dict = Counter(
+#                 value for values_pair in insignif_pairs_list for value in values_pair)
+#             value_max_occurs = max(insignif_values_dict,
+#                                    key=insignif_values_dict.get)
+#             insignif_pairs_list = [
+#                 x for x in insignif_pairs_list if value_max_occurs not in x]
+
+#             # unique_values = np.delete(unique_values, np.where(unique_values == value_max_occurs))
+
+#             params_dict_to_remove[col].append(value_max_occurs)
+
+#     # Removing the selected parameters to remove from the dataframe
+#     results_df_rm_nonsignifs = pd.DataFrame(results_df)
+#     for key, value_list in params_dict_to_remove.items():
+#         for value in value_list:
+#             results_df_rm_nonsignifs = results_df_rm_nonsignifs[results_df_rm_nonsignifs[key] != value]
+#             #isin to compare to a set of values
+
+#     return(results_df_rm_nonsignifs, params_dict_to_remove)
+
+def get_significant_param_values(results_df: pd.DataFrame, 
+                                 list_of_params: list, 
+                                 metric_name: str = 'likelihood_test', 
+                                 stat_test_name: str = 'ttest_rel'):
+    
+    params_dict_to_remove = defaultdict(list)
+    stat_test = getattr(stats, stat_test_name)  # might be good to catch errors
+        
+    # Iterating through each of the hypeparameter
+    for col in list_of_params:
+
+        # Getting each value of the hyperparameter
+        unique_values = results_df[col].unique()
+
+
+        # finding which pairs of parameter values do not have significant differences
+        insignif_pairs_list = []
+        for i in range(len(unique_values)):
+            for j in range(i+1, len(unique_values)):
+                
+                # Getting the p-value of statistical results by comparing hyperparameter values sets where only the tested hyperparameter is different
+                _, pvalue = stat_test(
+                    results_df.loc[results_df[col] == unique_values[i], metric_name],
+                    results_df.loc[results_df[col] == unique_values[j], metric_name])
+
+                if pvalue < 0.05:
+                    insignif_pairs_list.append(tuple([unique_values[j], 
+                                                      unique_values[i]]))
+
+        # Removing the parameter that did not show significant differences (in the order from the most insignificant pairs)
+        # strategy: remove the unique value with most insignificant results first, repeat until none is left
+        while insignif_pairs_list:
+            insignif_values_dict = Counter(value for values_pair in insignif_pairs_list for value in values_pair)
+            value_max_occurs = max(insignif_values_dict, key=insignif_values_dict.get)
+            insignif_pairs_list = [x for x in insignif_pairs_list if value_max_occurs not in x]
+            params_dict_to_remove[col].append(value_max_occurs)
+
+    # Removing the selected parameters to remove from the dataframe
+    results_df_rm_nonsignifs = pd.DataFrame(results_df)
+    for key, value_list in params_dict_to_remove.items():
+        results_df_rm_nonsignifs = results_df_rm_nonsignifs[results_df_rm_nonsignifs[key].isin(value_list)]
+
+    return(results_df_rm_nonsignifs, params_dict_to_remove)
 
 def get_sort_list(results_df):
     

@@ -17,7 +17,10 @@ def main(base_config: MOVEConfig):
                         config_types=['data', 'model', 'tuning_reconstruction'])
     
     # Getting the variables used in the notebook
-    path = cfg.data.processed_data_path
+    
+    raw_data_path = cfg.data.raw_data_path
+    interim_data_path = cfg.data.interim_data_path
+    processed_data_path = cfg.data.processed_data_path
     data_of_interest = cfg.data.data_of_interest
     categorical_names = cfg.data.categorical_names
     continuous_names = cfg.data.continuous_names
@@ -42,7 +45,7 @@ def main(base_config: MOVEConfig):
     max_param_combos_to_save = cfg.tuning_reconstruction.max_param_combos_to_save
     
     #Getting the data
-    cat_list, con_list, cat_names, con_names, headers_all, drug, drug_h = get_data(path, categorical_names, continuous_names, data_of_interest)
+    cat_list, con_list, cat_names, con_names, headers_all, drug, drug_h = get_data(raw_data_path, interim_data_path, categorical_names, continuous_names, data_of_interest)
 
     #Performing hyperparameter tuning
 
@@ -52,7 +55,7 @@ def main(base_config: MOVEConfig):
                                                                                        nepochs, repeat, 
                                                                                        lrate, kld_steps, 
                                                                                        batch_steps, patience, 
-                                                                                       cuda, path, 
+                                                                                       cuda, processed_data_path, 
                                                                                        cat_list, con_list,
                                                                                        continuous_weights, 
                                                                                        categorical_weights,
@@ -61,9 +64,9 @@ def main(base_config: MOVEConfig):
 
     # Visualizing the data
     try:
-        visualize_likelihood(path, nLayers, nHiddens, nDropout, nBeta, nLatents, likelihood_tests)
-        visualize_recon_acc(path, nLayers, nHiddens, nDropout, nBeta, nLatents, recon_acc_tests, 'test')
-        visualize_recon_acc(path, nLayers, nHiddens, nDropout, nBeta, nLatents, recon_acc, 'train')  
+        visualize_likelihood(processed_data_path, nLayers, nHiddens, nDropout, nBeta, nLatents, likelihood_tests)
+        visualize_recon_acc(processed_data_path, nLayers, nHiddens, nDropout, nBeta, nLatents, recon_acc_tests, 'test')
+        visualize_recon_acc(processed_data_path, nLayers, nHiddens, nDropout, nBeta, nLatents, recon_acc, 'train')  
         print('Visualizing the hyperparameter tuning results\n')
     except:
         print('Could not visualize the results\n')

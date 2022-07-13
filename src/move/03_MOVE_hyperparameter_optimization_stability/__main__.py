@@ -17,7 +17,10 @@ def main(base_config: MOVEConfig):
                         config_types=['data', 'model', 'tuning_stability'])
     
     #Getting the variables used in the notebook
-    path = cfg.data.processed_data_path   
+    raw_data_path = cfg.data.raw_data_path
+    interim_data_path = cfg.data.interim_data_path
+    processed_data_path = cfg.data.processed_data_path 
+    
     data_of_interest = cfg.data.data_of_interest
     categorical_names = cfg.data.categorical_names
     continuous_names = cfg.data.continuous_names
@@ -46,7 +49,7 @@ def main(base_config: MOVEConfig):
         raise('Currently the code is implemented to take take only one value for batch_size')
     
     #Getting the data
-    cat_list, con_list, cat_names, con_names, headers_all, drug, drug_h = get_data(path, categorical_names, continuous_names, data_of_interest)
+    cat_list, con_list, cat_names, con_names, headers_all, drug, drug_h = get_data(raw_data_path, interim_data_path, categorical_names, continuous_names, data_of_interest)
     
     #Performing hyperparameter tuning
     embeddings, latents, con_recons, cat_recons, recon_acc = optimize_stability(nHiddens, nLatents, 
@@ -54,7 +57,7 @@ def main(base_config: MOVEConfig):
                                                                                 nepochs, nLayers,
                                                                                 batch_sizes, lrate, 
                                                                                 kld_steps, batch_steps, 
-                                                                                cuda, path, 
+                                                                                cuda, processed_data_path, 
                                                                                 con_list, cat_list,
                                                                                 continuous_weights, categorical_weights,
                                                                                 seed)
@@ -66,19 +69,19 @@ def main(base_config: MOVEConfig):
     
     # Plotting the results 
     try: 
-        draw_boxplot(path=path,
+        draw_boxplot(path=processed_data_path ,
                      df=stability_top10,
                      title_text='Difference across replicationes in cosine similarity of ten closest neighbours in first iteration',
                      y_label_text="Average change",
                      save_fig_name="stability_top10")
 
-        draw_boxplot(path=path,
+        draw_boxplot(path=processed_data_path ,
                      df=stability_total,
                      title_text='Difference across replicationes in cosine similarity compared to first iteration',
                      y_label_text="Average change",
                      save_fig_name="stability_all")
 
-        draw_boxplot(path=path,
+        draw_boxplot(path=processed_data_path,
                      df=rand_index,
                      title_text='Rand index across replicationes compared to first iteration',
                      y_label_text="Rand index",

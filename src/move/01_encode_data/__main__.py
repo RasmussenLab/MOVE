@@ -14,7 +14,8 @@ def main(base_config: MOVEConfig):
                         config_types=['data'])
     
     # Getting the variables used in the notebook
-    path = cfg.data.processed_data_path
+    raw_data_path = cfg.data.raw_data_path
+    interim_data_path = cfg.data.interim_data_path
     ids_file_name = cfg.data.ids_file_name
     na_encoding = cfg.data.na_value
     categorical_names = cfg.data.categorical_names
@@ -23,13 +24,13 @@ def main(base_config: MOVEConfig):
     # Encoding categorical data
     print('Encoding categorical data')
     for cat_data in categorical_names:
-        generate_file('categorical', path, cat_data, ids_file_name, na_encoding)
+        generate_file('categorical', raw_data_path, interim_data_path, cat_data, ids_file_name, na_encoding)
         print(f'  Encoded {cat_data}')
     
     # Encoding continuous data 
     print('Encoding continuous data')
     for con_data in continuous_names:
-        generate_file('continuous', path, con_data, ids_file_name, na_encoding)    
+        generate_file('continuous', raw_data_path, interim_data_path, con_data, ids_file_name, na_encoding)    
         print(f'  Encoded {con_data}')
 
 if __name__ == "__main__":

@@ -12,14 +12,16 @@ import numpy as np
 @hydra.main(config_path="../conf", config_name="main")
 def main(base_config: MOVEConfig): 
     
-   # Merging the user defined data.yaml, model.yaml and training_latent.yaml 
+    # Merging the user defined data.yaml, model.yaml and training_latent.yaml 
     # with the base_config to override it.
     print('Overriding the default config with configs from data.yaml, model.yaml and training_latent.yaml')
     cfg = merge_configs(base_config=base_config, 
                 config_types=['data', 'model', 'training_latent'])
     
     #Getting the variables used in the notebook
-    path = cfg.data.processed_data_path
+    raw_data_path = cfg.data.raw_data_path
+    interim_data_path = cfg.data.interim_data_path
+    processed_data_path = cfg.data.processed_data_path 
     data_of_interest = cfg.data.data_of_interest
     categorical_names = cfg.data.categorical_names
     continuous_names = cfg.data.continuous_names
@@ -44,7 +46,7 @@ def main(base_config: MOVEConfig):
     epochs = range(1, nepochs + 1)    
     
     #Getting the data
-    cat_list, con_list, cat_names, con_names, headers_all, drug, drug_h = get_data(path, categorical_names, continuous_names, data_of_interest)
+    cat_list, con_list, cat_names, con_names, headers_all, drug, drug_h = get_data(raw_data_path, interim_data_path, categorical_names, continuous_names, data_of_interest)
     
     # Checking if all input features selected for visualization were in headers_all
     for feature in features_to_visualize:
@@ -57,7 +59,7 @@ def main(base_config: MOVEConfig):
     print('\nFinished training the model.')
     
     # Visualizing the training
-    visualize_training(path, losses, ce, sse, KLD, epochs)
+    visualize_training(processed_data_path, losses, ce, sse, KLD, epochs)
     
     # Getting the reconstruction results
     latent, latent_var, cat_recon, cat_class, con_recon, loss, likelihood = get_latents(best_model, train_loader, 1)
@@ -65,15 +67,15 @@ def main(base_config: MOVEConfig):
     all_values = calc_continuous_reconstruction_acc(con_shapes, con_recon, train_loader)
     
     # Plotting the reconstruction distributions   
-    plot_reconstruction_distribs(path, cat_total_recon, all_values)
+    plot_reconstruction_distribs(processed_data_path, cat_total_recon, all_values)
     
     # Getting the embeddings
     print('\n Getting the embeddings.')    
-    embedding = get_embedding(path, latent)
+    embedding = get_embedding(processed_data_path, latent)
     
     # Visualizing the embedding of three example features
     for feature in features_to_visualize:
-        visualize_embedding(path, feature, embedding, 
+        visualize_embedding(processed_data_path, feature, embedding, 
                             mask, cat_list, con_list, cat_names, con_names)
         
     # Getting pearson correlations of two example features
@@ -89,25 +91,25 @@ def main(base_config: MOVEConfig):
             total_diffs_con_np = get_feature_importance_continuous(best_model, train_loader, mask, latent)
 
     # Saving features importance measure results 
-    save_feat_results(path, all_diffs_cat_np, sum_diffs_cat_np, sum_diffs_cat_abs_np, total_diffs_cat_np, 
+    save_feat_results(processed_data_path, all_diffs_cat_np, sum_diffs_cat_np, sum_diffs_cat_abs_np, total_diffs_cat_np, 
                  all_diffs_con_np, sum_diffs_con_np,sum_diffs_con_abs_np, total_diffs_con_np)
     
     # Plotting categorical importance measures
-    plot_categorical_importance(path=path,
+    plot_categorical_importance(path=processed_data_path,
                             sum_diffs=sum_diffs_cat_np,
                             cat_list=cat_list,
                             feature_names=cat_names,
                             fig_name='importance_SHAP_cat')
     
     # Plotting continuous importance measures
-    plot_continuous_importance(path=path,
+    plot_continuous_importance(path=processed_data_path,
                            train_loader=train_loader,
                            sum_diffs=sum_diffs_con_np,
                            feature_names=con_names,
                            fig_name='importance_SHAP_con')
     
     # Getting feature importance on weights
-    get_feat_importance_on_weights(path, best_model, train_loader, cat_names, con_names)
+    get_feat_importance_on_weights(processed_data_path, best_model, train_loader, cat_names, con_names)
 
 
 if __name__ == "__main__":

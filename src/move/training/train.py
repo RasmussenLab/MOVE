@@ -18,7 +18,7 @@ from move.utils.data_utils import initiate_default_dicts
 from move.utils.seed import set_global_seed
 
 
-def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_sizes, nepochs, repeat, lrate, kldsteps, batchsteps, patience, cuda, path, cat_list, con_list, continuous_weights, categorical_weights, seed):
+def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_sizes, nepochs, repeat, lrate, kldsteps, batchsteps, patience, cuda, processed_data_path, cat_list, con_list, continuous_weights, categorical_weights, seed):
     """
     Performs hyperparameter tuning in terms of reconstruction
     
@@ -26,11 +26,10 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
     returns:
     """ 
 
-    
     # Preparing the data
-    isExist = os.path.exists(path + 'hyperparameters/')
+    isExist = os.path.exists(processed_data_path + 'hyperparameters/')
     if not isExist:
-        os.makedirs(path + 'hyperparameters/')
+        os.makedirs(processed_data_path + 'hyperparameters/')
 
     # Divide into test and training set
     npatient = cat_list[0].shape[0]
@@ -51,8 +50,8 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
         con_list_test.append(con_data[test]) 
 
     # The selections are are saved
-    np.save(path + "hyperparameters/train1.npy", np.array(train))
-    np.save(path + "hyperparameters/test1.npy", np.array(test))
+    np.save(processed_data_path + "hyperparameters/train1.npy", np.array(train))
+    np.save(processed_data_path + "hyperparameters/test1.npy", np.array(test))
 
      # Create objects to save results
     latents, con_recons, cat_recons, recon_acc, loss_train,\
@@ -122,20 +121,20 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
     
     print('\nFinished the hyperparameter tuning for reconstruction. Saving the results.')
     # Save output
-    np.save(path + "hyperparameters/latent_benchmark_final.npy", latents)
-    np.save(path + "hyperparameters/con_recon_benchmark_final.npy", con_recons)
-    np.save(path + "hyperparameters/cat_recon_benchmark_final.npy", cat_recons)
-    np.save(path + "hyperparameters/recon_acc_benchmark_final.npy", recon_acc)
-    np.save(path + "hyperparameters/loss_benchmark_final.npy", loss_train)
-    np.save(path + "hyperparameters/likelihood_benchmark_final.npy", likelihoods)
-    np.save(path + "hyperparameters/best_epochs_benchmark_final.npy", best_epochs)
+    np.save(processed_data_path + "hyperparameters/latent_benchmark_final.npy", latents)
+    np.save(processed_data_path + "hyperparameters/con_recon_benchmark_final.npy", con_recons)
+    np.save(processed_data_path + "hyperparameters/cat_recon_benchmark_final.npy", cat_recons)
+    np.save(processed_data_path + "hyperparameters/recon_acc_benchmark_final.npy", recon_acc)
+    np.save(processed_data_path + "hyperparameters/loss_benchmark_final.npy", loss_train)
+    np.save(processed_data_path + "hyperparameters/likelihood_benchmark_final.npy", likelihoods)
+    np.save(processed_data_path + "hyperparameters/best_epochs_benchmark_final.npy", best_epochs)
 
-    np.save(path + "hyperparameters/test_latent_benchmark_final.npy", latents_tests)
-    np.save(path + "hyperparameters/test_con_recon_benchmark_final.npy", con_recons_tests)
-    np.save(path + "hyperparameters/test_cat_recon_benchmark_final.npy", cat_recons_tests)
-    np.save(path + "hyperparameters/test_recon_acc_benchmark_final.npy", recon_acc_tests)
-    np.save(path + "hyperparameters/test_loss_benchmark_final.npy", loss_tests)
-    np.save(path + "hyperparameters/test_likelihood_benchmark_final.npy", likelihood_tests)
+    np.save(processed_data_path + "hyperparameters/test_latent_benchmark_final.npy", latents_tests)
+    np.save(processed_data_path + "hyperparameters/test_con_recon_benchmark_final.npy", con_recons_tests)
+    np.save(processed_data_path + "hyperparameters/test_cat_recon_benchmark_final.npy", cat_recons_tests)
+    np.save(processed_data_path + "hyperparameters/test_recon_acc_benchmark_final.npy", recon_acc_tests)
+    np.save(processed_data_path + "hyperparameters/test_loss_benchmark_final.npy", loss_tests)
+    np.save(processed_data_path + "hyperparameters/test_likelihood_benchmark_final.npy", likelihood_tests)
     
     print('The results saved.\n')
     

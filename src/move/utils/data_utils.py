@@ -1,6 +1,8 @@
+import os 
 import numpy as np
 from collections import defaultdict
 from omegaconf import OmegaConf
+
 # from omegaconf import OmegaConf
 # def merge_configs(base_config, config_type):
 #     """Composes configuration for the MOVE framework.
@@ -88,23 +90,23 @@ def initiate_default_dicts(n_empty_dicts, n_list_dicts):
      
     return(tuple(dicts))
 
-def get_data(data_path, categorical_data, continuous_data, data_of_interest):
+def get_data(raw_data_path, interim_data_path, categorical_data, continuous_data, data_of_interest):
      
     # Initiate lists
     cat_list, cat_names, con_list, con_names = [], [], [], []
      
     # Get categorical variables
     for cat_data in categorical_data:
-        cat, cat_input = read_cat(data_path + f"{cat_data}.npy")
-        cat_h = read_header(data_path + f"{cat_data}.tsv")
+        cat, cat_input = read_cat(interim_data_path + f"{cat_data}.npy")
+        cat_h = read_header(raw_data_path + f"{cat_data}.tsv")
           
         cat_list.append(cat)
         cat_names.append(cat_h)
 
      # Get continuous variables
     for con_data in continuous_data:
-        con, con_mask = read_con(data_path + f"{con_data}.npy")
-        con_h = read_header(data_path + f"{con_data}.tsv", con_mask)
+        con, con_mask = read_con(interim_data_path + f"{con_data}.npy")
+        con_h = read_header(raw_data_path + f"{con_data}.tsv", con_mask)
           
         con_list.append(con)
         con_names.append(con_h)
@@ -116,11 +118,11 @@ def get_data(data_path, categorical_data, continuous_data, data_of_interest):
 
     # Select dataset of interest
     if data_of_interest in categorical_data:
-        drug, drug_input = read_cat(data_path + f"{data_of_interest}.npy")
-        drug_h = read_header(data_path + f"{data_of_interest}.tsv")
+        drug, drug_input = read_cat(interim_data_path + f"{data_of_interest}.npy")
+        drug_h = read_header(raw_data_path + f"{data_of_interest}.tsv")
     elif data_of_interest in continuous_data:
-        drug, drug_mask = read_con(data_path + f"{data_of_interest}.npy")
-        drug_h = read_header(data_path + f"{data_of_interest}.tsv", drug_mask)  
+        drug, drug_mask = read_con(interim_data_path + f"{data_of_interest}.npy")
+        drug_h = read_header(raw_data_path + f"{data_of_interest}.tsv", drug_mask)  
     else:
         raise ValueError("""In data.yaml file data_of_interest is chosen neither
                                  from defined continuous nor categorical data types""")
@@ -266,7 +268,7 @@ def read_files(path, data_type, ids_file_name, na):
      
     return ids, raw_input, header
 
-def generate_file(var_type, path, data_type, ids_file_name, na='NA'):
+def generate_file(var_type, raw_data_path, interim_data_path, data_type, ids_file_name, na='NA'):
     """
     Function encodes source data type and saves the file
      
@@ -276,8 +278,13 @@ def generate_file(var_type, path, data_type, ids_file_name, na='NA'):
          data_type: a string that defines a name of .tsv file to encode
          na: a string that defines how NA values are defined in the source data file
     """
-     
-    ids, raw_input, header = read_files(path, data_type, ids_file_name, na)
+    
+    # Preparing the data
+    isExist = os.path.exists(interim_data_path)
+    if not isExist:
+        os.makedirs(interim_data_path)
+    
+    ids, raw_input, header = read_files(raw_data_path, data_type, ids_file_name, na)
     sorted_data = sort_data(raw_input, ids, header)
      
     if var_type == 'categorical':
@@ -285,7 +292,7 @@ def generate_file(var_type, path, data_type, ids_file_name, na='NA'):
     elif var_type == 'continuous':
         data_input, _ = encode_con(sorted_data)
             
-    np.save(path + f"{data_type}.npy", data_input)
+    np.save(interim_data_path + f"{data_type}.npy", data_input)
 
 def get_list_value(*args):
     arg_tuple = [arg[0] if len(arg) == 1 else arg for arg in args]

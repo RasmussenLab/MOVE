@@ -2,7 +2,7 @@
 import hydra 
 from move.conf.schema import MOVEConfig
 
-from move.utils.data_utils import generate_file, merge_configs 
+from move.utils.data_utils import read_ids, generate_file, merge_configs 
 
 @hydra.main(config_path="../conf", config_name="main")
 def main(base_config: MOVEConfig):

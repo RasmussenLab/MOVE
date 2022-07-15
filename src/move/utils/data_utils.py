@@ -14,18 +14,27 @@ def merge_configs(base_config, config_types):
         config_section: YAML configuration of base_config overrided by user defined configs and filtered for config_types classes
     """
     user_config_dict = dict()
+    override_types = []
+    
+    # Getting the user defined configs 
     for config_type in config_types:
-        
-        # Getting name of user config file and loading it 
-        user_config_name = base_config[config_type]['user_config']
-        user_config = OmegaConf.load(user_config_name)
+        exist = os.path.isfile(config_type + '.yaml')
+        if exist:    
+            override_types.append(config_type + '.yaml')
+            # Getting name of user config file and loading it 
+            user_config_name = base_config[config_type]['user_config']
+            user_config = OmegaConf.load(user_config_name)
 
-        # Making dict with the same key as in configuration file
-        user_config_dict[config_type] = user_config
-
+            # Making dict with the same key as in configuration file
+            user_config_dict[config_type] = user_config
+    
+    # Printing what was overrided
+    override_types_str = ', '.join(str(override_type) for override_type in override_types)
+    print(f'Overriding the default config with configs from {override_types_str}')
+    
     # Merging the base and user defined config file
     config = OmegaConf.merge(base_config, user_config_dict)
-
+    
     # Getting a subsection of data used for printing 
     config_section_dict = {x: config[x] for x in config_types if x in config}
     config_section = OmegaConf.create(config_section_dict)

@@ -1,5 +1,6 @@
 import os 
 import numpy as np
+import pandas as pd
 from collections import defaultdict
 from omegaconf import OmegaConf
 
@@ -277,7 +278,17 @@ def sort_data(data, ids, labels):
             sorted_data.append(tmp)
     return sorted_data
 
-def read_files(path, data_type, ids_file_name, na):
+
+def read_ids(path, ids_file_name, ids_colname, ids_has_header=True):
+    header=0 if ids_has_header else None
+        
+    ids = pd.read_csv(path + f"{ids_file_name}.txt", sep='\t', header=header)
+    ids.columns = ids.columns.astype(str)
+    
+    return list(ids[str(ids_colname)])
+
+
+def read_files(path, data_type, na):
     """
     Function reads the input file into the dictionary
      
@@ -289,11 +300,6 @@ def read_files(path, data_type, ids_file_name, na):
          raw_input: a dictionary with the data to encode
          header: a list of column names from the source data file
     """
-     
-    ids = list()
-    with open(path + f"{ids_file_name}.txt", "r") as f:
-        for line in f:
-            ids.append(line.rstrip()) 
                  
     raw_input = dict()
     with open(path + f"{data_type}.tsv", "r") as f:
@@ -307,9 +313,9 @@ def read_files(path, data_type, ids_file_name, na):
             raw_input[tmp[0]] = vals
     header = header.split("\t")
      
-    return ids, raw_input, header
+    return raw_input, header
 
-def generate_file(var_type, raw_data_path, interim_data_path, data_type, ids_file_name, na='NA'):
+def generate_file(var_type, raw_data_path, interim_data_path, data_type, ids, na='NA'):
     """
     Function encodes source data type and saves the file
      
@@ -320,12 +326,12 @@ def generate_file(var_type, raw_data_path, interim_data_path, data_type, ids_fil
          na: a string that defines how NA values are defined in the source data file
     """
     
-    # Preparing the data
     isExist = os.path.exists(interim_data_path)
     if not isExist:
         os.makedirs(interim_data_path)
     
-    ids, raw_input, header = read_files(raw_data_path, data_type, ids_file_name, na)
+    # Preparing the data
+    raw_input, header = read_files(raw_data_path, data_type, na)
     sorted_data = sort_data(raw_input, ids, header)
      
     if var_type == 'categorical':

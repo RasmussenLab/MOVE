@@ -1,4 +1,4 @@
-na_value: nan
+na_value: na
 
 # raw - for raw data (e.g., the TSVs)
 # interim - for intermediate data (e.g., the NPYs)
@@ -9,6 +9,8 @@ processed_data_path: processed_data/
 version: v1
 
 ids_file_name: baseline_ids
+ids_has_header: False
+ids_colname: 0
 
 categorical_inputs:
   - name: diabetes_genotypes

@@ -20,6 +20,8 @@ class DataConfig:
     processed_data_path: str
     version: str
     ids_file_name: str
+    ids_has_header: bool
+    ids_colname: str
     categorical_inputs: List[InputConfig]
     continuous_inputs: List[InputConfig]
     data_of_interest: str

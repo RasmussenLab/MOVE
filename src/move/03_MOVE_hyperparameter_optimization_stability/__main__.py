@@ -10,9 +10,7 @@ from move.utils.analysis import get_top10_stability, calculate_latent, make_and_
 @hydra.main(config_path="../conf", config_name="main")
 def main(base_config: MOVEConfig): 
     
-    # Merging the user defined data.yaml, model.yaml and tuning_stability.yaml 
-    # with the base_config to override it.
-    print('Overriding the default config with configs from data.yaml, model.yaml and tuning_stability.yaml')
+    # Overriding base_config with the user defined configs.
     cfg = merge_configs(base_config=base_config, 
                         config_types=['data', 'model', 'tuning_stability'])
     

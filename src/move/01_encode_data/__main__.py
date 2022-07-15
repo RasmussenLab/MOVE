@@ -7,9 +7,7 @@ from move.utils.data_utils import generate_file, merge_configs
 @hydra.main(config_path="../conf", config_name="main")
 def main(base_config: MOVEConfig):
     
-    # Merging the user defined data.yaml, model.yaml and tuning_reconstruction.yaml 
-    # with the base_config to override it.
-    print('Overriding the default configuration with configuration from data.yaml')
+    # Overriding base_config with the user defined configs.
     cfg = merge_configs(base_config=base_config, 
                         config_types=['data'])
     
@@ -17,20 +15,26 @@ def main(base_config: MOVEConfig):
     raw_data_path = cfg.data.raw_data_path
     interim_data_path = cfg.data.interim_data_path
     ids_file_name = cfg.data.ids_file_name
+    ids_has_header = cfg.data.ids_has_header
+    ids_colname = cfg.data.ids_colname
+    
     na_encoding = cfg.data.na_value
     categorical_names = cfg.data.categorical_names
     continuous_names = cfg.data.continuous_names    
     
+    # Reading ids 
+    ids = read_ids(raw_data_path, ids_file_name, ids_colname, ids_has_header)
+
     # Encoding categorical data
     print('Encoding categorical data')
     for cat_data in categorical_names:
-        generate_file('categorical', raw_data_path, interim_data_path, cat_data, ids_file_name, na_encoding)
+        generate_file('categorical', raw_data_path, interim_data_path, cat_data, ids, na_encoding)
         print(f'  Encoded {cat_data}')
     
     # Encoding continuous data 
     print('Encoding continuous data')
     for con_data in continuous_names:
-        generate_file('continuous', raw_data_path, interim_data_path, con_data, ids_file_name, na_encoding)    
+        generate_file('continuous', raw_data_path, interim_data_path, con_data, ids, na_encoding)    
         print(f'  Encoded {con_data}')
 
 if __name__ == "__main__":

@@ -3,42 +3,19 @@ import numpy as np
 from collections import defaultdict
 from omegaconf import OmegaConf
 
-# from omegaconf import OmegaConf
-# def merge_configs(base_config, config_type):
-#     """Composes configuration for the MOVE framework.
-
-#     Parameters
-#     ----------
-#     filepath : Union[str, Path]
-#         Path to YAML configuration file
-
-#     Returns
-#     -------
-#     move.conf.MOVEConfig
-#     """
-# #     print(OmegaConf.to_yaml(config))
-# #     base_config = getattr(base_config, config_type)
-#     user_config = OmegaConf.load(base_config.data.user_config)
-
-#     config = OmegaConf.merge(base_config, user_config)
-    
-#     print(OmegaConf.to_yaml(config))
-#     return config
-
 def merge_configs(base_config, config_types):
-    """Composes configuration for the MOVE framework.
-
-    Parameters
-    ----------
-    filepath : Union[str, Path]
-        Path to YAML configuration file
-
-    Returns
-    -------
-    move.conf.MOVEConfig
+    """
+    Merges base_config with user defined configuration
+    
+    inputs:
+        base_config: YAML configuration
+        config_types: list of ints of names of user defined configuration types 
+    returns:
+        config_section: YAML configuration of base_config overrided by user defined configs and filtered for config_types classes
     """
     user_config_dict = dict()
     for config_type in config_types:
+        
         # Getting name of user config file and loading it 
         user_config_name = base_config[config_type]['user_config']
         user_config = OmegaConf.load(user_config_name)
@@ -58,15 +35,34 @@ def merge_configs(base_config, config_types):
 
 
 # Functions for loading data
-def read_cat(file):
-    data = np.load(file)
-    data = data.astype(np.float32)
-    data_input = data.reshape(data.shape[0], -1)
+def read_cat(path, file_name):
+    """
+    Reads categorical data file into numpy array
     
-    return data, data_input
+    inputs:
+        path: pathway to the directory where file is located
+        file_name: str of file name to read (in .npy format) 
+    returns:
+        data: np.array of input data
+    """
+    
+    data = np.load(path + file_name)
+    data = data.astype(np.float32)
 
-def read_con(file):
-    data = np.load(file)
+    return data
+
+def read_con(path, file_name):
+    """
+    Reads continuous data file into np.array, sets nan values as zeros and filters columns if all of the values were nan 
+    
+    inputs:
+        path: pathway to the directory where file is located
+        file_name: str of file name to read (in .npy format) 
+    returns:
+        data: np.array of input data
+        mask_col: np.array of boolean objects, where False value corresponds to features that were filtered out
+    """
+    data = np.load(path + file_name)
     data = data.astype(np.float32)
     data[np.isnan(data)] = 0
     consum = np.absolute(data).sum(axis=0)
@@ -74,39 +70,75 @@ def read_con(file):
     data = data[:,mask_col]
     return data, mask_col
 
-def read_header(file, mask=None, start=1):
-    with open(file, "r") as f:
-        h = f.readline().rstrip().split("\t")[start:]
+def read_header(path, file_name, mask=None, start=1):
+    """
+    Reads features names from the headers 
+    inputs:
+        path: pathway to the directory where file is located
+        file_name: str of file name to read (in .npy format) 
+        mask: np.array of boolean objects, where False value corresponds to features to filtered out
+        start: int corresponding to how many lines to read for the header
+    returns:
+        header: np.array of strings of feature names
+    """    
+    with open(path + file_name, "r") as f:
+        header = f.readline().rstrip().split("\t")[start:]
     if not mask is None:
-        h = np.array(h)
-        h = h[mask]
+        header = np.array(header)
+        header = header[mask]
     
-    return h
+    return header
 
 def initiate_default_dicts(n_empty_dicts, n_list_dicts):
+    """
+    Initiates empty default dictionaries
     
-    dicts = [defaultdict() for _ in range(n_empty_dicts)] + \
-              [defaultdict(list) for _ in range(n_list_dicts)]
+    inputs:
+        n_empty_dicts: int of how many defaultdicts without specified data type to initiate
+        n_list_dicts: int of how many defaultdicts with list type to initiate
+    returns:
+        tuple(default_dicts): tuple with initiated defaultdicts
+    """   
+    default_dicts = [defaultdict() for _ in range(n_empty_dicts)] + \
+            [defaultdict(list) for _ in range(n_list_dicts)]
      
-    return(tuple(dicts))
+    return(tuple(default_dicts))
 
-def get_data(raw_data_path, interim_data_path, categorical_data, continuous_data, data_of_interest):
-     
+def get_data(raw_data_path, interim_data_path, categorical_data_names, continuous_data_names, data_of_interest):
+    """
+    Reads the data for models' inputs
+    
+    inputs:
+        raw_data_path: str of pathway to raw data folder (e.g. .tsv)
+        interim_data_path: str of a pathway to a folder of intermediate data files (e.g. .npy)
+        categorical_data_names: list of strings of categorical data type names
+        continuous_data_names: list of strings of continuous data type names
+        data_of_interest: str of data type name whose features are changed to test their effects in the pipeline
+    returns:
+        cat_list: list of np.arrays for data of categorical data type 
+        con_list: list of np.arrays for data of continuous data type
+        cat_names: np.array of strings of feature names of continuous data 
+        con_names: np.array of strings of feature names of categorical data 
+        headers_all: np.array of strings of feature names of categorical data
+        drug: np.array of input data whose feature data are changed to test their effects in the pipeline
+        drug_h: np.array of strings of feature names data type whose data are changed to test their effects in the pipeline
+    """   
+        
     # Initiate lists
     cat_list, cat_names, con_list, con_names = [], [], [], []
      
     # Get categorical variables
-    for cat_data in categorical_data:
-        cat, cat_input = read_cat(interim_data_path + f"{cat_data}.npy")
-        cat_h = read_header(raw_data_path + f"{cat_data}.tsv")
+    for cat_data in categorical_data_names:
+        cat = read_cat(interim_data_path, f"{cat_data}.npy")
+        cat_h = read_header(raw_data_path,  f"{cat_data}.tsv")
           
         cat_list.append(cat)
         cat_names.append(cat_h)
 
      # Get continuous variables
-    for con_data in continuous_data:
-        con, con_mask = read_con(interim_data_path + f"{con_data}.npy")
-        con_h = read_header(raw_data_path + f"{con_data}.tsv", con_mask)
+    for con_data in continuous_data_names:
+        con, con_mask = read_con(interim_data_path, f"{con_data}.npy")
+        con_h = read_header(raw_data_path, f"{con_data}.tsv", con_mask)
           
         con_list.append(con)
         con_names.append(con_h)
@@ -117,12 +149,12 @@ def get_data(raw_data_path, interim_data_path, categorical_data, continuous_data
     cat_names = np.concatenate(cat_names)
 
     # Select dataset of interest
-    if data_of_interest in categorical_data:
-        drug, drug_input = read_cat(interim_data_path + f"{data_of_interest}.npy")
-        drug_h = read_header(raw_data_path + f"{data_of_interest}.tsv")
-    elif data_of_interest in continuous_data:
-        drug, drug_mask = read_con(interim_data_path + f"{data_of_interest}.npy")
-        drug_h = read_header(raw_data_path + f"{data_of_interest}.tsv", drug_mask)  
+    if data_of_interest in categorical_data_names:
+        drug = read_cat(interim_data_path, f"{data_of_interest}.npy")
+        drug_h = read_header(raw_data_path, f"{data_of_interest}.tsv")
+    elif data_of_interest in continuous_data_names:
+        drug, drug_mask = read_con(interim_data_path, f"{data_of_interest}.npy")
+        drug_h = read_header(raw_data_path, f"{data_of_interest}.tsv", drug_mask)  
     else:
         raise ValueError("""In data.yaml file data_of_interest is chosen neither
                                  from defined continuous nor categorical data types""")

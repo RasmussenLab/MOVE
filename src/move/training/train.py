@@ -20,10 +20,33 @@ from move.utils.seed import set_global_seed
 
 def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_sizes, nepochs, repeat, lrate, kldsteps, batchsteps, patience, cuda, processed_data_path, cat_list, con_list, continuous_weights, categorical_weights, seed):
     """
-    Performs hyperparameter tuning in terms of reconstruction
+    Performs hyperparameter tuning for the reconstruction
     
     inputs:
+        nHiddens: a list with integers with the number of neurons in hidden layers 
+        nLatents: a list with integers with a size of the latent dimension
+        nLayers: a list with integers with the number of layers
+        nDropout: a list with floats with dropout probabilities applied after each nonlinearity in encoder and decoder
+        nBeta: a list with floats with beta values (Multiplies KLD by the inverse of this value)
+        batch_sizes: a list with ints with batch sizes
+        nepochs: integer of a maximum number of epochs to train the model
+        repeat: integer of the number of times to train the model with the same configuration
+        lrate: float of learning rate to train the model
+        kldsteps: a list with integers corresponding to epochs when kld is decreased by the selected rate
+        batchsteps: a list with integers corresponding to epochs when batch size is increased
+        patience: int corresponding to the number of epochs to wait before early stop if no progress on the validation set 
+        cuda: boolean if train model on GPU; if False - trains on CPU. 
+        processed_data_path: str of the pathway to directory where hyperparameter tuning results are saved
+        cat_list: list with input data of categorical data type
+        con_list: list with input data of continuous data type
+        continuous_weights: list of ints of weights for each continuous dataset
+        categorical_weights: list of ints of weights for each categorical dataset
+        seed: int of seed number
     returns:
+        likelihood_tests: Defaultdict. Keys: set of hyperparameter values; values: float of VAE likelihood on test set 
+        recon_acc_tests: Defaultdict. Keys: set of hyperparameter values; values: list of floats of reconstruction accuracies for testing set for all of the data types
+        recon_acc: Defaultdict. Keys: set of hyperparameter values; values: list of floats of reconstruction accuracies for training set for all of the data types 
+        results_df: pd.DataFrame with all of the results of hyperparameter tuning
     """ 
 
     # Preparing the data
@@ -69,17 +92,17 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
     for nHidden, nLatent, nl, drop, b, batch_size, r in iters:
         combi = str([nHidden] * nl) + "+" + str(nLatent) + ", drop: " + str(drop) +", b: " + str(b) + ", batch: " + str(batch_size)
 
-        best_model, loss, ce, sse, KLD, train_loader, mask, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_size, nHidden, nl, nLatent, b, drop, cuda, kldsteps, batchsteps, nepochs, lrate, seed, test_loader, patience, early_stopping=True)   
+        best_model, loss, ce, sse, KLD, train_loader, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_size, nHidden, nl, nLatent, b, drop, cuda, kldsteps, batchsteps, nepochs, lrate, seed, test_loader, patience, early_stopping=True)   
 
 
         # get results
-        con_recon, train_test_loader, latent, latent_var, cat_recon, cat_class, loss, likelihood, latent_test, latent_var_test, cat_recon_test, cat_class_test, con_recon_test, loss_test, likelihood_test = get_latent(best_model, train_loader, test_loader, kld_w)
+        latent, latent_var, cat_recon, con_recon, cat_class, loss, likelihood, latent_test, latent_var_test, cat_recon_test, cat_class_test, con_recon_test, loss_test, likelihood_test = get_latent(best_model, train_loader, test_loader, kld_w)
 
-        # Calculate reconstruction
-        cat_true_recon,true_recon,cat_true_recon_test,true_recon_test = cal_recon(cat_shapes, cat_recon, cat_class, train_loader, con_recon, con_shapes, cat_recon_test, cat_class_test, test_loader, con_recon_test)
+        # Calculate reconstruction accuracy
+        cat_true_recon, con_true_recon, cat_true_recon_test, con_true_recon_test = cal_recon(cat_shapes, cat_recon, cat_class, train_loader, con_recon, con_shapes, cat_recon_test, cat_class_test, test_loader, con_recon_test)
 
         # Save output
-        recon_acc[combi].append(cat_true_recon + true_recon)
+        recon_acc[combi].append(cat_true_recon + con_true_recon)
         latents[combi].append(latent)
         con_recons[combi].append(con_recon)
         cat_recons[combi].append(cat_recon)
@@ -87,7 +110,7 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
         likelihoods[combi].append(likelihood)
         best_epochs[combi].append(best_epoch)
 
-        recon_acc_tests[combi].append(cat_true_recon_test + true_recon_test)
+        recon_acc_tests[combi].append(cat_true_recon_test + con_true_recon_test)
         latents_tests[combi].append(latent_test)
         con_recons_tests[combi].append(con_recon_test)
         cat_recons_tests[combi].append(cat_recon_test)
@@ -102,14 +125,14 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
             'beta': b,
             'batch_sizes': batch_size, 
             'repeats': r,
-            'recon_acc': cat_true_recon + true_recon, 
+            'recon_acc': cat_true_recon + con_true_recon, 
             'latents': np.array(latent), 
             'con_recons': np.array(con_recon),
             'cat_recons': np.array(cat_recon),
             'loss_train': np.array(loss),
             'likelihoods': np.array(likelihood),
             'best_epochs': np.array(best_epoch),
-            'recon_acc_test': np.array(cat_true_recon_test + true_recon_test),
+            'recon_acc_test': np.array(cat_true_recon_test + con_true_recon_test),
             'latents_test': np.array(latent_test),
             'con_recons_test': np.array(con_recon_test),
             'cat_recons_test': np.array(cat_recon_test),
@@ -144,6 +167,36 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
     
 def optimize_stability(nHiddens, nLatents, nDropout, nBeta, repeat, nepochs, nLayers, batch_sizes, lrate, kldsteps, batchsteps, cuda, path, con_list, cat_list, continuous_weights, categorical_weights, seed):
     
+    """
+    Performs hyperparameter tuning for stability
+    
+    inputs:
+        nHiddens: a list with integers with the number of neurons in hidden layers 
+        nLatents: a list with integers with a size of the latent dimension
+        nDropout: a list with floats with dropout probabilities applied after each nonlinearity in encoder and decoder
+        nBeta: a list with floats with beta values (Multiplies KLD by the inverse of this value)
+        repeat: integer of the number of times to train the model with the same configuration
+        nepochs: integer of number of epochs to train the model (received by optimize_reconstruction() function)
+        nLayers: a list with integers with the number of layers
+        batch_sizes: a list with ints with batch sizes
+        lrate: float of learning rate to train the model
+        kldsteps: a list with integers corresponding to epochs when kld is decreased by the selected rate
+        batchsteps: a list with integers corresponding to epochs when batch size is increased
+        cuda: boolean if train model on GPU; if False - trains on CPU. 
+        path: str of the pathway to directory where hyperparameter tuning results are saved        
+        cat_list: list with input data of categorical data type
+        con_list: list with input data of continuous data type        
+        continuous_weights: list of ints of weights for each continuous dataset
+        categorical_weights: list of ints of weights for each categorical dataset
+        seed: int of seed number
+    returns:
+        embeddings: Defaultdict. Keys: set of hyperparameter values; values: np.array of VAE latent representation of input dataset reduced to 2 dimensions by UMAP 
+        latents: Defaultdict. Keys: set of hyperparameter values; values: np.array of VAE latent representation of input dataset
+        con_recons: Defaultdict. Keys: set of hyperparameter values; values: VAE reconstructions of continuous input data 
+        cat_recons: Defaultdict. Keys: set of hyperparameter values; values: VAE reconstructions of categorical input data 
+        recon_acc: Defaultdict. Keys: hyperparameter values. Values: list of reconstruction accuracies for each of the dataset as values
+    """ 
+    
     models, latents, embeddings, con_recons, cat_recons, recon_acc, los, likelihood = initiate_default_dicts(1, 7)
     
     print('Beginning the hyperparameter tuning for stability.\n')
@@ -152,7 +205,7 @@ def optimize_stability(nHiddens, nLatents, nDropout, nBeta, repeat, nepochs, nLa
         combi = str([nHidden] * nl) + "+" + str(nLatent) + ", do: " + str(drop) +", b: " + str(b)
         print(combi)
 
-        best_model, loss, ce, sse, KLD, train_loader, mask, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_sizes, nHidden, nl, nLatent, b, drop, cuda, kldsteps, batchsteps, nepochs, lrate, seed, test_loader=None, patience=None, early_stopping=False)
+        best_model, loss, ce, sse, KLD, train_loader, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_sizes, nHidden, nl, nLatent, b, drop, cuda, kldsteps, batchsteps, nepochs, lrate, seed, test_loader=None, patience=None, early_stopping=False)
 
 
         test_loader = DataLoader(dataset=train_loader.dataset, batch_size=1, drop_last=False,
@@ -192,17 +245,46 @@ def optimize_stability(nHiddens, nLatents, nDropout, nBeta, repeat, nepochs, nLa
 
 
 def train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHidden, nl, nBeta, drop, con_list, cat_list, continuous_weights, categorical_weights, version, repeats, kldsteps, batchsteps, lrate, drug, categorical_names, data_of_interest, seed):
+    """
+    Trains models with different number of latent spaces and evaluates the effects of selected data type
+   
+    inputs:
+        path: str of the pathway to the directory where hyperparameter tuning results are saved  
+        cuda: boolean if train model on GPU; if False - trains on CPU. 
+        nepochs: integer of number of epochs to train the model (received by optimize_reconstruction() function)
+        
+        nLatents: a list with integers with a size of the latent dimension    
+        batch_sizes: int with batch size
+        nHidden: int with the number of neurons in hidden layers 
+        nl: int with the number of layers
+        nBeta: float with beta value (Multiplies KLD by the inverse of this value)        
+        drop: float with dropout probability applied after each nonlinearity in encoder and decoder
+        con_list: list with input data of continuous data type   
+        cat_list: list with input data of categorical data type
+        continuous_weights: list of ints of weights for each continuous dataset
+        categorical_weights: list of ints of weights for each categorical dataset
+        version: str corresponding to subdirectory name where the results will be saved
+        repeats: integer of the number of times to train the model with the same configuration
+        kldsteps: a list with integers corresponding to epochs when kld is decreased by the selected rate
+        batchsteps: a list with integers corresponding to epochs when batch size is increased
+
+        lrate: a float of learning rate to train the model
+        drug: an np.array of data whose features are changed to test their effects
+        categorical_names: list of strings of categorical data names
+        data_of_interest: str of data type name whose features are changed to test their effects
+        seed: int of seed number
+    returns:    
+    """ 
 
     results, recon_results, recon_results_1, mean_bas = initiate_default_dicts(n_empty_dicts=0, n_list_dicts=4)
 
     start, end = get_start_end_positions(cat_list, categorical_names, data_of_interest)
 
-
     iters = itertools.product(nLatents, range(repeats))
 
     # Running the framework    
     for nLatent, repeat in iters: 
-        best_model, loss, ce, sse, KLD, train_loader, mask, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_sizes, nHidden, nl, nLatent, nBeta, drop, cuda, kldsteps, batchsteps, nepochs, lrate, seed, test_loader=None, patience=None, early_stopping=False)
+        best_model, loss, ce, sse, KLD, train_loader, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_sizes, nHidden, nl, nLatent, nBeta, drop, cuda, kldsteps, batchsteps, nepochs, lrate, seed, test_loader=None, patience=None, early_stopping=False)
 
 
         train_test_loader = DataLoader(dataset=train_loader.dataset, batch_size=train_loader.batch_size, drop_last=False,
@@ -214,7 +296,7 @@ def train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHidden,
         con_recon = torch.from_numpy(con_recon)
 
         mean_baseline = get_baseline(best_model, train_test_loader, con_recon, repeat=1, kld_w=kld_w)
-        recon_diff, groups = change_drug(best_model, train_test_loader, con_recon, drug, start, end, kld_w) #TODO: when the drug data starts 
+        recon_diff, groups = change_drug(best_model, train_test_loader, con_recon, drug, start, end, kld_w)
         stat = cal_sig_hits(recon_diff, groups, drug, mean_baseline, train_loader.dataset.con_all)
 
         results[nLatent].append(stat)
@@ -255,32 +337,63 @@ def train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHidden,
     
     
 def train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_size, nHidden, nl, nLatent, b, drop, cuda, kldsteps, batchsteps, nepochs, lrate, seed, test_loader, patience, early_stopping):
-    
+    """
+    Performs hyperparameter tuning for stability
+   
+    inputs:
+        cat_list: list with input data of categorical data type
+        con_list: list with input data of continuous data type  
+        categorical_weights: list of ints of weights for each categorical dataset
+        continuous_weights: list of ints of weights for each continuous dataset
+        batch_sizes: a list with ints with batch sizes
+        nHiddens: a list with integers with the number of neurons in hidden layers 
+        nLayers: a list with integers with the number of layers
+        nLatents: a list with integers with a size of the latent dimension    
+        nBeta: a list with floats with beta values (Multiplies KLD by the inverse of this value)        
+        nDropout: a list with floats with dropout probabilities applied after each nonlinearity in encoder and decoder
+        cuda: boolean if train model on GPU; if False - trains on CPU. 
+        kldsteps: a list with integers corresponding to epochs when kld is decreased by the selected rate
+        batchsteps: a list with integers corresponding to epochs when batch size is increased
+        nepochs: integer of number of epochs to train the model
+        lrate: a float of learning rate to train the model
+        seed: int of seed number       
+        test_loader: Dataloader with test dataset 
+        patience: int corresponding to the number of epochs to wait before early stop if no progress on the validation set 
+        early_stopping: boolean if use early stopping 
+    returns:
+        best_model: model object that had lowest loss on test set
+        loss: list of losses on train set during the training
+        ce: list of Binary cross-entropy losses on categorical data of train set during the training
+        sse: list of sum of squared estimate of errors on continuous data of train set during the training
+        KLD: list of KLD losses on train set during the training
+        train_loader: Dataloader of training set
+        kld_w: float of KLD weight
+        cat_shapes: list of tuple (npatient, nfeatures, ncategories) corresponding to categorical data shapes.
+        con_shapes: list of ints corresponding to a number of features each continuous data type have 
+        best_epoch: int of epoch that had the lowest loss on test set. 
+    """ 
     device = torch.device("cuda" if cuda == True else "cpu")
     
     if seed is not None:
         set_global_seed(seed)
     
     # Initiate loader
-    mask, train_loader = dataloaders.make_dataloader(cat_list=cat_list, 
+    _, train_loader = dataloaders.make_dataloader(cat_list=cat_list, 
                                                      con_list=con_list, 
                                                      batchsize=batch_size)
 
-
-    #          ncategorical = train_loader.dataset.cat_all.shape[1]
-    #          ncontinuous = train_loader.dataset.con_all.shape[1]
     con_shapes = train_loader.dataset.con_shapes
     cat_shapes = train_loader.dataset.cat_shapes
-
+    
     model = vae.VAE(continuous_shapes=con_shapes, 
-                 categorical_shapes=cat_shapes, 
-                 num_hidden=[nHidden]*nl,
-                 num_latent=nLatent,  
-                 beta=b, 
-                 continuous_weights=continuous_weights,
-                 categorical_weights=categorical_weights, 
-                 dropout=drop, 
-                 cuda=cuda).to(device) # removed alpha=0.01,       
+                    categorical_shapes=cat_shapes, 
+                    num_hidden=[nHidden]*nl,
+                    num_latent=nLatent,  
+                    beta=b, 
+                    continuous_weights=continuous_weights,
+                    categorical_weights=categorical_weights, 
+                    dropout=drop, 
+                    cuda=cuda).to(device) # removed alpha=0.01,       
 
     # Create lists for saving loss
     loss = list();ce = list();sse = list();KLD = list();loss_test = list()
@@ -344,4 +457,4 @@ def train_model(cat_list, con_list, categorical_weights, continuous_weights, bat
             best_epoch = None
         #                loss_test = None 
 
-    return(best_model, loss, ce, sse, KLD, train_loader, mask, kld_w, cat_shapes, con_shapes, best_epoch)        
+    return(best_model, loss, ce, sse, KLD, train_loader, kld_w, cat_shapes, con_shapes, best_epoch)        

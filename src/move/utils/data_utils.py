@@ -279,13 +279,32 @@ def sort_data(data, ids, labels):
     return sorted_data
 
 
+
 def read_ids(path, ids_file_name, ids_colname, ids_has_header=True):
+    """
+    Function reads ids into the list
+     
+    Inputs:
+         path: a string that defines a path to the directory the input data is stored
+         ids_file_name: a string of ids file name
+         ids_colname: a string of column name of ids
+         ids_has_header: boolean if first column is a header
+    Returns:
+         ids: a list of personal identfiers (ID) from .txt ids file
+    """
+    # Setting header variable
     header=0 if ids_has_header else None
         
+    # Reading the ids
     ids = pd.read_csv(path + f"{ids_file_name}.txt", sep='\t', header=header)
+    
+    # Setting to column names and values to string
+    ids = ids.astype('str')
     ids.columns = ids.columns.astype(str)
     
-    return list(ids[str(ids_colname)])
+    ids = list(ids[str(ids_colname)])
+    
+    return ids
 
 
 def read_files(path, data_type, na):
@@ -293,12 +312,13 @@ def read_files(path, data_type, na):
     Function reads the input file into the dictionary
      
     Inputs:
+         path: a string that defines a path to the directory the input data is stored
          data_type: a string that defines a name of .tsv file to encode
          na: a string that defines how NA values are defined in the source data file
     Returns:
          ids: a list of personal identfiers (ID) from baseline_ids.txt file
          raw_input: a dictionary with the data to encode
-         header: a list of column names from the source data file
+         header:a list of personal identfiers (ID) from .txt ids file
     """
                  
     raw_input = dict()
@@ -321,8 +341,10 @@ def generate_file(var_type, raw_data_path, interim_data_path, data_type, ids, na
      
     inputs:
          var_type: a string out of ['categorical', 'continuous'], defines input data type to encode
-         path: a string that defines a path to the directory the input data is stored
+         raw_data_path: a string that defines a path to the directory the input data is stored
+         interim_data_path: a string that defines a path of directory where to save the files
          data_type: a string that defines a name of .tsv file to encode
+         ids: a list of personal identfiers (ID) from .txt ids file
          na: a string that defines how NA values are defined in the source data file
     """
     

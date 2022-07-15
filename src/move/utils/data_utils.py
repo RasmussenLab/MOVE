@@ -296,7 +296,7 @@ def read_ids(path, ids_file_name, ids_colname, ids_has_header=True):
     header=0 if ids_has_header else None
         
     # Reading the ids
-    ids = pd.read_csv(path + f"{ids_file_name}.txt", sep='\t', header=header)
+    ids = pd.read_csv(path + ids_file_name, sep='\t', header=header)
     
     # Setting to column names and values to string
     ids = ids.astype('str')

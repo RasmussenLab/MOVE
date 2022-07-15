@@ -8,7 +8,7 @@ interim_data_path: interim_data/
 processed_data_path: processed_data/
 version: v1
 
-ids_file_name: baseline_ids
+ids_file_name: baseline_ids.txt
 ids_has_header: False
 ids_colname: 0
 

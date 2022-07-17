@@ -83,7 +83,7 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
 
     # Getting the data
     mask_test, test_loader = dataloaders.make_dataloader(cat_list=cat_list_test, con_list=con_list_test, batchsize=1)
-    test_loader = DataLoader(dataset=test_loader.dataset, batch_size=1, drop_last=False, shuffle=False) #, num_workers=1, pin_memory=test_loader.pin_memory
+    test_loader = DataLoader(dataset=test_loader.dataset, batch_size=1, drop_last=False, shuffle=False)
 
     results_df = []
     
@@ -143,6 +143,7 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
     results_df = pd.DataFrame(results_df)
     
     print('\nFinished the hyperparameter tuning for reconstruction. Saving the results.')
+    
     # Save output
     np.save(processed_data_path + "hyperparameters/latent_benchmark_final.npy", latents)
     np.save(processed_data_path + "hyperparameters/con_recon_benchmark_final.npy", con_recons)
@@ -209,7 +210,7 @@ def optimize_stability(nHiddens, nLatents, nDropout, nBeta, repeat, nepochs, nLa
 
 
         test_loader = DataLoader(dataset=train_loader.dataset, batch_size=1, drop_last=False,
-                     shuffle=False, pin_memory=train_loader.pin_memory) #num_workers=1,
+                     shuffle=False, pin_memory=train_loader.pin_memory)
 
         latent, latent_var, cat_recon, cat_class, con_recon, test_loss, test_likelihood = best_model.latent(test_loader, kld_w)
         con_recon = np.array(con_recon)
@@ -288,7 +289,7 @@ def train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHidden,
 
 
         train_test_loader = DataLoader(dataset=train_loader.dataset, batch_size=train_loader.batch_size, drop_last=False,
-                              shuffle=False, pin_memory=train_loader.pin_memory) #num_workers=1,
+                              shuffle=False, pin_memory=train_loader.pin_memory)
 
         latent, latent_var, cat_recon, cat_class, con_recon, loss, likelihood = best_model.latent(train_test_loader, kld_w)
 
@@ -393,13 +394,13 @@ def train_model(cat_list, con_list, categorical_weights, continuous_weights, bat
                     continuous_weights=continuous_weights,
                     categorical_weights=categorical_weights, 
                     dropout=drop, 
-                    cuda=cuda).to(device) # removed alpha=0.01,       
+                    cuda=cuda).to(device)      
 
     # Create lists for saving loss
     loss = list();ce = list();sse = list();KLD = list();loss_test = list()
 
 
-    l = len(kldsteps) # TODOs: not really clear this l
+    l = len(kldsteps)
     rate = 20/l 
     kld_w = 0
     update = 1 + rate
@@ -410,11 +411,10 @@ def train_model(cat_list, con_list, categorical_weights, continuous_weights, bat
     for epoch in range(1, nepochs + 1):
         if epoch in kldsteps:
             kld_w = 1/20 * update
-            #lrate = lrate - lrate*0.1
             update += rate
 
         if epoch in batchsteps:
-            train_loader = DataLoader(dataset=train_loader.dataset,batch_size=int(train_loader.batch_size * 1.5),shuffle=True,drop_last=True) #,num_workers=train_loader.num_workers,pin_memory=train_loader.pin_memory  Is it really?: batch_size=int(train_loader.batch_size * 1.5)
+            train_loader = DataLoader(dataset=train_loader.dataset,batch_size=int(train_loader.batch_size * 1.5),shuffle=True,drop_last=True)
 
         l, c, s, k = model.encoding(train_loader, epoch, lrate, kld_w)
 
@@ -431,14 +431,14 @@ def train_model(cat_list, con_list, categorical_weights, continuous_weights, bat
             print("Likelihood: " + str(out[-1]))
 
 
-            if out[-1] > l_min and count < patience: # Change to infinite value
+            if out[-1] > l_min and count < patience: 
                 count+=1
                 
                 if count % 5 == 0:
                     lrate = lrate - lrate*0.10
 
 
-            elif count == patience: #Changed from 100
+            elif count == patience:
                 break
 
             else:
@@ -446,15 +446,9 @@ def train_model(cat_list, con_list, categorical_weights, continuous_weights, bat
                 best_model = copy.deepcopy(model)
                 best_epoch = epoch
                 count = 0
-
-#                 if epoch > 3: # Added
-#                     break      # Added
-
-#             if epoch > 10: # Added
-#                 break      # Added    
+ 
         else:
             best_model = copy.deepcopy(model)
             best_epoch = None
-        #                loss_test = None 
 
     return(best_model, loss, ce, sse, KLD, train_loader, kld_w, cat_shapes, con_shapes, best_epoch)        

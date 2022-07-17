@@ -270,7 +270,7 @@ def sort_data(data, ids, labels):
     n_labels = len(labels)
     sorted_data = list()
 
-    for _ids in ids: #check: ids/ids
+    for _ids in ids:
         if _ids in data:
             sorted_data.append(data[_ids])
         else:

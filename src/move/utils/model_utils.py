@@ -146,8 +146,6 @@ def cal_con_recon(train_loader, con_recon, con_shapes):
                 continue
             con_out_no_missing = con_recon[n,total_shape:(s + total_shape - 1)][train_loader.dataset.con_all[n,total_shape:(s + total_shape - 1)] != 0]
             
-
-
             cor = pearsonr(con_no_missing, con_out_no_missing)[0]
             cor_con.append(cor)
             

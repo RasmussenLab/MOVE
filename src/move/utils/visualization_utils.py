@@ -298,7 +298,7 @@ def plot_reconstruction_distribs(path, cat_total_recon, all_values):
     plt.show()
     plt.close("all")    
     
-def get_feature_data(data_type, feature_of_interest, cat_list, #TODO: negative values goes down to -2, while positive only until 1
+def get_feature_data(data_type, feature_of_interest, cat_list,
                      con_list, cat_names, con_names):
     
     if data_type=='categorical':
@@ -350,7 +350,7 @@ def f_plot_importance(path, sum_diffs, features, feature_names, fig_name):
     plt.savefig(path + f"results/{fig_name}.png")
     
     
-def plot_categorical_importance(path, sum_diffs, cat_list, feature_names, fig_name): #TODO: It is strangely the same plots for each SNP
+def plot_categorical_importance(path, sum_diffs, cat_list, feature_names, fig_name):
     
     # Converting from one hot to numerical variables
     cat_ints_list = []
@@ -394,7 +394,7 @@ def visualize_indi_var(df_indi_var, version, path):
     fig.tight_layout()
     plt.grid(False)
     plt.savefig(path + "results/drug_individual_variations_" + version + ".pdf", format = 'pdf', dpi = 800)
-    # plt.clf()
+
     plt.show()   
 
 

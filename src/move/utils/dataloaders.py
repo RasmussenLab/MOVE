@@ -138,5 +138,5 @@ def make_dataloader(cat_list=None, con_list=None, batchsize=10, cuda=False):
     # Create dataloader
     dataloader = DataLoader(
         dataset=dataset, batch_size=batchsize, drop_last=True, shuffle=True
-    )  # Changed num_workers and pin_memory
+    ) 
     return mask, dataloader

@@ -25,9 +25,9 @@ from move.models import vae
 
 
 def get_top10_stability(nHiddens, nLatents, drop_outs, nLayers, repeat, latents, batch_sizes, nBeta):
-    # Todo: TOP10 not used description by Rosa
+
     npatient = list(latents.values())[0][0].shape[0]
-    top10_changes, stability_top10 = initiate_default_dicts(0, 2) #TODOS: top10 changes not needed? - mention, not used
+    top10_changes, stability_top10 = initiate_default_dicts(0, 2) 
     
     stability_top10_df = [] 
         
@@ -211,7 +211,7 @@ def get_embedding(path, latent):
     np.save(path + "results/embedding.npy", embedding)
     return(embedding)
 
-def get_feature_data(data_type, feature_of_interest, cat_list, #TODO: negative values goes down to -2, while positive only until 1
+def get_feature_data(data_type, feature_of_interest, cat_list,
                            con_list, cat_names, con_names):
      
     if data_type=='categorical':
@@ -289,7 +289,6 @@ def get_feature_importance_categorical(model, train_loader, latent, kld_w=1): #W
             sum_diffs.append(np.sum(diff, axis = 1))
             sum_diffs_abs.append(np.sum(diff_abs, axis = 1))
             total_diffs.append(np.sum(diff))
-#             break #added
 
     all_diffs_cat_np = np.asarray(all_diffs)
     sum_diffs_cat_np = np.asarray(sum_diffs)
@@ -331,7 +330,6 @@ def get_feature_importance_continuous(model, train_loader, mask, latent, kld_w=1
         sum_diffs_con.append(np.sum(diff, axis = 1))
         sum_diffs_con_abs.append(np.sum(diff_abs, axis = 1))
         total_diffs_con.append(np.sum(diff))
-#         break #added
 
     all_diffs_con_np = np.asarray(all_diffs_con)
     sum_diffs_con_np = np.asarray(sum_diffs_con)
@@ -405,7 +403,7 @@ def cal_reconstruction_change(recon_results, repeats):
     return(recon_average)
 
 
-def overlapping_hits(nLatents, cor_results, repeats, con_names, drug): # TODOs: con_names and drug come from function return
+def overlapping_hits(nLatents, cor_results, repeats, con_names, drug): 
     sig_hits = defaultdict(dict)
     overlaps_d = defaultdict(list)
     counts = list()
@@ -438,7 +436,7 @@ def overlapping_hits(nLatents, cor_results, repeats, con_names, drug): # TODOs: 
             median_p_val[d][new_list[l]] = m_p
     return(sig_hits, median_p_val)
 
-def identify_high_supported_hits(sig_hits, drug_h, version, path): # drug_h comes from the function
+def identify_high_supported_hits(sig_hits, drug_h, version, path): 
     result = dict()
     collected_overlap = defaultdict(list)
     all_hits = list()
@@ -468,7 +466,7 @@ def identify_high_supported_hits(sig_hits, drug_h, version, path): # drug_h come
 
 
 
-def report_values(path, sig_hits, median_p_val, drug_h, all_hits, con_names): #TODO: drugs come from defined func
+def report_values(path, sig_hits, median_p_val, drug_h, all_hits, con_names): 
 
     results_folder = path + 'results/sig_ci_files'
     isExist = os.path.exists(results_folder)
@@ -508,7 +506,6 @@ def report_values(path, sig_hits, median_p_val, drug_h, all_hits, con_names): #T
 
 
 def get_change_in_reconstruction(recon_average, groups, drug, drug_h, con_names, collected_overlap, sig_hits, con_all, version, path, types): 
-#     types = [[1, 0]] #TODOs: Should types be really like this?  #Change only in this notebook
 
     recon_average_corr_all = dict()
     counts_average_all = dict()
@@ -553,7 +550,7 @@ def get_change_in_reconstruction(recon_average, groups, drug, drug_h, con_names,
                         if tmp_vals[indi] != 0:
                             recon_average_corr_all_indi[d][indi][f] += tmp_recon[indi,f]
                             counts_indi[d][indi][f] += 1
-#         break
+
     recon_average_corr_new_all = list()
     recon_average_corr_all_indi_new = dict()
     for d in recon_average_corr_all.keys():
@@ -579,8 +576,7 @@ def get_change_in_reconstruction(recon_average, groups, drug, drug_h, con_names,
     return(recon_average_corr_new_all, recon_average_corr_all_indi_new)
 
 
-def write_omics_results(path, up_down_list, collected_overlap, recon_average_corr_new_all, headers_all, con_types, data_of_interest): #Todo why only cotinuous data?
-     #Todo: since where was no significant hits, couldn't test the function
+def write_omics_results(path, up_down_list, collected_overlap, recon_average_corr_new_all, headers_all, con_types, data_of_interest): 
  
     for i in range(len(con_types)):
         if con_types[i] != data_of_interest:
@@ -666,11 +662,8 @@ def get_inter_drug_variation(con_names, drug_h, recon_average_corr_all_indi_new,
 
 def get_drug_similar_each_omics(con_names, con_dataset_names, all_hits, recon_average_corr_new_all, drug_h, version, path):
 
-#     con_names = [con_h, diet_wearables_h, pro_h, targm_h, untargm_h, tran_h, meta_h]
-#     con_dataset_names_v1 = ['Clinical continuous', 'Diet and wearables','Proteomics','Targeted metabolomics','Unargeted metabolomics', 'Transcriptomics', 'Metagenomics'] #TODOs define outside maybe
-#     con_dataset_names = ['Clinical_continuous', 'Diet_wearables','Proteomics','Targeted_metabolomics','Unargeted_metabolomics', 'Transcriptomics', 'Metagenomics']
     
-    con_dataset_names_v1 = con_dataset_names # TODO define the names for plot drawing 
+    con_dataset_names_v1 = con_dataset_names
     i = 0
     for n in con_names:
         tmp = np.intersect1d(all_hits, n)
@@ -704,108 +697,13 @@ def get_best_epoch(results_df):
     return(best_epoch)
 
 
-def get_significant_param_values(results_df, list_of_params, stat_test='t_test'):
-    params_dict_to_remove = defaultdict(list)
-    
-    # Iterating through each of the hypeparameter
-    for col in list_of_params:
-        
-        # Getting each value of the hyperparameter
-        unique_values = results_df[col].unique()
-        
-        # finding which pairs of parameter values do not have significant differences
-        insignif_pairs_list = []
-        for i in range(len(unique_values)):
-            for j in range(i+1, len(unique_values)):
-                # Getting the p-value of statistical results by comparing hyperparameter values sets where only the tested hyperparameter is different  
-                if stat_test=='t_test':
-                    diff_signif = stats.ttest_rel(results_df[results_df[col]==unique_values[i]]['likelihood_test'], results_df[results_df[col]==unique_values[j]]['likelihood_test'])[1]
-                elif stat_test=='wilcoxon': 
-                    diff_signif = stats.wilcoxon(results_df[results_df[col]==unique_values[i]]['likelihood_test'], results_df[results_df[col]==unique_values[j]]['likelihood_test'])[1]
-                    
-                if diff_signif < 0.05:
-#                     a = tuple([unique_values[i], unique_values[j]])
-                    insignif_pairs_list.append(tuple([unique_values[j], unique_values[i]]))
-        
-        # Removing the parameter that did not show significant differences (in the order from the most insignificant pairs)
-        while insignif_pairs_list:
-            insignif_values_dict = Counter(value for values_pair in insignif_pairs_list for value in values_pair)
-            value_max_occurs = max(insignif_values_dict, key=insignif_values_dict.get)
-            insignif_pairs_list = [x for x in insignif_pairs_list if value_max_occurs not in x]
-            
-            unique_values = np.delete(unique_values, np.where(unique_values == value_max_occurs))
-            
-            params_dict_to_remove[col].append(value_max_occurs)
-    
-    # Removing the selected parameters to remove from the dataframe 
-    results_df_rm_nonsignifs = pd.DataFrame(results_df)
-    for key, value_list in params_dict_to_remove.items():
-        for value in value_list:
-            results_df_rm_nonsignifs = results_df_rm_nonsignifs[results_df_rm_nonsignifs[key]!=value]
-
-    return(results_df_rm_nonsignifs, params_dict_to_remove)
-
-# def get_significant_param_values(results_df: pd.DataFrame, 
-#                                  list_of_params: list, 
-#                                  metric_name: str = 'likelihood_test', 
-#                                  stat_test: str = 'ttest_rel'):
-    
-#     params_dict_to_remove = defaultdict(list)
-
-#     # Iterating through each of the hypeparameter
-#     for col in list_of_params:
-
-#         # Getting each value of the hyperparameter
-#         unique_values = results_df[col].unique()
-
-#         stat_test = getattr(stats, stat_test)  # might be good to catch errors
-        
-#         # finding which pairs of parameter values do not have significant differences
-#         insignif_pairs_list = []
-#         for i in range(len(unique_values)):
-#             for j in range(i+1, len(unique_values)):
-                
-#                 # Getting the p-value of statistical results by comparing hyperparameter values sets where only the tested hyperparameter is different
-
-#                 _, pvalue = stat_test(
-#                     results_df.loc[results_df[col] == unique_values[i], metric_name],
-#                     results_df.loc[results_df[col] == unique_values[j], metric_name])
-
-#                 if pvalue < 0.05:
-# #                     a = tuple([unique_values[i], unique_values[j]])
-#                     insignif_pairs_list.append(
-#                         tuple([unique_values[j], unique_values[i]]))
-
-#         # Removing the parameter that did not show significant differences (in the order from the most insignificant pairs)
-#         # strategy: remove the unique value with most insignificant results first, repeat until none is left
-#         while insignif_pairs_list:
-#             insignif_values_dict = Counter(
-#                 value for values_pair in insignif_pairs_list for value in values_pair)
-#             value_max_occurs = max(insignif_values_dict,
-#                                    key=insignif_values_dict.get)
-#             insignif_pairs_list = [
-#                 x for x in insignif_pairs_list if value_max_occurs not in x]
-
-#             # unique_values = np.delete(unique_values, np.where(unique_values == value_max_occurs))
-
-#             params_dict_to_remove[col].append(value_max_occurs)
-
-#     # Removing the selected parameters to remove from the dataframe
-#     results_df_rm_nonsignifs = pd.DataFrame(results_df)
-#     for key, value_list in params_dict_to_remove.items():
-#         for value in value_list:
-#             results_df_rm_nonsignifs = results_df_rm_nonsignifs[results_df_rm_nonsignifs[key] != value]
-#             #isin to compare to a set of values
-
-#     return(results_df_rm_nonsignifs, params_dict_to_remove)
-
 def get_significant_param_values(results_df: pd.DataFrame, 
                                  list_of_params: list, 
                                  metric_name: str = 'likelihood_test', 
                                  stat_test_name: str = 'ttest_rel'):
     
     params_dict_to_remove = defaultdict(list)
-    stat_test = getattr(stats, stat_test_name)  # might be good to catch errors
+    stat_test = getattr(stats, stat_test_name) 
         
     # Iterating through each of the hypeparameter
     for col in list_of_params:

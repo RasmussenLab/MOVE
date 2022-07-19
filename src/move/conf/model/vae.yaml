@@ -5,17 +5,21 @@ seed: 1
 cuda: False
 
 lrate: 0.0001
-num_epochs: 4 # for testing
-patience: 2 #for testing
+num_epochs: 500
+patience: 100
 kld_steps:
   - 20
   - 30
   - 40
+  - 90
 
 batch_steps:
   - 50
   - 100
   - 150
   - 200
-  
-# # Use a custom resolver to extract the weights input in 'data/main.yaml'
+  - 250
+  - 300
+  - 350
+  - 400
+  - 450

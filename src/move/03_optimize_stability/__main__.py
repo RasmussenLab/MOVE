@@ -63,7 +63,7 @@ def main(base_config: MOVEConfig):
     # Getting stability results 
     stability_top10, stability_top10_df = get_top10_stability(nHiddens, nLatents, nDropout, nLayers, repeat, latents, batch_sizes, nBeta)
     
-    stability_total, rand_index = calculate_latent(nHiddens, nLatents, nDropout, repeat, nLayers, nBeta, latents) # Todo add priting or smth
+    stability_total, rand_index, stability_total_df = calculate_latent(nHiddens, nLatents, nDropout, repeat, nLayers, nBeta, latents) 
     
     # Plotting the results 
     try: 
@@ -91,7 +91,7 @@ def main(base_config: MOVEConfig):
     
     # Getting best set of hyperparameters
     hyperparams_names = ['num_hidden', 'num_latent', 'num_layers', 'dropout', 'beta', 'batch_sizes']
-    make_and_save_best_stability_params(stability_top10_df, hyperparams_names, nepochs)
+    make_and_save_best_stability_params(stability_total_df, hyperparams_names, nepochs)
 
     return()
     

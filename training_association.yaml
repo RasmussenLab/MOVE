@@ -1,8 +1,9 @@
 num_hidden: 500
 num_latent:
-- 20
-- 20
-- 20
+- 150
+- 200
+- 250
+- 300
 num_layers: 1
 dropout: 0.1
 beta: 1.0e-05

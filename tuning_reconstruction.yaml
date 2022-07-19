@@ -1,18 +1,18 @@
 num_hidden: 
   - 500
-#   - 1000
+  - 1000
 num_latent:
   - 20
-#   - 50
+  - 50
 num_layers: 
   - 1
-#   - 2
+  - 2
 dropout: 
   - 0.1 
-#   - 0.3
+  - 0.3
 beta: 
   - 0.00001 
-#   - 0.0001 
+  - 0.0001 
 batch_sizes: 
   - 10
 repeats: 1

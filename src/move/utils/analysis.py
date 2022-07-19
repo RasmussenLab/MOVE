@@ -76,11 +76,13 @@ def get_top10_stability(nHiddens, nLatents, drop_outs, nLayers, repeat, latents,
     return(stability_top10, stability_top10_df)
 
 
-def calculate_latent(nHiddens, nLatents, drop_outs, repeat, nLayers, nBeta, latents):
+def calculate_latent(nHiddens, nLatents, drop_outs, repeat, nLayers, nBeta, latents, batch_sizes):
 
     npatient = list(latents.values())[0][0].shape[0]
     total_changes, stability_total, rand_index = initiate_default_dicts(0, 3)
-     
+    
+    stability_total_df = [] 
+    
     iters = itertools.product(nHiddens, nLatents, nLayers, drop_outs, nBeta)
     for nHidden, nLatent, nl, drop, b in iters:
        
@@ -105,8 +107,12 @@ def calculate_latent(nHiddens, nLatents, drop_outs, repeat, nLayers, nBeta, late
                     old_row = old_rows[index]
                     total_changes[name][index].append(np.mean(abs(old_row - row[old_pos])))
                     step.append(np.mean(abs(old_row - row[old_pos])))
-
-            if r != 0:
+            
+            if r == 0:
+                kmeans = KMeans(n_clusters=4)
+                kmeans = kmeans.fit(latents[name][r])
+                true_labels = kmeans.predict(latents[name][r])                
+            else:
                 kmeans = KMeans(n_clusters=4)
                 rand_tmp = []
                 for i in range(0,100):
@@ -116,13 +122,23 @@ def calculate_latent(nHiddens, nLatents, drop_outs, repeat, nLayers, nBeta, late
 
                 rand_index[name].append(np.mean(rand_tmp))
                 stability_total[name].append(np.mean(step))
-            else:
-                kmeans = KMeans(n_clusters=4)
-                kmeans = kmeans.fit(latents[name][r])
-                true_labels = kmeans.predict(latents[name][r])
+                
+                stability_total_df.append({
+                    'num_hidden': nHidden,
+                    'num_latent': nLatent,
+                    'num_layers': nl,
+                    'dropout': drop,
+                    'beta': b,
+                    'batch_sizes': batch_sizes, 
+                    'repeats': r,
+                    'difference': np.mean(step),
+                    'rand_index': np.mean(rand_tmp)
+                    })
+                
 
     stability_total = pd.DataFrame(stability_total)
-    return(stability_total, rand_index)
+    stability_total_df = pd.DataFrame(stability_total_df)
+    return(stability_total, rand_index, stability_total_df)
 
 
 def get_latents(best_model, train_loader, kld_w=1): 
@@ -732,13 +748,15 @@ def get_significant_param_values(results_df: pd.DataFrame,
             insignif_values_dict = Counter(value for values_pair in insignif_pairs_list for value in values_pair)
             value_max_occurs = max(insignif_values_dict, key=insignif_values_dict.get)
             insignif_pairs_list = [x for x in insignif_pairs_list if value_max_occurs not in x]
-            params_dict_to_remove[col].append(value_max_occurs)
+            if params_dict_to_remove.get(col) is None:
+                params_dict_to_remove[col] = []
+            params_dict_to_remove[col].append(value_max_occurs.item())
+                
 
     # Removing the selected parameters to remove from the dataframe
     results_df_rm_nonsignifs = pd.DataFrame(results_df)
     for key, value_list in params_dict_to_remove.items():
         results_df_rm_nonsignifs = results_df_rm_nonsignifs[results_df_rm_nonsignifs[key].isin(value_list)]
-
     return(results_df_rm_nonsignifs, params_dict_to_remove)
 
 def get_sort_list(results_df):
@@ -798,10 +816,10 @@ def make_and_save_best_reconstruct_params(results_df, hyperparams_names, max_par
     
     # Saving the best hyperparameter values (it will overwrite the file if it already exists)
     with open('tuning_stability.yaml', "w") as f:
-        OmegaConf.save(OmegaConf.create(best_hyperpars_vals_dict), f)
+        OmegaConf.save(OmegaConf.create(dict(best_hyperpars_vals_dict)), f)
 
     #Printing the saved hyper parameter values
-    print(f'Saving the best hyperparameter values in tuning_stability.yaml for further optimization: \n{OmegaConf.to_yaml(best_hyperpars_vals_dict)}\n')
+    print(f'Saving the best hyperparameter values in tuning_stability.yaml for further optimization: \n{OmegaConf.to_yaml(dict(best_hyperpars_vals_dict))}\n')
     
 
 def get_best_stability_paramset(stability_df, hyperparams_names):

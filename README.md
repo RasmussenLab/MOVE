@@ -1,6 +1,6 @@
 # MOVE (Multi-Omics Variational autoEncoder)
 
-The code in this repository can be used to run our Multi-Omics Variational autoEncoder (MOVE) framework for integration of omics and clinical variabels spanning both categorial and continuous data. The manuscript is currently in review.
+The code in this repository can be used to run our Multi-Omics Variational autoEncoder (MOVE) framework for integration of omics and clinical variabels spanning both categorial and continuous data. Our approach includes training ensemble VAE models and using adversarial attacks (ie. permutations) to identify cross omics associations. The manuscript is currently in review.
 
 The framework includes five notebooks including:
 1. Encode data and data formatting: encode_data.ipynb

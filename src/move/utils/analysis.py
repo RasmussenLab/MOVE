@@ -820,6 +820,7 @@ def make_and_save_best_reconstruct_params(results_df, hyperparams_names, max_par
 
     #Printing the saved hyper parameter values
     print(f'Saving the best hyperparameter values in tuning_stability.yaml for further optimization: \n{OmegaConf.to_yaml(dict(best_hyperpars_vals_dict))}\n')
+    print('Please manually review if the hyperparameter values were selected correctly and adjust them in the tuning_stability.yaml file.')
     
 
 def get_best_stability_paramset(stability_df, hyperparams_names):

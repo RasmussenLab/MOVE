@@ -37,34 +37,41 @@ We added simulated data that can be used for testing the workflow - note that th
 We have also included a notebook that goes through a short tutorial with a publicly-available maize rhizosphere microbiome dataset.
 
 # Installation
-MOVE is currently in the form of Jupyter Notebooks to ensure that one can modify the scripts according to the data available. Ie, we had five types of omics data together with clinical data - your dataset may differ. We are working on a script and pip package for easier access to the analysis.
+MOVE can be run both as a Python script and from the Jupyter notebook to ensure that one can run a pipeline conveniently and modify the scripts according to the available data. For instance, we had five types of omics data together with clinical data - your dataset may differ. 
+
+To install the MOVE package, use: 
+```
+pip install move-dl
+```
 
 ### Requirements
-We have only run MOVE in a Linux environment, however as it is depedent on python it should be possible to run on Macs and potentially Windows machines as well. We ran this with python3.8 from Anaconda 5.3.0 using the following packages:
-
+To run scripts in the Jupyter notebook, install: 
 ```
 jupyter
-numpy
-pytorch
-sklearn
-scipy
-pandas
-seaborn
-matplotlib
+move-dl
 ```
 
-For training on GPU:
-```
-pytorch with CUDA
-CUDA drivers
-```
+We have only run MOVE in a Linux environment, however as it is depedent on python it should be possible to run on Macs and potentially Windows machines as well. We ran this with python3.8 from Anaconda 5.3.0 using the following packages:
 
-All above packages can be installed using pip or conda, e.g. `pip install jupyterlab` or by installing [Anaconda](https://anaconda.org) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html). If you install Anaconda most packages should be installed by default or you can install using the conda approach `conda install packagename`. For installing pytorch go to the [website](https://pytorch.org/get-started/locally/) and chose the version that matches you OS and whether you want CUDA support or not.
+We have only run MOVE in a Linux environment. However, as it depends on Python, it should be possible to run on Mac and Windows machines. We tested on an Anaconda (v5.3.0)  environment with Python 3.8.
 
-The training of the VAEs can be done using GPU or CPU, as with all deep learning GPUs speed up the computations but it is perfectly doable to run on a server with multiple CPU cores. 
+The training of the VAEs can be done using GPU or CPU. However, as with all deep learning, GPUs speed up the computations, but running on a server with multiple CPU cores is perfectly doable.
+
 
 ### How to run MOVE
-Start with the Jupyter notebooks above from 01-05. Explanations are in the notebooks. Feel free to open an issue for help. **We are working on a script and pip package for easier access to the analysis, ETA April 2022.**
+You can run the move-dl pipeline on Jupyter notebooks above from 01-05. Explanations are in the notebooks. Feel free to open an issue for help.
+
+You can run MOVE as Python scripts with the following commands: 
+```
+python -m move.01_encode_data 
+python -m move.02_optimize_reconstruction
+python -m move.03_optimize_stability
+python -m move.04_analyze_latent
+python -m move.05_identify_drug_assosiation
+```
+
+Python scripts have the same functions as notebooks. 
+To override the default MOVE configurations, user-defined configurations should be defined in the working directory in the .yaml files (data.yaml, model.yaml, tuning_reconstruction.yaml, tuning_stability.yaml, training_latent.yaml, training_association.yaml).
 
 # DIRECT data access
 The data used in notebooks are not available for testing due to the informed consent given by study participants, the various national ethical approvals for the study, and the European General Data Protection Regulation (GDPR). Therefore, individual-level clinical and omics data cannot be transferred from the centralized IMI-DIRECT repository. 

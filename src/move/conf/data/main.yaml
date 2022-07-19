@@ -1,0 +1,54 @@
+user_config: data.yaml
+na_value: NA
+
+# raw - for raw data (e.g., the TSVs)
+# interim - for intermediate data (e.g., the NPYs)
+# processed - for processed data (e.g., trained models, latents)
+raw_data_path: data/
+interim_data_path: interim_data/
+processed_data_path: processed_data/
+version: v1
+
+ids_file_name: baseline_ids.txt
+ids_has_header: True
+ids_colname: 0
+
+categorical_inputs:
+  - name: diabetes_genotypes
+    weight: 1
+  - name: baseline_drugs
+    weight: 1
+  - name: baseline_categorical
+    weight: 1
+
+continuous_inputs:
+  - name: baseline_continuous
+    weight: 2
+  - name: baseline_transcriptomics
+    weight: 1
+  - name: baseline_diet_wearables
+    weight: 1
+  - name: baseline_proteomic_antibodies
+    weight: 1
+  - name: baseline_target_metabolomics
+    weight: 1
+  - name: baseline_untarget_metabolomics
+    weight: 1
+  - name: baseline_metagenomics
+    weight: 1
+
+data_of_interest: baseline_drugs
+  
+categorical_names: ${names:${data.categorical_inputs}}
+continuous_names: ${names:${data.continuous_inputs}}
+categorical_weights: ${weights:${data.categorical_inputs}}
+continuous_weights: ${weights:${data.continuous_inputs}}
+
+data_features_to_visualize_notebook4:
+  - drug_1
+  - clinical_continuous_2
+  - clinical_continuous_3
+
+write_omics_results_notebook5:
+  - baseline_target_metabolomics
+  - baseline_untarget_metabolomics 

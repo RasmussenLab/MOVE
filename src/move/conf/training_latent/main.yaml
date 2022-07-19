@@ -1,0 +1,15 @@
+user_config: training_latent.yaml
+
+num_hidden: 500
+  
+num_latent: 20
+  
+num_layers: 1
+  
+dropout: 0.1
+  
+beta: 0.00001
+  
+batch_sizes: 10
+
+tuned_num_epochs: 250

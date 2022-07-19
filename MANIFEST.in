@@ -1,0 +1,4 @@
+recursive-include src/move *.py
+recursive-include src/move *.yaml
+global-exclude *.pyc
+global-exclude __pycache__

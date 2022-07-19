@@ -1,0 +1,25 @@
+_target_: move.models.vae.VAE
+
+user_config: model.yaml
+seed: 1
+cuda: False
+
+lrate: 0.0001
+num_epochs: 500
+patience: 100
+kld_steps:
+  - 20
+  - 30
+  - 40
+  - 90
+
+batch_steps:
+  - 50
+  - 100
+  - 150
+  - 200
+  - 250
+  - 300
+  - 350
+  - 400
+  - 450

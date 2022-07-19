@@ -1,0 +1,18 @@
+cuda: False
+
+lr: 0.0001
+num_epochs: 4 # for testing
+patience: 2 #for testing
+repeat: 2
+kld_steps:
+  - 20
+  - 30
+  - 40
+
+batch_steps:
+  - 50
+  - 100
+  - 150
+  - 200
+
+version: v1

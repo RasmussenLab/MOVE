@@ -1,0 +1,21 @@
+user_config: tuning_reconstruction.yaml
+
+num_hidden: 
+  - 500
+  - 1000
+num_latent:
+  - 20
+  - 50
+num_layers: 
+  - 1
+  - 2
+dropout: 
+  - 0.1
+  - 0.2 
+beta: 
+  - 0.00001 
+  - 0.0001
+batch_sizes: 
+  - 10
+repeats: 1
+max_param_combos_to_save: 12

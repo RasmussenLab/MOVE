@@ -1,0 +1,17 @@
+num_hidden:
+- 1000
+- 2000
+num_latent:
+- 50
+- 100
+- 200
+num_layers:
+- 1
+dropout:
+- 0.1
+- 0.3
+beta:
+- 1.0e-05
+batch_sizes:
+- 10
+tuned_num_epochs: 4

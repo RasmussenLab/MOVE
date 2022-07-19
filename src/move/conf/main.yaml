@@ -1,0 +1,19 @@
+# @package _global_
+
+defaults:
+  - _self_
+  - data: main.yaml
+  - model: vae.yaml
+  - tuning_reconstruction: main.yaml
+  - tuning_stability: main.yaml
+  - training_latent: main.yaml
+  - training_association: main.yaml
+  - experiment: null
+
+hydra:
+  output_subdir: null
+  run:
+      dir: ./
+
+name: MOVE
+seed: 123456

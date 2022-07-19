@@ -1,0 +1,26 @@
+user_config: tuning_stability.yaml
+
+num_hidden: 
+  - 500
+  - 1000
+  
+num_latent:
+  - 20
+  - 50
+  
+num_layers:
+  - 1
+  
+dropout:
+  - 0.1
+  - 0.2
+  
+beta:  
+  - 0.00001 
+  
+batch_sizes: 
+  - 10
+  
+repeats: 5
+
+tuned_num_epochs: 250

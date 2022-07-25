@@ -15,8 +15,7 @@ def main(base_config: MOVEConfig):
                         config_types=['data', 'model', 'tuning_reconstruction'])
     
     # Getting the variables used in the notebook
-    
-    raw_data_path = cfg.data.raw_data_path
+
     interim_data_path = cfg.data.interim_data_path
     processed_data_path = cfg.data.processed_data_path
     headers_path = cfg.data.headers_path

@@ -17,9 +17,10 @@ def main(base_config: MOVEConfig):
                         config_types=['data', 'model', 'training_association'])
     
     #Getting the variables used in the notebook
-    raw_data_path = cfg.data.raw_data_path
     interim_data_path = cfg.data.interim_data_path
     processed_data_path = cfg.data.processed_data_path 
+    headers_path = cfg.data.headers_path
+    
     data_of_interest = cfg.data.data_of_interest
     version = cfg.data.version
     categorical_names = cfg.data.categorical_names
@@ -51,7 +52,7 @@ def main(base_config: MOVEConfig):
             raise ValueError(f"{data_type} is not in the continuous_names list.")
     
     # Getting the data
-    cat_list, con_list, cat_names, con_names, headers_all, drug, drug_h = get_data(raw_data_path, interim_data_path, categorical_names, continuous_names, data_of_interest)
+    cat_list, con_list, cat_names, con_names, headers_all, drug, drug_h = get_data(headers_path, interim_data_path, categorical_names, continuous_names, data_of_interest)
     
     # Training the model
     print('Beginning training the model.\n')

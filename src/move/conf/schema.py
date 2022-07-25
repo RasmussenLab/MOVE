@@ -18,6 +18,7 @@ class DataConfig:
     raw_data_path: str
     interim_data_path: str
     processed_data_path: str
+    headers_path: str
     version: str
     ids_file_name: str
     ids_has_header: bool

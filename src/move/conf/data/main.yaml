@@ -7,6 +7,7 @@ na_value: NA
 raw_data_path: data/
 interim_data_path: interim_data/
 processed_data_path: processed_data/
+headers_path: headers/
 version: v1
 
 ids_file_name: baseline_ids.txt

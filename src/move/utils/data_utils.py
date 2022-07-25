@@ -80,23 +80,18 @@ def read_con(path, file_name):
     data = data[:,mask_col]
     return data, mask_col
 
-def read_header(path, file_name, mask=None, start=1):
+def read_header(path, file_name):
     """
     Reads features names from the headers 
     inputs:
         path: pathway to the directory where file is located
         file_name: str of file name to read (in .npy format) 
-        mask: np.array of boolean objects, where False value corresponds to features to filtered out
-        start: int corresponding to how many lines to read for the header
     returns:
-        header: np.array of strings of feature names
+        header: list of strings of elements in the header
     """    
     with open(path + file_name, "r") as f:
-        header = f.readline().rstrip().split("\t")[start:]
-    if not mask is None:
-        header = np.array(header)
-        header = header[mask]
-    
+        header = f.readline().rstrip().split("\t")
+
     return header
 
 def initiate_default_dicts(n_empty_dicts, n_list_dicts):
@@ -114,12 +109,12 @@ def initiate_default_dicts(n_empty_dicts, n_list_dicts):
      
     return(tuple(default_dicts))
 
-def get_data(raw_data_path, interim_data_path, categorical_data_names, continuous_data_names, data_of_interest):
+def get_data(headers_path, interim_data_path, categorical_data_names, continuous_data_names, data_of_interest):
     """
     Reads the data for models' inputs
     
     inputs:
-        raw_data_path: str of pathway to raw data folder (e.g. .tsv)
+        headers_path: str of pathway to headers data 
         interim_data_path: str of a pathway to a folder of intermediate data files (e.g. .npy)
         categorical_data_names: list of strings of categorical data type names
         continuous_data_names: list of strings of continuous data type names
@@ -140,15 +135,15 @@ def get_data(raw_data_path, interim_data_path, categorical_data_names, continuou
     # Get categorical variables
     for cat_data in categorical_data_names:
         cat = read_cat(interim_data_path, f"{cat_data}.npy")
-        cat_h = read_header(raw_data_path,  f"{cat_data}.tsv")
+        cat_h = read_header(headers_path,  f"{cat_data}.txt")
           
         cat_list.append(cat)
         cat_names.append(cat_h)
 
      # Get continuous variables
     for con_data in continuous_data_names:
-        con, con_mask = read_con(interim_data_path, f"{con_data}.npy")
-        con_h = read_header(raw_data_path, f"{con_data}.tsv", con_mask)
+        con, _ = read_con(interim_data_path, f"{con_data}.npy")
+        con_h = read_header(headers_path, f"{con_data}.txt")
           
         con_list.append(con)
         con_names.append(con_h)
@@ -161,10 +156,10 @@ def get_data(raw_data_path, interim_data_path, categorical_data_names, continuou
     # Select dataset of interest
     if data_of_interest in categorical_data_names:
         drug = read_cat(interim_data_path, f"{data_of_interest}.npy")
-        drug_h = read_header(raw_data_path, f"{data_of_interest}.tsv")
+        drug_h = read_header(headers_path, f"{data_of_interest}.txt")
     elif data_of_interest in continuous_data_names:
-        drug, drug_mask = read_con(interim_data_path, f"{data_of_interest}.npy")
-        drug_h = read_header(raw_data_path, f"{data_of_interest}.tsv", drug_mask)  
+        drug, _ = read_con(interim_data_path, f"{data_of_interest}.npy")
+        drug_h = read_header(headers_path, f"{data_of_interest}.txt")  
     else:
         raise ValueError("""In data.yaml file data_of_interest is chosen neither
                                  from defined continuous nor categorical data types""")
@@ -335,7 +330,7 @@ def read_files(path, data_type, na):
      
     return raw_input, header
 
-def generate_file(var_type, raw_data_path, interim_data_path, data_type, ids, na='NA'):
+def generate_file(var_type, raw_data_path, interim_data_path, headers_path, data_type, ids, na='NA'):
     """
     Function encodes source data type and saves the file
      
@@ -352,17 +347,45 @@ def generate_file(var_type, raw_data_path, interim_data_path, data_type, ids, na
     if not isExist:
         os.makedirs(interim_data_path)
     
+    isExist = os.path.exists(headers_path)
+    if not isExist:
+        os.makedirs(headers_path)
+    
     # Preparing the data
     raw_input, header = read_files(raw_data_path, data_type, na)
     sorted_data = sort_data(raw_input, ids, header)
      
     if var_type == 'categorical':
         data_input = encode_cat(sorted_data, 'nan')
+        mask = None
+        
     elif var_type == 'continuous':
-        data_input, _ = encode_con(sorted_data)
-            
+        data_input, mask = encode_con(sorted_data)
+        
+    header = get_header(header, mask)
+    
+    np.savetxt(headers_path+data_type+'.txt', header, delimiter=',', fmt='%s')
     np.save(interim_data_path + f"{data_type}.npy", data_input)
 
+
+def get_header(header, mask=None, start=1):
+    """
+    Reads features names from the headers 
+    inputs:
+        header: list with values of the header column of input data  
+        mask: np.array of boolean objects, where False value corresponds to features to filtered out
+        start: int corresponding to how many lines to read for the header
+    returns:
+        header: np.array of strings of feature names
+    """   
+    header = header[start:]
+    if not mask is None:
+        header = np.array(header)
+        header = header[mask]
+    
+    return header    
+
+    
 def get_list_value(*args):
     arg_tuple = [arg[0] if len(arg) == 1 else arg for arg in args]
     return(arg_tuple)     

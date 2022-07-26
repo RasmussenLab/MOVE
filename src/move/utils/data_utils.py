@@ -89,9 +89,11 @@ def read_header(path, file_name):
     returns:
         header: list of strings of elements in the header
     """    
-    with open(path + file_name, "r") as f:
-        header = f.readline().rstrip().split("\t")
 
+    header = pd.read_csv(path + file_name, sep='\t', header=None, squeeze=True)
+    header = header.astype('str')
+    header = header.to_list()
+    
     return header
 
 def initiate_default_dicts(n_empty_dicts, n_list_dicts):
@@ -136,7 +138,6 @@ def get_data(headers_path, interim_data_path, categorical_data_names, continuous
     for cat_data in categorical_data_names:
         cat = read_cat(interim_data_path, f"{cat_data}.npy")
         cat_h = read_header(headers_path,  f"{cat_data}.txt")
-          
         cat_list.append(cat)
         cat_names.append(cat_h)
 

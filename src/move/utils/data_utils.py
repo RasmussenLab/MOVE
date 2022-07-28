@@ -80,7 +80,7 @@ def read_con(path, file_name):
     data = data[:,mask_col]
     return data, mask_col
 
-def read_header(path, file_name):
+def read_header(path, file_name, mask=None):
     """
     Reads features names from the headers 
     inputs:
@@ -92,8 +92,12 @@ def read_header(path, file_name):
 
     header = pd.read_csv(path + file_name, sep='\t', header=None, squeeze=True)
     header = header.astype('str')
-    header = header.to_list()
-    
+
+    if not mask is None:
+        header =  header.to_numpy()
+        header = header[mask]
+        
+    header = list(header)
     return header
 
 def initiate_default_dicts(n_empty_dicts, n_list_dicts):
@@ -143,8 +147,8 @@ def get_data(headers_path, interim_data_path, categorical_data_names, continuous
 
      # Get continuous variables
     for con_data in continuous_data_names:
-        con, _ = read_con(interim_data_path, f"{con_data}.npy")
-        con_h = read_header(headers_path, f"{con_data}.txt")
+        con, con_mask = read_con(interim_data_path, f"{con_data}.npy")
+        con_h = read_header(headers_path, f"{con_data}.txt", con_mask)
           
         con_list.append(con)
         con_names.append(con_h)

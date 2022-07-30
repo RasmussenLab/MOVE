@@ -130,14 +130,14 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
             'con_recons': np.array(con_recon),
             'cat_recons': np.array(cat_recon),
             'loss_train': np.array(loss),
-            'likelihoods': np.array(likelihood),
+            'likelihoods': np.array(likelihood.cpu()),
             'best_epochs': np.array(best_epoch),
             'recon_acc_test': np.array(cat_true_recon_test + con_true_recon_test),
             'latents_test': np.array(latent_test),
             'con_recons_test': np.array(con_recon_test),
             'cat_recons_test': np.array(cat_recon_test),
             'loss_test': np.array(loss_test),
-            'likelihood_test': np.array(likelihood_test)
+            'likelihood_test': np.array(likelihood_test.cpu())
         })
         
     results_df = pd.DataFrame(results_df)
@@ -150,7 +150,7 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
     np.save(processed_data_path + "hyperparameters/cat_recon_benchmark_final.npy", cat_recons)
     np.save(processed_data_path + "hyperparameters/recon_acc_benchmark_final.npy", recon_acc)
     np.save(processed_data_path + "hyperparameters/loss_benchmark_final.npy", loss_train)
-    np.save(processed_data_path + "hyperparameters/likelihood_benchmark_final.npy", likelihoods.cpu())
+    np.save(processed_data_path + "hyperparameters/likelihood_benchmark_final.npy", likelihoods)
     np.save(processed_data_path + "hyperparameters/best_epochs_benchmark_final.npy", best_epochs)
 
     np.save(processed_data_path + "hyperparameters/test_latent_benchmark_final.npy", latents_tests)

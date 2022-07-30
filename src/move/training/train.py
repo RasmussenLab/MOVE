@@ -150,7 +150,7 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
     np.save(processed_data_path + "hyperparameters/cat_recon_benchmark_final.npy", cat_recons)
     np.save(processed_data_path + "hyperparameters/recon_acc_benchmark_final.npy", recon_acc)
     np.save(processed_data_path + "hyperparameters/loss_benchmark_final.npy", loss_train)
-    np.save(processed_data_path + "hyperparameters/likelihood_benchmark_final.npy", likelihoods)
+    np.save(processed_data_path + "hyperparameters/likelihood_benchmark_final.npy", likelihoods.cpu())
     np.save(processed_data_path + "hyperparameters/best_epochs_benchmark_final.npy", best_epochs)
 
     np.save(processed_data_path + "hyperparameters/test_latent_benchmark_final.npy", latents_tests)
@@ -158,7 +158,7 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
     np.save(processed_data_path + "hyperparameters/test_cat_recon_benchmark_final.npy", cat_recons_tests)
     np.save(processed_data_path + "hyperparameters/test_recon_acc_benchmark_final.npy", recon_acc_tests)
     np.save(processed_data_path + "hyperparameters/test_loss_benchmark_final.npy", loss_tests)
-    np.save(processed_data_path + "hyperparameters/test_likelihood_benchmark_final.npy", likelihood_tests)
+    np.save(processed_data_path + "hyperparameters/test_likelihood_benchmark_final.npy", likelihood_tests.cpu())
     
     print('The results saved.\n')
     

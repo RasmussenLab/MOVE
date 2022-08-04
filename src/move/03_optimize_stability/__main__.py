@@ -63,7 +63,8 @@ def main(base_config: MOVEConfig):
     # Getting stability results 
     stability_top10, stability_top10_df = get_top10_stability(nHiddens, nLatents, nDropout, nLayers, repeat, latents, batch_sizes, nBeta)
     
-    stability_total, rand_index, stability_total_df = calculate_latent(nHiddens, nLatents, nDropout, repeat, nLayers, nBeta, latents) 
+    stability_total, rand_index, stability_total_df = calculate_latent(nHiddens, nLatents, nDropout, repeat, nLayers, nBeta, latents, batch_sizes)
+ 
     
     # Plotting the results 
     try: 

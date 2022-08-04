@@ -756,7 +756,7 @@ def get_significant_param_values(results_df: pd.DataFrame,
     # Removing the selected parameters to remove from the dataframe
     results_df_rm_nonsignifs = pd.DataFrame(results_df)
     for key, value_list in params_dict_to_remove.items():
-        results_df_rm_nonsignifs = results_df_rm_nonsignifs[results_df_rm_nonsignifs[key].isin(value_list)]
+        results_df_rm_nonsignifs = results_df_rm_nonsignifs[~results_df_rm_nonsignifs[key].isin(value_list)]
     return(results_df_rm_nonsignifs, params_dict_to_remove)
 
 def get_sort_list(results_df):

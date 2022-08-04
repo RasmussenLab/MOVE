@@ -92,7 +92,7 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
     for nHidden, nLatent, nl, drop, b, batch_size, r in iters:
         combi = str([nHidden] * nl) + "+" + str(nLatent) + ", drop: " + str(drop) +", b: " + str(b) + ", batch: " + str(batch_size)
 
-        best_model, loss, ce, sse, KLD, train_loader, _, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_size, nHidden, nl, nLatent, b, drop, cuda, kldsteps, batchsteps, nepochs, lrate, seed, test_loader, patience, early_stopping=True)   
+        best_model, loss, ce, sse, KLD, train_loader, _, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list_train, con_list_train, categorical_weights, continuous_weights, batch_size, nHidden, nl, nLatent, b, drop, cuda, kldsteps, batchsteps, nepochs, lrate, seed, test_loader, patience, early_stopping=True)   
 
 
         # get results

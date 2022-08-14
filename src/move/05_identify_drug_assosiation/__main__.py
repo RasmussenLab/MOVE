@@ -79,7 +79,7 @@ def main(base_config: MOVEConfig):
     all_hits, collected_overlap = identify_high_supported_hits(sig_hits, drug_h, version, processed_data_path)
     
     # Saving the pi values of results of overlapping_hits() and  identify_high_supported_hits() functions
-    report_values(processed_data_path, sig_hits, median_p_val, drug_h, all_hits, con_names)
+    report_values(processed_data_path, sig_hits, median_p_val, drug_h, all_hits, collected_overlap, con_names)
     
     # Calculating average change among different runs
     con_list_concat = np.concatenate(con_list, axis=-1)

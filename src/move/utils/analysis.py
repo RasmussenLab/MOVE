@@ -688,7 +688,7 @@ def identify_high_supported_hits(sig_hits, drug_h, version, path):
     return(all_hits, collected_overlap)
 
 
-def report_values(path, sig_hits, median_p_val, drug_h, all_hits, con_names): 
+def report_values(path, sig_hits, median_p_val, drug_h, all_hits, collected_overlap, con_names): 
     '''
     Saves the pi values of results of overlapping_hits() and  identify_high_supported_hits() functions
     

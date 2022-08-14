@@ -316,14 +316,14 @@ def get_feature_data(data_type, feature_of_interest, cat_list,
     Returns the data of the selected feature
     
     Inputs:
-        data_type:
-        feature_of_interest:
-        cat_list:
-        con_list:
-        cat_names:
-        con_names:
+        data_type (str): 'categorical' or 'continuous' - corresponds to the type of data  
+        feature_of_interest (str):  feature name 
+        cat_list: list with input data of categorical data type
+        con_list: list with input data of continuous data type
+        cat_names: np.array of strings of feature names of categorical data
+        con_names: np.array of strings of feature names of continuous data
     Returns:
-        feature_data:
+        feature_data: np.array of input data of selected feature
         
     '''
     
@@ -347,7 +347,7 @@ def get_pearsonr(feature_of_interest, embedding,
     Calculates pearson correlation between input data of feature and UMAP representation 
     
     Inputs:
-        feature_of_interest: str of feature name
+        feature_of_interest (str): feature name of which pearson correlation is returned
         embedding: np.array of 2D representation of latent space by UMAP
         cat_list: list with input data of categorical data type
         con_list: list with input data of continuous data type
@@ -578,7 +578,7 @@ def cal_reconstruction_change(recon_results, repeats):
     Calculates reconstruction change across repeats.
     
     Inputs: 
-        recon_results (dict): {latents: {repeat: {drug: np.array of changes in continuous data when label of drug is changed}}
+        recon_results (dict): {latents: {repeat: {drug: np.array of changes in continuous data when label of drug is changed}}}
         repeats (int): number of repeats
     Returns:
         recon_average (dict): {latents: {drug: np.array of mean changes among different repeats in continuous data when label of drug is changed}}
@@ -830,9 +830,22 @@ def get_change_in_reconstruction(recon_average, groups, drug, drug_h, con_names,
 
 
 def write_omics_results(path, up_down_list, collected_overlap, recon_average_corr_new_all, headers_all, con_types, data_of_interest): 
+    '''
+    TODO:
+    
+    Inputs:
+        path: str of folder name where the results will be saved
+        up_down_list: list of strs that correspond to data types whose upregulated or downregulated data points would be saved 
+        collected_overlap: TODO
+        recon_average_corr_new_all: TODO
+        headers_all: np.array of strings of feature names of all data
+        con_types: list of strings of continuous data type names
+        data_of_interest: TODO: remove it
+    
+    '''
  
     for i in range(len(con_types)):
-        if con_types[i] != data_of_interest:
+        if con_types[i] != data_of_interest: # todo: remove it
             for d in collected_overlap:
                 n = np.intersect1d(collected_overlap[d], headers_all[i])
                 
@@ -853,6 +866,25 @@ def write_omics_results(path, up_down_list, collected_overlap, recon_average_cor
                         
 def make_files(collected_overlap, groups, con_all, path, recon_average_corr_all_indi_new, 
                con_names, con_dataset_names, drug_h, drug, all_hits, types, version = "v1"):
+    '''
+    TODO:
+    
+    Inputs:
+        collected_overlap: TODO
+        groups: TODO
+        con_all: np.array of data of continuous data type
+        path: str of folder name where the results will be saved
+        recon_average_corr_all_indi_new: TODO
+        con_names: np.array of strings of feature names of continuous data
+        con_dataset_names: list of strings with the names of continuous data type
+        drug: np.array of input data whose feature data are changed to test their effects in the pipeline
+        drug_h: np.array of strings of feature names data type whose data are changed to test their effects in the pipeline
+        all_hits: TODO
+        types (list of lists): TODO
+        version: str: a subdirectory where data will be saved
+    
+    '''
+    
     
     all_db_names = [item for sublist in con_names for item in sublist]
     ci_dict = {}
@@ -890,6 +922,24 @@ def make_files(collected_overlap, groups, con_all, path, recon_average_corr_all_
         
 def get_inter_drug_variation(con_names, drug_h, recon_average_corr_all_indi_new, 
                              groups, collected_overlap, drug, con_all, path, types):
+    '''
+    TODO:
+    
+    Inputs:
+        con_names: np.array of strings of feature names of continuous data
+        drug_h: np.array of strings of feature names data type whose data are changed to test their effects in the pipeline
+        recon_average_corr_all_indi_new: TODO 
+        groups: TODO
+        collected_overlap: TODO 
+        drug: np.array of input data whose feature data are changed to test their effects in the pipeline
+        con_all:  np.array of data of continuous data type
+        path: str of folder name where the results will be saved
+        types (list of lists): TODO
+        
+    Returns:
+        df_indi_var: TODO
+    '''
+    
     # Inter drug variation 
     all_db_names = [item for sublist in con_names for item in sublist]
     inter_drug_variance = []
@@ -914,7 +964,18 @@ def get_inter_drug_variation(con_names, drug_h, recon_average_corr_all_indi_new,
 
 
 def get_drug_similar_each_omics(con_names, con_dataset_names, all_hits, recon_average_corr_new_all, drug_h, version, path):
-
+    '''
+    TODO:
+    
+    Inputs:
+        con_names: np.array of strings of feature names of continuous data
+        con_dataset_names: list of strings with the names of continuous data type
+        all_hits: TODO
+        recon_average_corr_new_all: TODO
+        drug_h: np.array of strings of feature names data type whose data are changed to test their effects in the pipeline
+        version: str: a subdirectory where data will be saved
+        path: str of folder name where the results will be saved
+    '''
     
     con_dataset_names_v1 = con_dataset_names
     i = 0

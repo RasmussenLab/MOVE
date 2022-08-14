@@ -130,7 +130,7 @@ def get_data(headers_path, interim_data_path, categorical_data_names, continuous
         con_list: list of np.arrays for data of continuous data type
         cat_names: np.array of strings of feature names of categorical data
         con_names: np.array of strings of feature names of continuous data
-        headers_all: np.array of strings of feature names of categorical data
+        headers_all: np.array of strings of feature names of all data
         drug: np.array of input data whose feature data are changed to test their effects in the pipeline
         drug_h: np.array of strings of feature names data type whose data are changed to test their effects in the pipeline
     """   

@@ -346,7 +346,7 @@ def cal_sig_hits(recon_diff_con_none, none_groups, drug, baseline_mean, con_all,
 
 def correction_new(results):
     '''
-    TODO
+    Corrects for multiple comparisons problem using bonferroni correction.
     
     Inputs:
         results: TODO

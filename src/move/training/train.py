@@ -273,8 +273,7 @@ def train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHidden,
         drug: an np.array of data whose features are changed to test their effects
         categorical_names: list of strings of categorical data names
         data_of_interest: str of data type name whose features are changed to test their effects
-        seed: int of seed number
-    returns:    
+        seed: int of seed number  
     """ 
 
     results, recon_results, recon_results_1, mean_bas = initiate_default_dicts(n_empty_dicts=0, n_list_dicts=4)
@@ -296,7 +295,7 @@ def train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHidden,
         con_recon = np.array(con_recon)
         con_recon = torch.from_numpy(con_recon)
 
-        mean_baseline = get_baseline(best_model, train_test_loader, con_recon, repeat=1, kld_w=kld_w)
+        mean_baseline = get_baseline(best_model, train_test_loader, con_recon, repeat=10, kld_w=kld_w)
         recon_diff, groups = change_drug(best_model, train_test_loader, con_recon, drug, start, end, kld_w)
         stat = cal_sig_hits(recon_diff, groups, drug, mean_baseline, train_loader.dataset.con_all)
 

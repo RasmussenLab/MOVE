@@ -25,6 +25,22 @@ from move.models import vae
 
 
 def get_top10_stability(nHiddens, nLatents, drop_outs, nLayers, repeat, latents, batch_sizes, nBeta):
+    '''
+    Calculates stability focusing on the top 10 closest neigbour for each individual.
+    
+    inputs:
+        nHiddens: a list with integers with the number of neurons in hidden layers
+        nLatents: a list with integers with a size of the latent dimension
+        drop_outs: a list with floats with dropout probabilities applied after each nonlinearity in encoder and decoder
+        nLayers: a list with integers with the number of layers
+        repeat: integer of the number of times to train the model with the same configuration
+        latents: Defaultdict. Keys: set of hyperparameter values; values: np.array of VAE latent representation of input dataset
+        batch_sizes: a list with ints with batch sizes
+        nBeta: a list with floats with beta values (Multiplies KLD by the inverse of this value)
+    returns:
+        stability_top10: Defaultdict. Keys: set of hyperparameter values; values:TODO: list of floats of mean positional differences
+        stability_top10_df: list of dicts, with hyperparameter values and mean positional difference
+    '''
 
     npatient = list(latents.values())[0][0].shape[0]
     top10_changes, stability_top10 = initiate_default_dicts(0, 2) 
@@ -77,6 +93,24 @@ def get_top10_stability(nHiddens, nLatents, drop_outs, nLayers, repeat, latents,
 
 
 def calculate_latent(nHiddens, nLatents, drop_outs, repeat, nLayers, nBeta, latents, batch_sizes):
+    '''
+    TODO: Calculates stability and 
+    
+    Inputs:
+        nHiddens: a list with integers with the number of neurons in hidden layers
+        nLatents: a list with integers with a size of the latent dimension
+        drop_outs: a list with floats with dropout probabilities applied after each nonlinearity in encoder and decoder
+        repeat: integer of the number of times to train the model with the same configuration
+        nLayers: a list with integers with the number of layers
+        nBeta: a list with floats with beta values (Multiplies KLD by the inverse of this value)
+        latents: Defaultdict. Keys: set of hyperparameter values; values: np.array of VAE latent representation of input dataset
+        batch_sizes: a list with ints with batch sizes
+    returns:
+        stability_total:  Defaultdict. Keys: set of hyperparameter values; values:TODO: list of floats of mean positional differences
+        rand_index: Defaultdict. Keys: set of hyperparameter values; values:TODO: list of floats of mean positional differences
+        stability_total_df: TODO: pd.DataFrame, with hyperparameter values and rand_inde mean positional difference
+    '''
+    
 
     npatient = list(latents.values())[0][0].shape[0]
     total_changes, stability_total, rand_index = initiate_default_dicts(0, 3)
@@ -141,7 +175,23 @@ def calculate_latent(nHiddens, nLatents, drop_outs, repeat, nLayers, nBeta, late
     return(stability_total, rand_index, stability_total_df)
 
 
-def get_latents(best_model, train_loader, kld_w=1): 
+def get_latents(best_model, train_loader, kld_w=1):
+    '''
+    Returns latent representations of the model predictions
+    
+    Inputs:
+        best_model: model object that had lowest loss on tes
+        train_loader: Dataloader of training set
+        kld_w: float of KLD weight
+    Returns:
+        latent: np.array of VAE latent representation of input dataset
+        latent_var: np.array of VAE latent representation of input dataset (sigma values)
+        cat_recon: np.array of VAE model's reconstructions for categorical data
+        cat_class: np.array of ordinally encoded input categorical data (-1 if it is missing)
+        con_recon:  np.array of VAE model's reconstructions for continuous data
+        loss: float of loss of VAE model's predictions
+        likelihood: float of reconstruction losses (BCE for categorical datapoints and SSE for continuous datapoints)
+    '''
      
     # Extracting the latent space
     train_test_loader = DataLoader(dataset=train_loader.dataset, batch_size=1, 
@@ -158,6 +208,18 @@ def get_latents(best_model, train_loader, kld_w=1):
 
 
 def calc_categorical_reconstruction_acc(cat_shapes, cat_class, cat_recon):
+    '''
+    Calculates reconstruction accuracy for categorical data
+    
+    Inputs:
+        cat_shapes: list of tuple (npatient, nfeatures, ncategories) corresponding to categorical data shapes.
+        cat_class: np.array of ordinally encoded input categorical data (-1 if it is missing)
+        cat_recon: np.array of VAE model's reconstructions for continuous data
+    Returns:
+        cat_total_recon: list of floats (from 0 to 1), which corresponds to the fraction of how many samples were correctly reconstructed
+        
+    '''
+   
     # Calculate the categorical reconstruction accuracy
     cat_true_recon = []
     cat_total_recon = []
@@ -184,6 +246,17 @@ def calc_categorical_reconstruction_acc(cat_shapes, cat_class, cat_recon):
 
 
 def calc_continuous_reconstruction_acc(con_shapes, con_recon, train_loader):
+    '''
+    Calculates reconstruction accuracy for categorical data
+    
+    Inputs:
+        con_shapes: list of ints corresponding to a number of features each continuous data type have
+        con_recon: np.array of VAE model's reconstructions for continuous data
+        train_loader: Dataloader of training set
+    Returns:
+        all_values: list of floats (from 0 to 1) that corresponds to the cosine similarity between input data and reconstructed data
+    '''
+    
     # Calculate the continuous reconstruction accuracy
     total_shape = 0
     true_recon = []
@@ -216,7 +289,17 @@ def calc_continuous_reconstruction_acc(con_shapes, con_recon, train_loader):
     return(all_values)
 
 def get_embedding(path, latent):
+    '''
+    Calculates reconstruction accuracy for categorical data
+    
+    Inputs:
+        path: str of path to results folder
+        latent: np.array of VAE latent representation of input dataset
+    Returns:
+        embedding: np.array of 2D representation of latent space by UMAP
+    '''    
     results_folder = path + 'results/'
+    
     isExist = os.path.exists(results_folder)
     if not isExist:
          os.makedirs(results_folder)
@@ -229,7 +312,21 @@ def get_embedding(path, latent):
 
 def get_feature_data(data_type, feature_of_interest, cat_list,
                            con_list, cat_names, con_names):
-     
+    '''
+    Returns the data of the selected feature
+    
+    Inputs:
+        data_type:
+        feature_of_interest:
+        cat_list:
+        con_list:
+        cat_names:
+        con_names:
+    Returns:
+        feature_data:
+        
+    '''
+    
     if data_type=='categorical':
         cat_list_integer = [np.argmax(cat, axis=-1) for cat in cat_list]
         np_data_ints = np.concatenate(cat_list_integer, axis=-1)
@@ -242,11 +339,25 @@ def get_feature_data(data_type, feature_of_interest, cat_list,
      
     feature_data = np_data_ints[:,list(headers).index(feature_of_interest)]
      
-    return(feature_data, headers)
+    return(feature_data)
 
 def get_pearsonr(feature_of_interest, embedding, 
                  cat_list, con_list, cat_names, con_names):
-     
+    '''
+    Calculates pearson correlation between input data of feature and UMAP representation 
+    
+    Inputs:
+        feature_of_interest: str of feature name
+        embedding: np.array of 2D representation of latent space by UMAP
+        cat_list: list with input data of categorical data type
+        con_list: list with input data of continuous data type
+        cat_names: np.array of strings of feature names of categorical data
+        con_names: np.array of strings of feature names of continuous data
+    Returns:
+        pearson_0dim: tuple with pearson correlation and pi value for the 0 dimension of UMAP embedding representation
+        pearson_1dim: tuple with pearson correlation and pi value for the 1 dimension of UMAP embedding representation
+    '''
+    
     if feature_of_interest in cat_names:
         data_type = 'categorical'
     elif feature_of_interest in con_names:
@@ -254,9 +365,9 @@ def get_pearsonr(feature_of_interest, embedding,
     else:
         raise ValueError("feature_of_interest is not in cat_names or con_names")
     
-    feature_data, _ = get_feature_data(data_type, feature_of_interest, 
-                                                   cat_list, con_list, 
-                                                   cat_names, con_names)
+    feature_data = get_feature_data(data_type, feature_of_interest, 
+                                    cat_list, con_list, 
+                                    cat_names, con_names)
      
     # Correlate embedding with variable 
     pearson_0dim = pearsonr(embedding[:,0], feature_data)
@@ -264,8 +375,24 @@ def get_pearsonr(feature_of_interest, embedding,
      
     return(pearson_0dim, pearson_1dim)
 
-def get_feature_importance_categorical(model, train_loader, latent, kld_w=1): #Which kld_w and train_loader # should not matter equal to 1
+def get_feature_importance_categorical(model, train_loader, latent, kld_w=1): 
+    '''
+    Calculates feature importance for categorical data inspired by SHAP - based on how much the latent space changes when setting the values in one hot encoding of the feature to zeroes (corresponds to na value)   
+    
+    Inputs:
+        model: model object 
+        train_loader: Dataloader of training set
+        latent: np.array of VAE latent representation of input dataset
+        kld_w: float of KLD weight
 
+    Returns:
+        all_diffs: list: for each categorical feature differences between existing latent space and new latent space (where the feature is set to NA value)   
+        all_diffs_cat_np: np.array: for each categorical feature differences between existing latent space and new latent space (where the feature is set to NA value) 
+        sum_diffs_cat_np: np.array: for each categorical feature sum of differences of all latent dimensions between existing latent space and new latent space (where the feature is set to NA value) 
+        sum_diffs_cat_abs_np: np.array: for each categorical feature sum of absolute differences of all latent dimensions between existing latent space and new latent space (where the feature is set to NA value)  
+        total_diffs_cat_np: np.array: for each categorical feature sum among all individuals and of differences of all latent dimensions between existing latent space and new latent space (where the feature is set to NA value) 
+    '''
+    
     all_diffs = []
     sum_diffs = []
     sum_diffs_abs = []
@@ -293,7 +420,7 @@ def get_feature_importance_categorical(model, train_loader, latent, kld_w=1): #W
 
             new_loader = DataLoader(dataset, batch_size=1, 
                                         drop_last=False, shuffle=False, 
-                                        pin_memory=train_loader.pin_memory) # removed num_workers=1,
+                                        pin_memory=train_loader.pin_memory) 
 
             out = model.latent(new_loader, kld_w)
 
@@ -305,15 +432,33 @@ def get_feature_importance_categorical(model, train_loader, latent, kld_w=1): #W
             sum_diffs.append(np.sum(diff, axis = 1))
             sum_diffs_abs.append(np.sum(diff_abs, axis = 1))
             total_diffs.append(np.sum(diff))
+            break
 
     all_diffs_cat_np = np.asarray(all_diffs)
     sum_diffs_cat_np = np.asarray(sum_diffs)
     sum_diffs_cat_abs_np = np.asarray(sum_diffs_abs)
     total_diffs_cat_np = np.asarray(total_diffs)
+    
     return(all_diffs, all_diffs_cat_np, sum_diffs_cat_np, sum_diffs_cat_abs_np, total_diffs_cat_np)
 
 
 def get_feature_importance_continuous(model, train_loader, mask, latent, kld_w=1):
+    '''
+    Calculates feature importance for continuos data inspired by SHAP - based on how much the latent space changes when setting the values of the feature to zero.   
+    
+    Inputs:
+        model: model object 
+        train_loader: Dataloader of training set
+        mask: np.array of boaleans, where False values correspond to features that had only NA values.
+        latent: np.array of VAE latent representation of input dataset
+        kld_w: float of KLD weight
+
+    Returns:  
+        all_diffs_con_np: np.array: for each continuous feature differences between existing latent space and new latent space (where the feature is set to NA value) 
+        sum_diffs_con_np: np.array: for each continuous feature sum of differences of all latent dimensions between existing latent space and new latent space (where the feature is set to NA value) 
+        sum_diffs_con_abs_np: np.array: for each continuous feature sum of absolute differences of all latent dimensions between existing latent space and new latent space (where the feature is set to NA value)  
+        total_diffs_con_np: np.array: for each continuous feature sum among all individuals and of differences of all latent dimensions between existing latent space and new latent space (where the feature is set to NA value) 
+    '''
 # Feature importance continuous
 
     all_diffs_con = []
@@ -356,7 +501,21 @@ def get_feature_importance_continuous(model, train_loader, mask, latent, kld_w=1
 
 def save_feat_results(path, all_diffs, sum_diffs, sum_diffs_abs, total_diffs, 
                       all_diffs_con, sum_diffs_con, sum_diffs_con_abs, total_diffs_con):
-     
+    '''
+    Saves feature importance results
+    
+    Inputs:
+        path: str of a pathway where the data is saved   
+        all_diffs: np.array: for each categorical feature differences between existing latent space and new latent space (where the feature is set to NA value) 
+        sum_diffs: np.array: for each categorical feature sum of differences of all latent dimensions between existing latent space and new latent space (where the feature is set to NA value) 
+        sum_diffs_abs: np.array: for each categorical feature sum of absolute differences of all latent dimensions between existing latent space and new latent space (where the feature is set to NA value)  
+        total_diffs_cat: np.array: for each categorical feature sum among all individuals and of differences of all latent dimensions between existing latent space and new latent space (where the feature is set to NA value) 
+        all_diffs_con: np.array: for each continuous feature differences between existing latent space and new latent space (where the feature is set to NA value) 
+        sum_diffs_con: np.array: for each continuous feature sum of differences of all latent dimensions between existing latent space and new latent space (where the feature is set to NA value) 
+        sum_diffs_con_abs: np.array: for each continuous feature sum of absolute differences of all latent dimensions between existing latent space and new latent space (where the feature is set to NA value)  
+        total_diffs_con: np.array: for each continuous feature sum among all individuals and of differences of all latent dimensions between existing latent space and new latent space (where the feature is set to NA value) 
+    '''
+    
     # Save results
     all_diffs_both = np.concatenate((all_diffs, all_diffs_con), axis=0)
     sum_diffs_both = np.concatenate((sum_diffs, sum_diffs_con), axis=0)
@@ -369,6 +528,17 @@ def save_feat_results(path, all_diffs, sum_diffs, sum_diffs_abs, total_diffs,
     np.save(path + "results/total_diffs_final.npy", total_diffs_both)
 
 def get_feat_importance_on_weights(path, model, train_loader, cat_names, con_names):
+    '''
+    TODO:
+    
+    Inputs:
+        path: str of a pathway where the data is saved
+        model: VAE model object 
+        train_loader: Dataloader of training set
+        cat_names: np.array of strings of feature names of categorical data
+        con_names: np.array of strings of feature names of continuous data
+    '''
+    
     #Based on weights
      
     cat_shapes = train_loader.dataset.cat_shapes
@@ -404,22 +574,47 @@ def get_feat_importance_on_weights(path, model, train_loader, cat_names, con_nam
     tmp_pd.T.to_csv(path + "results/importance_w_con.txt")
      
 def cal_reconstruction_change(recon_results, repeats):
+    '''
+    Calculates reconstruction change across repeats.
+    
+    Inputs: 
+        recon_results (dict): {latents: {repeat: {drug: np.array of changes in continuous data when label of drug is changed}}
+        repeats (int): number of repeats
+    Returns:
+        recon_average (dict): {latents: {drug: np.array of mean changes among different repeats in continuous data when label of drug is changed}}
+    '''
+    
     recon_average = dict()
-    for l in recon_results.keys():
+    for latent in recon_results.keys():
         average = defaultdict(dict)
-        for r in range(len(recon_results[l])):
-            for d in range(len(recon_results[l][r])):
-                tmp_recon = recon_results[l][r][d]
-                if d in average:
-                    average[d] = np.add(average[d], tmp_recon)
+        for repeat in range(len(recon_results[latent])):
+            for drug in range(len(recon_results[latent][repeat])):
+                tmp_recon = recon_results[latent][repeat][drug]
+                if drug in average:
+                    average[drug] = np.add(average[drug], tmp_recon)
                 else:
-                    average[d] = tmp_recon
+                    average[drug] = tmp_recon
         a = {k: (v / repeats) for k, v in average.items()}
-        recon_average[l] = a
+        recon_average[latent] = a
     return(recon_average)
 
 
 def overlapping_hits(nLatents, cor_results, repeats, con_names, drug): 
+    '''
+    Identifies overlapping hits in the repeats on the same latent space size
+    
+    Inputs:
+        nLatents: list of ints with size of latent space
+        cor_results: TODO
+        repeats (int): number of repeats
+        con_names: np.array of strings of feature names of continuous data
+        drug: np.array of input data whose features' data are changed to test their effects in the pipeline
+    Returns:
+        sig_hits: TODO
+        median_p_val: TODO
+    '''
+    
+    
     sig_hits = defaultdict(dict)
     overlaps_d = defaultdict(list)
     counts = list()
@@ -453,6 +648,19 @@ def overlapping_hits(nLatents, cor_results, repeats, con_names, drug):
     return(sig_hits, median_p_val)
 
 def identify_high_supported_hits(sig_hits, drug_h, version, path): 
+    '''
+    Get significant hits found in multiple sizes of the latent space
+    
+    Inputs:
+        sig_hits: TODO
+        drug_h: np.array of strings of feature names data type whose data are changed to test their effects in the pipeline
+        version: str of subfolder name where the results will be saved
+        path: str of folder name where the results will be saved
+    Returns:
+        all_hits: TODO
+        collected_overlap: TODO
+    '''
+    
     result = dict()
     collected_overlap = defaultdict(list)
     all_hits = list()
@@ -480,10 +688,20 @@ def identify_high_supported_hits(sig_hits, drug_h, version, path):
     return(all_hits, collected_overlap)
 
 
-
-
 def report_values(path, sig_hits, median_p_val, drug_h, all_hits, con_names): 
-
+    '''
+    Saves the pi values of results of overlapping_hits() and  identify_high_supported_hits() functions
+    
+    Inputs:
+        path: str of folder name where the results will be saved
+        sig_hits: TODO
+        median_p_val: TODO
+        drug_h: np.array of strings of feature names data type whose data are changed to test their effects in the pipeline
+        all_hits: TODO
+        con_names: np.array of strings of feature names of continuous data
+    '''
+    
+    
     results_folder = path + 'results/sig_ci_files'
     isExist = os.path.exists(results_folder)
     if not isExist:
@@ -522,7 +740,26 @@ def report_values(path, sig_hits, median_p_val, drug_h, all_hits, con_names):
 
 
 def get_change_in_reconstruction(recon_average, groups, drug, drug_h, con_names, collected_overlap, sig_hits, con_all, version, path, types): 
-
+    '''
+    TODO
+    
+    Inputs:
+        recon_average: TODO
+        groups: TODO:
+        drug: np.array of input data whose features' data are changed to test their effects in the pipeline
+        drug_h: np.array of strings of feature names data type whose data are changed to test their effects in the pipeline
+        con_names: np.array of strings of feature names of continuous data
+        collected_overlap: TODO
+        sig_hits: TODO
+        con_all: TODO
+        version: str of subfolder name where the results will be saved
+        path: str of folder name where the results will be saved
+        types: TODO
+    Returns:
+        recon_average_corr_new_all: TODO 
+        recon_average_corr_all_indi_new: TODO
+    '''
+    
     recon_average_corr_all = dict()
     counts_average_all = dict()
     recon_average_corr_all_indi = dict()

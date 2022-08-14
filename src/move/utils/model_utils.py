@@ -259,8 +259,8 @@ def change_drug(model, train_loader, con_recon, drug, data_start, data_end, kld_
         kld_w: float of KLD weight
         types: list of list of ints corresponding to categories in a data class
     returns: 
-        recon_diff_con_none: dictionary, where keys: int of feature index of continuous input data, values: floats of reconstruction differences when in the input data changing to a label of drug
-        none_groups: dict, keys int of feature index of continuous input data, values: list of booleans
+        recon_diff_con_none (dict): {latents: {repeat: {drug: np.array of changes in continuous data when label of drug is flipped}}
+        none_groups: dict, keys int of feature index of continuous input data, values: list of booleans. TODO:
     """
     types = np.array(types)
     
@@ -304,10 +304,10 @@ def cal_sig_hits(recon_diff_con_none, none_groups, drug, baseline_mean, con_all,
         none_groups: dict, keys int of feature index of continuous input data, values: list of booleans
         drug: an np.array of data whose features are changed to test their effects
         baseline_mean: np.array of floats with means of reconstruction differences between forwards of network
-        con_all: 
+        con_all:  TODO
         types: list of list of ints corresponding to categories in a data class
     returns: 
-
+        none_stats: TODO
     """
     
     data_shapes = drug.shape
@@ -345,6 +345,15 @@ def cal_sig_hits(recon_diff_con_none, none_groups, drug, baseline_mean, con_all,
     return none_stats
 
 def correction_new(results):
+    '''
+    TODO
+    
+    Inputs:
+        results: TODO
+    Returns:
+        new_results: TODO
+    '''
+    
     new_results = defaultdict(dict)
     for l in results:
         for r in range(len(results[l])):

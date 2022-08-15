@@ -90,7 +90,7 @@ def main(base_config: MOVEConfig):
     recon_average_corr_all_indi_new = np.load(processed_data_path + "results/results_confidence_recon_all_indi_" + version + ".npy", allow_pickle=True).item()
     
     # Writing all the hits for each drug and database separately. Also, writing what features were increased or decreased with the association with the drug 
-    write_omics_results(processed_data_path, up_down_list, collected_overlap, recon_average_corr_new_all, headers_all, continuous_names, data_of_interest)
+    write_omics_results(processed_data_path, up_down_list, collected_overlap, recon_average_corr_new_all, headers_all, continuous_names, drug_h, con_names)
     
     # Saving the effect sizes (95 % interval) of results of get_change_in_reconstruction() functions
     make_files(collected_overlap, groups, con_list_concat, processed_data_path, recon_average_corr_all_indi_new, con_names, continuous_names, drug_h, drug, all_hits, types, version)

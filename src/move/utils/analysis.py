@@ -840,8 +840,8 @@ def write_omics_results(path, up_down_list, collected_overlap, recon_average_cor
         recon_average_corr_new_all: TODO
         headers_all: np.array of strings of feature names of all data
         con_types: list of strings of continuous data type names
-        drug_h:
-        con_names:
+        drug_h: np.array of strings of feature names data type whose data are changed to test their effects in the pipeline
+        con_names: np.array of strings of feature names of continuous data
     
     '''
  

@@ -829,7 +829,7 @@ def get_change_in_reconstruction(recon_average, groups, drug, drug_h, con_names,
     return(recon_average_corr_new_all, recon_average_corr_all_indi_new)
 
 
-def write_omics_results(path, up_down_list, collected_overlap, recon_average_corr_new_all, headers_all, con_types, data_of_interest): 
+def write_omics_results(path, up_down_list, collected_overlap, recon_average_corr_new_all, headers_all, con_types, drug_h, con_names): 
     '''
     TODO:
     
@@ -840,29 +840,29 @@ def write_omics_results(path, up_down_list, collected_overlap, recon_average_cor
         recon_average_corr_new_all: TODO
         headers_all: np.array of strings of feature names of all data
         con_types: list of strings of continuous data type names
-        data_of_interest: TODO: remove it
+        drug_h:
+        con_names:
     
     '''
  
     for i in range(len(con_types)):
-        if con_types[i] != data_of_interest: # todo: remove it
-            for d in collected_overlap:
-                n = np.intersect1d(collected_overlap[d], headers_all[i])
-                
-                with open(path + f"results/{con_types[i]}_" + d.replace(" ", "_") + ".txt", "w") as o:
-                    o.write("\n".join(n))  
-                
-                if con_types[i] in up_down_list:
-                     
-                    vals = recon_average_corr_new_all[list(headers_all[i]).index(d),np.where(np.isin(con_names,n))[0]]
-                    up = n[vals > 0]
-                    down = n[vals < 0]
-                    with open(path + f"results/{con_types[i]}_up_" + d.replace(" ", "_") + ".txt", "w") as o:
-                        o.write("\n".join(up))
+        for d in collected_overlap:
+            n = np.intersect1d(collected_overlap[d], headers_all[i])
 
-                    with open(path + f"results/{con_types[i]}_down_" + d.replace(" ", "_")  + ".txt", "w") as o:
-                        o.write("\n".join(down))
-                        
+            with open(path + f"results/{con_types[i]}_" + d.replace(" ", "_") + ".txt", "w") as o:
+                o.write("\n".join(n))  
+
+            if con_types[i] in up_down_list:
+
+                vals = recon_average_corr_new_all[list(drug_h).index(d),np.where(np.isin(con_names,n))[0]]
+                up = n[vals > 0]
+                down = n[vals < 0]
+                with open(path + f"results/{con_types[i]}_up_" + d.replace(" ", "_") + ".txt", "w") as o:
+                    o.write("\n".join(up))
+
+                with open(path + f"results/{con_types[i]}_down_" + d.replace(" ", "_")  + ".txt", "w") as o:
+                    o.write("\n".join(down))
+
                         
 def make_files(collected_overlap, groups, con_all, path, recon_average_corr_all_indi_new, 
                con_names, con_dataset_names, drug_h, drug, all_hits, types, version = "v1"):
@@ -1000,11 +1000,10 @@ def get_drug_similar_each_omics(con_names, con_dataset_names, all_hits, recon_av
     plt.close('all')
 
 
-    
 def get_best_epoch(results_df):
     
     #Rounding best_epoch to closest 10 (just in case if best_epoch is less than 5 - to closest number)
-    round_epoch = lambda x : round(x, 1) if (x >= 5) else round(x, 0)   
+    round_epoch = lambda x : round(x, 0) if (x < 5) else round(x, -1)
     best_epoch = results_df['best_epochs'].mean()
     best_epoch = int(round_epoch(best_epoch))
     

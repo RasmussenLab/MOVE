@@ -96,8 +96,7 @@ def main(base_config: MOVEConfig):
     make_files(collected_overlap, groups, con_list_concat, processed_data_path, recon_average_corr_all_indi_new, con_names, continuous_names, drug_h, drug, all_hits, types, version)
     
     # Getting inter drug variation 
-    df_indi_var = get_inter_drug_variation(con_names, drug_h, recon_average_corr_all_indi_new, 
-                                           groups, collected_overlap, drug, con_list_concat, processed_data_path, types)
+    df_indi_var = get_inter_drug_variation(con_names, drug_h, recon_average_corr_all_indi_new, groups, collected_overlap, drug, con_list_concat, processed_data_path, types)
 
     # Visualizing variation, heatmap of similarities within drugs across all data and specific for each omics
     visualize_indi_var(df_indi_var, version, processed_data_path)

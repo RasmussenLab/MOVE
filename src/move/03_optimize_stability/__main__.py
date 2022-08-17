@@ -3,9 +3,9 @@ import hydra
 from move.conf.schema import MOVEConfig
 
 from move.training.train import optimize_stability
-from move.utils.data_utils import get_data, get_list_value, merge_configs
+from move.utils.data_utils import get_data, get_list_value, merge_configs, make_and_save_best_stability_params
 from move.utils.visualization_utils import draw_boxplot
-from move.utils.analysis import get_top10_stability, calculate_latent, make_and_save_best_stability_params # get_best_stability_paramset, get_best_4_latent_spaces
+from move.utils.analysis import get_top10_stability, calculate_latent
 
 @hydra.main(config_path="../conf", config_name="main")
 def main(base_config: MOVEConfig): 

@@ -3,9 +3,8 @@ import hydra
 from move.conf.schema import MOVEConfig
 
 from move.training.train import optimize_reconstruction
-from move.utils.data_utils import get_data, merge_configs
+from move.utils.data_utils import get_data, merge_configs, make_and_save_best_reconstruct_params 
 from move.utils.visualization_utils import visualize_likelihood, visualize_recon_acc
-from move.utils.analysis import make_and_save_best_reconstruct_params
 
 @hydra.main(config_path="../conf", config_name="main")
 def main(base_config: MOVEConfig): 

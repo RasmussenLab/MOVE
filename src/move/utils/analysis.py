@@ -1070,7 +1070,6 @@ def make_and_save_best_reconstruct_params(results_df, hyperparams_names, max_par
 def get_best_stability_paramset(stability_df, hyperparams_names):
     
     params_to_save = dict()
-    
     stability_df_sorted = stability_df.sort_values('difference', ascending=False).iloc[:1]
     for hyperparam in hyperparams_names: 
         params_to_save[hyperparam] = stability_df_sorted[hyperparam].item()
@@ -1078,6 +1077,8 @@ def get_best_stability_paramset(stability_df, hyperparams_names):
     return(params_to_save, stability_df_sorted)
 
 def get_best_4_latent_spaces(results_df_sorted):
+    
+    #Selecting best two latent spaces
     best_latent = []
     for index, row in results_df_sorted.iterrows():
         if row['num_latent'] not in best_latent:
@@ -1085,16 +1086,25 @@ def get_best_4_latent_spaces(results_df_sorted):
         if len(best_latent) >= 2:
             break
             
-    #Adding two values from both sides 
+    # Finding difference between best 2 latent spaces, and half size of the lowest best latent size
     best_hypers_diff = max(best_latent) - min(best_latent)
-    diff_from_zero = int(min(best_latent)/2)
+    half_diff_from_zero = int(min(best_latent)/2)
     
-    if min(best_latent) - best_hypers_diff > diff_from_zero:
+    # If only one latent space exist among user defined hyperparameter values, 
+    # appending 0.5, 1.5 and 2 sizes of the latent space.
+    if best_hypers_diff == 0:
+        best_latent.append(min(best_latent) - half_diff_from_zero)
+        best_latent.append(max(best_latent) + half_diff_from_zero)        
+        best_latent.append(max(best_latent) + half_diff_from_zero) 
+    # Else if the difference between best latent sizes is lower than half size of the lowest best latent size
+    # subtracting it from lowest latent size value, and adding it the highest value, and appending both of them among latent spaces   
+    elif best_hypers_diff < half_diff_from_zero:
         best_latent.append(min(best_latent) - best_hypers_diff)
         best_latent.append(max(best_latent) + best_hypers_diff)
+    # Else adding and subtracting half of the lowest latent space to lowest and biggest best latent space sizes 
     else:
-        best_latent.append(min(best_latent) - diff_from_zero)
-        best_latent.append(max(best_latent) + diff_from_zero)
+        best_latent.append(half_diff_from_zero)
+        best_latent.append(max(best_latent) + half_diff_from_zero)
     return(best_latent)
 
 def make_and_save_best_stability_params(results_df, hyperparams_names, nepochs):
@@ -1110,7 +1120,7 @@ def make_and_save_best_stability_params(results_df, hyperparams_names, nepochs):
         OmegaConf.save(OmegaConf.create(dict(params_to_save)), f)
         
     # Printing the configuration saved 
-    print(f'Saving best hyperparameter values in training_latent.yaml: \n {OmegaConf.to_yaml(dict(params_to_save))}')
+    print(f'Saving best hyperparameter values in training_latent.yaml: \n{OmegaConf.to_yaml(dict(params_to_save))}')
     
     # Getting the latent spaces for training_association script and using them with the best hyperparam set
     best_latent = get_best_4_latent_spaces(results_df_sorted)

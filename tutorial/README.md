@@ -21,3 +21,62 @@ data_of_interest (str): name of the data type, which effect on other data is ana
 data_features_to_visualize_notebook4 (list(str)): features to visualize in noteboke 4  
 write_omics_results_notebook5 (list(str)): data types to save rezults in notebook 5 
 ```
+
+model.yaml:
+```
+seed (int): seed number
+cuda (boolean): if use GPU for training the model
+lrate (float): learning rate for model
+num_epochs (int): number of epochs to train the model
+patience (int): number of epochs without validation improvement before termination run
+kld_steps (list(int)): epochs when KLD weight is increased
+batch_steps (list(int)): epochs when batch size is increased
+```
+
+tuning_reconstruction.yaml
+```
+num_hidden (list(int)): number of hidden nodes in hidden layers
+num_latent (list(int)): dimension of latent space
+num_layers (list(int)): number of hidden layers
+dropout (list(float)): probability of dropout after each nonlinearity
+beta (list(float)): KLD weight coefficient
+batch_sizes (list(int)): size of batches during training
+repeats (int): times to repeat the training with each hyperparameter configuration
+max_param_combos_to_save (int): maximum number of hyperparameter combinations to save for hyperparameter tuning for stability
+```
+
+tuning_stability.yaml
+```
+num_hidden (list(int)): number of hidden nodes in hidden layers
+num_latent (list(int)): dimension of latent space
+num_layers (list(int)): number of hidden layers
+dropout (list(float)): probability of dropout after each nonlinearity
+beta (list(float)): KLD weight coefficient
+batch_sizes (list(int)): size of batches during training
+repeats (int):  times to repeat the training with each hyperparameter configuration
+tuned_num_epochs (int): number of epochs to train the model (received by script or notebook 02)
+```
+
+training_latent.yaml
+```
+num_hidden (int): number of hidden nodes in hidden layers
+num_latent (int): dimension of latent space
+num_layers (int): number of hidden layers
+dropout (float): probability of dropout after each nonlinearity
+beta (float): KLD weight coefficient
+batch_sizes (int): size of batches during training
+repeats (int):  times to repeat the training with each hyperparameter configuration
+tuned_num_epochs (int): number of epochs to train the model (received in script 2)
+```
+
+training_association.yaml
+```
+num_hidden int): number of hidden nodes in hidden layers
+num_latent (list(int)): dimension of latent space
+num_layers int): number of hidden layers
+dropout (float): probability of dropout after each nonlinearity
+beta (float): KLD weight coefficient
+batch_sizes (int): size of batches during training
+repeats (int):  times to repeat the training with each hyperparameter configuration
+tuned_num_epochs (int): number of epochs to train the model (received in script 2)
+```

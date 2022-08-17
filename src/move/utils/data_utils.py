@@ -90,8 +90,8 @@ def read_header(path, file_name, mask=None):
         header: list of strings of elements in the header
     """    
 
-    header = pd.read_csv(path + file_name, sep='\t', header=None, squeeze=True)
-    header = header.astype('str')
+    header = pd.read_csv(path + file_name, sep='\t', header=None)
+    header = header.squeeze().astype('str')
 
     if not mask is None:
         header =  header.to_numpy()

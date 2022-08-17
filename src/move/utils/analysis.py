@@ -1010,52 +1010,6 @@ def get_best_epoch(results_df):
     return(best_epoch)
 
 
-def get_significant_param_values(results_df: pd.DataFrame, 
-                                 list_of_params: list, 
-                                 metric_name: str = 'likelihood_test', 
-                                 stat_test_name: str = 'ttest_rel'):
-    
-    params_dict_to_remove = defaultdict(list)
-    stat_test = getattr(stats, stat_test_name) 
-        
-    # Iterating through each of the hypeparameter
-    for col in list_of_params:
-
-        # Getting each value of the hyperparameter
-        unique_values = results_df[col].unique()
-
-
-        # finding which pairs of parameter values do not have significant differences
-        insignif_pairs_list = []
-        for i in range(len(unique_values)):
-            for j in range(i+1, len(unique_values)):
-                
-                # Getting the p-value of statistical results by comparing hyperparameter values sets where only the tested hyperparameter is different
-                _, pvalue = stat_test(
-                    results_df.loc[results_df[col] == unique_values[i], metric_name],
-                    results_df.loc[results_df[col] == unique_values[j], metric_name])
-
-                if pvalue < 0.05:
-                    insignif_pairs_list.append(tuple([unique_values[j], 
-                                                      unique_values[i]]))
-
-        # Removing the parameter that did not show significant differences (in the order from the most insignificant pairs)
-        # strategy: remove the unique value with most insignificant results first, repeat until none is left
-        while insignif_pairs_list:
-            insignif_values_dict = Counter(value for values_pair in insignif_pairs_list for value in values_pair)
-            value_max_occurs = max(insignif_values_dict, key=insignif_values_dict.get)
-            insignif_pairs_list = [x for x in insignif_pairs_list if value_max_occurs not in x]
-            if params_dict_to_remove.get(col) is None:
-                params_dict_to_remove[col] = []
-            params_dict_to_remove[col].append(value_max_occurs.item())
-                
-
-    # Removing the selected parameters to remove from the dataframe
-    results_df_rm_nonsignifs = pd.DataFrame(results_df)
-    for key, value_list in params_dict_to_remove.items():
-        results_df_rm_nonsignifs = results_df_rm_nonsignifs[~results_df_rm_nonsignifs[key].isin(value_list)]
-    return(results_df_rm_nonsignifs, params_dict_to_remove)
-
 def get_sort_list(results_df):
     
     #Gets mean values of test accuracy reconstruction
@@ -1100,14 +1054,7 @@ def make_and_save_best_reconstruct_params(results_df, hyperparams_names, max_par
     
     print('Starting calculating the best hyperparameter values for further optimization') 
     
-    # Removing insignificant hyperparameter values
-    results_df_rm_insignifs, params_dict_to_remove = get_significant_param_values(results_df, hyperparams_names)
-    
-    #Printing the removed parameter values
-    print(f'\nRemoved insignificant parameters:\n {OmegaConf.to_yaml(dict(params_dict_to_remove))}')
-    
-    # Getting up to n combinations of parameters that will be used further to optimize stability
-    results_df_sorted = get_sort_list(results_df_rm_insignifs)
+    results_df_sorted = get_sort_list(results_df)
     best_hyperpars_vals_dict = get_best_params(results_df_sorted, max_param_combos_to_save, hyperparams_names)
     best_hyperpars_vals_dict['tuned_num_epochs'] = best_epoch
     

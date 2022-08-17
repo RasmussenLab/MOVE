@@ -394,3 +394,140 @@ def get_header(header, mask=None, start=1):
 def get_list_value(*args):
     arg_tuple = [arg[0] if len(arg) == 1 else arg for arg in args]
     return(arg_tuple)     
+
+
+
+
+def get_best_epoch(results_df):
+    
+    #Rounding best_epoch to closest 10 (just in case if best_epoch is less than 5 - to closest number)
+    round_epoch = lambda x : round(x, 0) if (x < 5) else round(x, -1)
+    best_epoch = results_df['best_epochs'].mean()
+    best_epoch = int(round_epoch(best_epoch))
+    
+    return(best_epoch)
+
+
+def get_sort_list(results_df):
+    
+    #Gets mean values of test accuracy reconstruction
+    results_df['recon_acc_test_mean'] = results_df['recon_acc_test'].map(lambda x: x.mean())
+    
+    # Sort values by reconstruction accuracy
+    results_df = results_df.sort_values('recon_acc_test_mean', ascending=False)
+    return (results_df)
+
+
+def get_length(hyperpars_vals_dict, hyperpar_name):
+    lengths = 1
+    for key in hyperpars_vals_dict:  
+        length = len(hyperpars_vals_dict[key])
+        # Adding +1 since we want to check if adding a parameter it overreaches
+        if key == hyperpar_name:
+            length+=1
+        lengths *= length
+
+    return(lengths)
+
+def get_best_params(results_df_sorted, n_combos_opt, hyperpars_names):
+
+    hyperpars_vals_dict = defaultdict(list)
+    for index, row in results_df_sorted.iterrows():
+        
+        for hyperpar_name in hyperpars_names:
+            if row[hyperpar_name] not in hyperpars_vals_dict[hyperpar_name]:
+                
+                length = get_length(hyperpars_vals_dict, hyperpar_name)
+                if length <= n_combos_opt:
+                    hyperpars_vals_dict[hyperpar_name].append(row[hyperpar_name])
+                else:
+                    break
+    hyperpars_vals_dict = dict(hyperpars_vals_dict)
+    return(hyperpars_vals_dict)
+
+def make_and_save_best_reconstruct_params(results_df, hyperparams_names, max_param_combos_to_save):
+    
+    # Getting the best number of epochs used in further trainings
+    best_epoch = get_best_epoch(results_df)
+    
+    print('Starting calculating the best hyperparameter values for further optimization') 
+    
+    results_df_sorted = get_sort_list(results_df)
+    best_hyperpars_vals_dict = get_best_params(results_df_sorted, max_param_combos_to_save, hyperparams_names)
+    best_hyperpars_vals_dict['tuned_num_epochs'] = best_epoch
+    
+    # Saving the best hyperparameter values (it will overwrite the file if it already exists)
+    with open('tuning_stability.yaml', "w") as f:
+        OmegaConf.save(OmegaConf.create(dict(best_hyperpars_vals_dict)), f)
+
+    #Printing the saved hyper parameter values
+    print(f'Saving the best hyperparameter values in tuning_stability.yaml for further optimization: \n{OmegaConf.to_yaml(dict(best_hyperpars_vals_dict))}\n')
+    print('Please manually review if the hyperparameter values were selected correctly and adjust them in the tuning_stability.yaml file.')
+    
+
+def get_best_stability_paramset(stability_df, hyperparams_names):
+    
+    params_to_save = dict()
+    stability_df_sorted = stability_df.sort_values('difference', ascending=False).iloc[:1]
+    for hyperparam in hyperparams_names: 
+        params_to_save[hyperparam] = stability_df_sorted[hyperparam].item()
+        
+    return(params_to_save, stability_df_sorted)
+
+def get_best_4_latent_spaces(results_df_sorted):
+    
+    #Selecting best two latent spaces
+    best_latent = []
+    for index, row in results_df_sorted.iterrows():
+        if row['num_latent'] not in best_latent:
+            best_latent.append(int(row['num_latent']))
+        if len(best_latent) >= 2:
+            break
+            
+    # Finding difference between best 2 latent spaces, and half size of the lowest best latent size
+    best_hypers_diff = max(best_latent) - min(best_latent)
+    half_diff_from_zero = int(min(best_latent)/2)
+    
+    # If only one latent space exist among user defined hyperparameter values, 
+    # appending 0.5, 1.5 and 2 sizes of the latent space.
+    if best_hypers_diff == 0:
+        best_latent.append(min(best_latent) - half_diff_from_zero)
+        best_latent.append(max(best_latent) + half_diff_from_zero)        
+        best_latent.append(max(best_latent) + half_diff_from_zero) 
+    # Else if the difference between best latent sizes is lower than half size of the lowest best latent size
+    # subtracting it from lowest latent size value, and adding it the highest value, and appending both of them among latent spaces   
+    elif best_hypers_diff < half_diff_from_zero:
+        best_latent.append(min(best_latent) - best_hypers_diff)
+        best_latent.append(max(best_latent) + best_hypers_diff)
+    # Else adding and subtracting half of the lowest latent space to lowest and biggest best latent space sizes 
+    else:
+        best_latent.append(half_diff_from_zero)
+        best_latent.append(max(best_latent) + half_diff_from_zero)
+    return(best_latent)
+
+def make_and_save_best_stability_params(results_df, hyperparams_names, nepochs):
+    
+    print('Starting calculating the best hyperparameter values used in further model trainings') 
+    
+    # Getting best set of hyperparameters
+    params_to_save, results_df_sorted = get_best_stability_paramset(results_df, hyperparams_names)
+    params_to_save['tuned_num_epochs'] = nepochs
+
+    # Saving best set of hyperparameters    
+    with open('training_latent.yaml', "w") as f:
+        OmegaConf.save(OmegaConf.create(dict(params_to_save)), f)
+        
+    # Printing the configuration saved 
+    print(f'Saving best hyperparameter values in training_latent.yaml: \n{OmegaConf.to_yaml(dict(params_to_save))}')
+    
+    # Getting the latent spaces for training_association script and using them with the best hyperparam set
+    best_latent = get_best_4_latent_spaces(results_df_sorted)
+    params_to_save['num_latent'] = list(best_latent)
+    
+    # Saving best set of hyperparameters for training_association script
+    with open('training_association.yaml', "w") as f:
+        OmegaConf.save(OmegaConf.create(dict(params_to_save)), f)
+
+    # Printing the configuration saved 
+    print(f'Saving best hyperparameter values in training_association.yaml: \n{OmegaConf.to_yaml(dict(params_to_save))}')
+

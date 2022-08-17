@@ -885,7 +885,8 @@ def make_files(collected_overlap, groups, con_all, path, recon_average_corr_all_
     '''
     
     
-    all_db_names = [item for sublist in con_names for item in sublist]
+#     all_db_names = [item for sublist in con_names for item in sublist]
+    all_db_names = con_names
     ci_dict = {}
     for i,n in enumerate(con_dataset_names):
         ci_collected = []
@@ -940,7 +941,8 @@ def get_inter_drug_variation(con_names, drug_h, recon_average_corr_all_indi_new,
     '''
     
     # Inter drug variation 
-    all_db_names = [item for sublist in con_names for item in sublist]
+#     all_db_names = [item for sublist in con_names for item in sublist]
+    all_db_names = con_names
     inter_drug_variance = []
     inter_drug_std = []
     for d in drug_h:

@@ -432,7 +432,6 @@ def get_feature_importance_categorical(model, train_loader, latent, kld_w=1):
             sum_diffs.append(np.sum(diff, axis = 1))
             sum_diffs_abs.append(np.sum(diff_abs, axis = 1))
             total_diffs.append(np.sum(diff))
-            break
 
     all_diffs_cat_np = np.asarray(all_diffs)
     sum_diffs_cat_np = np.asarray(sum_diffs)

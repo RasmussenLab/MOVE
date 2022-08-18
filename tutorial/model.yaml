@@ -1,7 +1,7 @@
-seed: 1
+seed: 123456
 cuda: False
 lrate: 0.0001
-num_epochs: 1 #Added for testing
+num_epochs: 500
 patience: 100
 kld_steps:
   - 20

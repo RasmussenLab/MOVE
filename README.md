@@ -49,8 +49,8 @@ pip install move-dl
 ### Requirements for Jupyter notebook
 To run scripts in the Jupyter notebook, install: 
 ```
-jupyter
 move-dl
+jupyter
 ```
 
 We have only run MOVE in a Linux environment. However, as it depends on Python, it should be possible to run on Mac and Windows machines. We tested on an Anaconda (v5.3.0) environment with Python 3.8.

@@ -92,7 +92,7 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
     for nHidden, nLatent, nl, drop, b, batch_size, r in iters:
         combi = str([nHidden] * nl) + "+" + str(nLatent) + ", drop: " + str(drop) +", b: " + str(b) + ", batch: " + str(batch_size)
 
-        best_model, loss, ce, sse, KLD, train_loader, _, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_size, nHidden, nl, nLatent, b, drop, cuda, kldsteps, batchsteps, nepochs, lrate, seed, test_loader, patience, early_stopping=True)   
+        best_model, loss, ce, sse, KLD, train_loader, _, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list_train, con_list_train, categorical_weights, continuous_weights, batch_size, nHidden, nl, nLatent, b, drop, cuda, kldsteps, batchsteps, nepochs, lrate, seed+r, test_loader, patience, early_stopping=True)   
 
 
         # get results
@@ -130,14 +130,14 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
             'con_recons': np.array(con_recon),
             'cat_recons': np.array(cat_recon),
             'loss_train': np.array(loss),
-            'likelihoods': np.array(likelihood),
+            'likelihoods': np.array(likelihood.cpu()),
             'best_epochs': np.array(best_epoch),
             'recon_acc_test': np.array(cat_true_recon_test + con_true_recon_test),
             'latents_test': np.array(latent_test),
             'con_recons_test': np.array(con_recon_test),
             'cat_recons_test': np.array(cat_recon_test),
             'loss_test': np.array(loss_test),
-            'likelihood_test': np.array(likelihood_test)
+            'likelihood_test': np.array(likelihood_test.cpu())
         })
         
     results_df = pd.DataFrame(results_df)
@@ -206,7 +206,7 @@ def optimize_stability(nHiddens, nLatents, nDropout, nBeta, repeat, nepochs, nLa
         combi = str([nHidden] * nl) + "+" + str(nLatent) + ", do: " + str(drop) +", b: " + str(b)
         print(combi)
 
-        best_model, loss, ce, sse, KLD, train_loader, _, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_sizes, nHidden, nl, nLatent, b, drop, cuda, kldsteps, batchsteps, nepochs, lrate, seed, test_loader=None, patience=None, early_stopping=False)
+        best_model, loss, ce, sse, KLD, train_loader, _, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_sizes, nHidden, nl, nLatent, b, drop, cuda, kldsteps, batchsteps, nepochs, lrate, seed+r, test_loader=None, patience=None, early_stopping=False)
 
 
         test_loader = DataLoader(dataset=train_loader.dataset, batch_size=1, drop_last=False,
@@ -273,8 +273,7 @@ def train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHidden,
         drug: an np.array of data whose features are changed to test their effects
         categorical_names: list of strings of categorical data names
         data_of_interest: str of data type name whose features are changed to test their effects
-        seed: int of seed number
-    returns:    
+        seed: int of seed number  
     """ 
 
     results, recon_results, recon_results_1, mean_bas = initiate_default_dicts(n_empty_dicts=0, n_list_dicts=4)
@@ -285,7 +284,7 @@ def train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHidden,
 
     # Running the framework    
     for nLatent, repeat in iters: 
-        best_model, loss, ce, sse, KLD, train_loader, _, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_sizes, nHidden, nl, nLatent, nBeta, drop, cuda, kldsteps, batchsteps, nepochs, lrate, seed, test_loader=None, patience=None, early_stopping=False)
+        best_model, loss, ce, sse, KLD, train_loader, _, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_sizes, nHidden, nl, nLatent, nBeta, drop, cuda, kldsteps, batchsteps, nepochs, lrate, seed+repeat, test_loader=None, patience=None, early_stopping=False)
 
 
         train_test_loader = DataLoader(dataset=train_loader.dataset, batch_size=train_loader.batch_size, drop_last=False,
@@ -296,7 +295,7 @@ def train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHidden,
         con_recon = np.array(con_recon)
         con_recon = torch.from_numpy(con_recon)
 
-        mean_baseline = get_baseline(best_model, train_test_loader, con_recon, repeat=1, kld_w=kld_w)
+        mean_baseline = get_baseline(best_model, train_test_loader, con_recon, repeat=10, kld_w=kld_w)
         recon_diff, groups = change_drug(best_model, train_test_loader, con_recon, drug, start, end, kld_w)
         stat = cal_sig_hits(recon_diff, groups, drug, mean_baseline, train_loader.dataset.con_all)
 
@@ -377,7 +376,7 @@ def train_model(cat_list, con_list, categorical_weights, continuous_weights, bat
     
     if seed is not None:
         set_global_seed(seed)
-    
+
     # Initiate loader
     mask, train_loader = dataloaders.make_dataloader(cat_list=cat_list, 
                                                      con_list=con_list, 

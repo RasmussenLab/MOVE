@@ -3,9 +3,8 @@ import hydra
 from move.conf.schema import MOVEConfig
 
 from move.training.train import optimize_reconstruction
-from move.utils.data_utils import get_data, merge_configs
+from move.utils.data_utils import get_data, merge_configs, make_and_save_best_reconstruct_params 
 from move.utils.visualization_utils import visualize_likelihood, visualize_recon_acc
-from move.utils.analysis import make_and_save_best_reconstruct_params
 
 @hydra.main(config_path="../conf", config_name="main")
 def main(base_config: MOVEConfig): 
@@ -15,10 +14,11 @@ def main(base_config: MOVEConfig):
                         config_types=['data', 'model', 'tuning_reconstruction'])
     
     # Getting the variables used in the notebook
-    
-    raw_data_path = cfg.data.raw_data_path
+
     interim_data_path = cfg.data.interim_data_path
     processed_data_path = cfg.data.processed_data_path
+    headers_path = cfg.data.headers_path
+    
     data_of_interest = cfg.data.data_of_interest
     categorical_names = cfg.data.categorical_names
     continuous_names = cfg.data.continuous_names
@@ -43,7 +43,7 @@ def main(base_config: MOVEConfig):
     max_param_combos_to_save = cfg.tuning_reconstruction.max_param_combos_to_save
     
     #Getting the data
-    cat_list, con_list, cat_names, con_names, headers_all, drug, drug_h = get_data(raw_data_path, interim_data_path, categorical_names, continuous_names, data_of_interest)
+    cat_list, con_list, cat_names, con_names, headers_all, drug, drug_h = get_data(headers_path, interim_data_path, categorical_names, continuous_names, data_of_interest)
 
     #Performing hyperparameter tuning
 

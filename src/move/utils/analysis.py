@@ -25,6 +25,22 @@ from move.models import vae
 
 
 def get_top10_stability(nHiddens, nLatents, drop_outs, nLayers, repeat, latents, batch_sizes, nBeta):
+    '''
+    Calculates stability focusing on the top 10 closest neigbour for each individual.
+    
+    inputs:
+        nHiddens: a list with integers with the number of neurons in hidden layers
+        nLatents: a list with integers with a size of the latent dimension
+        drop_outs: a list with floats with dropout probabilities applied after each nonlinearity in encoder and decoder
+        nLayers: a list with integers with the number of layers
+        repeat: integer of the number of times to train the model with the same configuration
+        latents: Defaultdict. Keys: set of hyperparameter values; values: np.array of VAE latent representation of input dataset
+        batch_sizes: a list with ints with batch sizes
+        nBeta: a list with floats with beta values (Multiplies KLD by the inverse of this value)
+    returns:
+        stability_top10: Defaultdict. Keys: set of hyperparameter values; values:TODO: list of floats of mean positional differences
+        stability_top10_df: list of dicts, with hyperparameter values and mean positional difference
+    '''
 
     npatient = list(latents.values())[0][0].shape[0]
     top10_changes, stability_top10 = initiate_default_dicts(0, 2) 
@@ -77,6 +93,24 @@ def get_top10_stability(nHiddens, nLatents, drop_outs, nLayers, repeat, latents,
 
 
 def calculate_latent(nHiddens, nLatents, drop_outs, repeat, nLayers, nBeta, latents, batch_sizes):
+    '''
+    TODO: Calculates stability and 
+    
+    Inputs:
+        nHiddens: a list with integers with the number of neurons in hidden layers
+        nLatents: a list with integers with a size of the latent dimension
+        drop_outs: a list with floats with dropout probabilities applied after each nonlinearity in encoder and decoder
+        repeat: integer of the number of times to train the model with the same configuration
+        nLayers: a list with integers with the number of layers
+        nBeta: a list with floats with beta values (Multiplies KLD by the inverse of this value)
+        latents: Defaultdict. Keys: set of hyperparameter values; values: np.array of VAE latent representation of input dataset
+        batch_sizes: a list with ints with batch sizes
+    returns:
+        stability_total:  Defaultdict. Keys: set of hyperparameter values; values:TODO: list of floats of mean positional differences
+        rand_index: Defaultdict. Keys: set of hyperparameter values; values:TODO: list of floats of mean positional differences
+        stability_total_df: TODO: pd.DataFrame, with hyperparameter values and rand_inde mean positional difference
+    '''
+    
 
     npatient = list(latents.values())[0][0].shape[0]
     total_changes, stability_total, rand_index = initiate_default_dicts(0, 3)
@@ -141,7 +175,23 @@ def calculate_latent(nHiddens, nLatents, drop_outs, repeat, nLayers, nBeta, late
     return(stability_total, rand_index, stability_total_df)
 
 
-def get_latents(best_model, train_loader, kld_w=1): 
+def get_latents(best_model, train_loader, kld_w=1):
+    '''
+    Returns latent representations of the model predictions
+    
+    Inputs:
+        best_model: model object that had lowest loss on tes
+        train_loader: Dataloader of training set
+        kld_w: float of KLD weight
+    Returns:
+        latent: np.array of VAE latent representation of input dataset
+        latent_var: np.array of VAE latent representation of input dataset (sigma values)
+        cat_recon: np.array of VAE model's reconstructions for categorical data
+        cat_class: np.array of ordinally encoded input categorical data (-1 if it is missing)
+        con_recon:  np.array of VAE model's reconstructions for continuous data
+        loss: float of loss of VAE model's predictions
+        likelihood: float of reconstruction losses (BCE for categorical datapoints and SSE for continuous datapoints)
+    '''
      
     # Extracting the latent space
     train_test_loader = DataLoader(dataset=train_loader.dataset, batch_size=1, 
@@ -158,6 +208,18 @@ def get_latents(best_model, train_loader, kld_w=1):
 
 
 def calc_categorical_reconstruction_acc(cat_shapes, cat_class, cat_recon):
+    '''
+    Calculates reconstruction accuracy for categorical data
+    
+    Inputs:
+        cat_shapes: list of tuple (npatient, nfeatures, ncategories) corresponding to categorical data shapes.
+        cat_class: np.array of ordinally encoded input categorical data (-1 if it is missing)
+        cat_recon: np.array of VAE model's reconstructions for continuous data
+    Returns:
+        cat_total_recon: list of floats (from 0 to 1), which corresponds to the fraction of how many samples were correctly reconstructed
+        
+    '''
+   
     # Calculate the categorical reconstruction accuracy
     cat_true_recon = []
     cat_total_recon = []
@@ -184,6 +246,17 @@ def calc_categorical_reconstruction_acc(cat_shapes, cat_class, cat_recon):
 
 
 def calc_continuous_reconstruction_acc(con_shapes, con_recon, train_loader):
+    '''
+    Calculates reconstruction accuracy for categorical data
+    
+    Inputs:
+        con_shapes: list of ints corresponding to a number of features each continuous data type have
+        con_recon: np.array of VAE model's reconstructions for continuous data
+        train_loader: Dataloader of training set
+    Returns:
+        all_values: list of floats (from 0 to 1) that corresponds to the cosine similarity between input data and reconstructed data
+    '''
+    
     # Calculate the continuous reconstruction accuracy
     total_shape = 0
     true_recon = []
@@ -216,7 +289,17 @@ def calc_continuous_reconstruction_acc(con_shapes, con_recon, train_loader):
     return(all_values)
 
 def get_embedding(path, latent):
+    '''
+    Calculates reconstruction accuracy for categorical data
+    
+    Inputs:
+        path: str of path to results folder
+        latent: np.array of VAE latent representation of input dataset
+    Returns:
+        embedding: np.array of 2D representation of latent space by UMAP
+    '''    
     results_folder = path + 'results/'
+    
     isExist = os.path.exists(results_folder)
     if not isExist:
          os.makedirs(results_folder)
@@ -229,7 +312,21 @@ def get_embedding(path, latent):
 
 def get_feature_data(data_type, feature_of_interest, cat_list,
                            con_list, cat_names, con_names):
-     
+    '''
+    Returns the data of the selected feature
+    
+    Inputs:
+        data_type (str): 'categorical' or 'continuous' - corresponds to the type of data  
+        feature_of_interest (str):  feature name 
+        cat_list: list with input data of categorical data type
+        con_list: list with input data of continuous data type
+        cat_names: np.array of strings of feature names of categorical data
+        con_names: np.array of strings of feature names of continuous data
+    Returns:
+        feature_data: np.array of input data of selected feature
+        
+    '''
+    
     if data_type=='categorical':
         cat_list_integer = [np.argmax(cat, axis=-1) for cat in cat_list]
         np_data_ints = np.concatenate(cat_list_integer, axis=-1)
@@ -242,11 +339,25 @@ def get_feature_data(data_type, feature_of_interest, cat_list,
      
     feature_data = np_data_ints[:,list(headers).index(feature_of_interest)]
      
-    return(feature_data, headers)
+    return(feature_data)
 
 def get_pearsonr(feature_of_interest, embedding, 
                  cat_list, con_list, cat_names, con_names):
-     
+    '''
+    Calculates pearson correlation between input data of feature and UMAP representation 
+    
+    Inputs:
+        feature_of_interest (str): feature name of which pearson correlation is returned
+        embedding: np.array of 2D representation of latent space by UMAP
+        cat_list: list with input data of categorical data type
+        con_list: list with input data of continuous data type
+        cat_names: np.array of strings of feature names of categorical data
+        con_names: np.array of strings of feature names of continuous data
+    Returns:
+        pearson_0dim: tuple with pearson correlation and pi value for the 0 dimension of UMAP embedding representation
+        pearson_1dim: tuple with pearson correlation and pi value for the 1 dimension of UMAP embedding representation
+    '''
+    
     if feature_of_interest in cat_names:
         data_type = 'categorical'
     elif feature_of_interest in con_names:
@@ -254,9 +365,9 @@ def get_pearsonr(feature_of_interest, embedding,
     else:
         raise ValueError("feature_of_interest is not in cat_names or con_names")
     
-    feature_data, _ = get_feature_data(data_type, feature_of_interest, 
-                                                   cat_list, con_list, 
-                                                   cat_names, con_names)
+    feature_data = get_feature_data(data_type, feature_of_interest, 
+                                    cat_list, con_list, 
+                                    cat_names, con_names)
      
     # Correlate embedding with variable 
     pearson_0dim = pearsonr(embedding[:,0], feature_data)
@@ -264,8 +375,24 @@ def get_pearsonr(feature_of_interest, embedding,
      
     return(pearson_0dim, pearson_1dim)
 
-def get_feature_importance_categorical(model, train_loader, latent, kld_w=1): #Which kld_w and train_loader # should not matter equal to 1
+def get_feature_importance_categorical(model, train_loader, latent, kld_w=1): 
+    '''
+    Calculates feature importance for categorical data inspired by SHAP - based on how much the latent space changes when setting the values in one hot encoding of the feature to zeroes (corresponds to na value)   
+    
+    Inputs:
+        model: model object 
+        train_loader: Dataloader of training set
+        latent: np.array of VAE latent representation of input dataset
+        kld_w: float of KLD weight
 
+    Returns:
+        all_diffs: list: for each categorical feature differences between existing latent space and new latent space (where the feature is set to NA value)   
+        all_diffs_cat_np: np.array: for each categorical feature differences between existing latent space and new latent space (where the feature is set to NA value) 
+        sum_diffs_cat_np: np.array: for each categorical feature sum of differences of all latent dimensions between existing latent space and new latent space (where the feature is set to NA value) 
+        sum_diffs_cat_abs_np: np.array: for each categorical feature sum of absolute differences of all latent dimensions between existing latent space and new latent space (where the feature is set to NA value)  
+        total_diffs_cat_np: np.array: for each categorical feature sum among all individuals and of differences of all latent dimensions between existing latent space and new latent space (where the feature is set to NA value) 
+    '''
+    
     all_diffs = []
     sum_diffs = []
     sum_diffs_abs = []
@@ -293,7 +420,7 @@ def get_feature_importance_categorical(model, train_loader, latent, kld_w=1): #W
 
             new_loader = DataLoader(dataset, batch_size=1, 
                                         drop_last=False, shuffle=False, 
-                                        pin_memory=train_loader.pin_memory) # removed num_workers=1,
+                                        pin_memory=train_loader.pin_memory) 
 
             out = model.latent(new_loader, kld_w)
 
@@ -310,10 +437,27 @@ def get_feature_importance_categorical(model, train_loader, latent, kld_w=1): #W
     sum_diffs_cat_np = np.asarray(sum_diffs)
     sum_diffs_cat_abs_np = np.asarray(sum_diffs_abs)
     total_diffs_cat_np = np.asarray(total_diffs)
+    
     return(all_diffs, all_diffs_cat_np, sum_diffs_cat_np, sum_diffs_cat_abs_np, total_diffs_cat_np)
 
 
 def get_feature_importance_continuous(model, train_loader, mask, latent, kld_w=1):
+    '''
+    Calculates feature importance for continuos data inspired by SHAP - based on how much the latent space changes when setting the values of the feature to zero.   
+    
+    Inputs:
+        model: model object 
+        train_loader: Dataloader of training set
+        mask: np.array of boaleans, where False values correspond to features that had only NA values.
+        latent: np.array of VAE latent representation of input dataset
+        kld_w: float of KLD weight
+
+    Returns:  
+        all_diffs_con_np: np.array: for each continuous feature differences between existing latent space and new latent space (where the feature is set to NA value) 
+        sum_diffs_con_np: np.array: for each continuous feature sum of differences of all latent dimensions between existing latent space and new latent space (where the feature is set to NA value) 
+        sum_diffs_con_abs_np: np.array: for each continuous feature sum of absolute differences of all latent dimensions between existing latent space and new latent space (where the feature is set to NA value)  
+        total_diffs_con_np: np.array: for each continuous feature sum among all individuals and of differences of all latent dimensions between existing latent space and new latent space (where the feature is set to NA value) 
+    '''
 # Feature importance continuous
 
     all_diffs_con = []
@@ -356,7 +500,21 @@ def get_feature_importance_continuous(model, train_loader, mask, latent, kld_w=1
 
 def save_feat_results(path, all_diffs, sum_diffs, sum_diffs_abs, total_diffs, 
                       all_diffs_con, sum_diffs_con, sum_diffs_con_abs, total_diffs_con):
-     
+    '''
+    Saves feature importance results
+    
+    Inputs:
+        path: str of a pathway where the data is saved   
+        all_diffs: np.array: for each categorical feature differences between existing latent space and new latent space (where the feature is set to NA value) 
+        sum_diffs: np.array: for each categorical feature sum of differences of all latent dimensions between existing latent space and new latent space (where the feature is set to NA value) 
+        sum_diffs_abs: np.array: for each categorical feature sum of absolute differences of all latent dimensions between existing latent space and new latent space (where the feature is set to NA value)  
+        total_diffs_cat: np.array: for each categorical feature sum among all individuals and of differences of all latent dimensions between existing latent space and new latent space (where the feature is set to NA value) 
+        all_diffs_con: np.array: for each continuous feature differences between existing latent space and new latent space (where the feature is set to NA value) 
+        sum_diffs_con: np.array: for each continuous feature sum of differences of all latent dimensions between existing latent space and new latent space (where the feature is set to NA value) 
+        sum_diffs_con_abs: np.array: for each continuous feature sum of absolute differences of all latent dimensions between existing latent space and new latent space (where the feature is set to NA value)  
+        total_diffs_con: np.array: for each continuous feature sum among all individuals and of differences of all latent dimensions between existing latent space and new latent space (where the feature is set to NA value) 
+    '''
+    
     # Save results
     all_diffs_both = np.concatenate((all_diffs, all_diffs_con), axis=0)
     sum_diffs_both = np.concatenate((sum_diffs, sum_diffs_con), axis=0)
@@ -369,6 +527,17 @@ def save_feat_results(path, all_diffs, sum_diffs, sum_diffs_abs, total_diffs,
     np.save(path + "results/total_diffs_final.npy", total_diffs_both)
 
 def get_feat_importance_on_weights(path, model, train_loader, cat_names, con_names):
+    '''
+    TODO:
+    
+    Inputs:
+        path: str of a pathway where the data is saved
+        model: VAE model object 
+        train_loader: Dataloader of training set
+        cat_names: np.array of strings of feature names of categorical data
+        con_names: np.array of strings of feature names of continuous data
+    '''
+    
     #Based on weights
      
     cat_shapes = train_loader.dataset.cat_shapes
@@ -404,22 +573,47 @@ def get_feat_importance_on_weights(path, model, train_loader, cat_names, con_nam
     tmp_pd.T.to_csv(path + "results/importance_w_con.txt")
      
 def cal_reconstruction_change(recon_results, repeats):
+    '''
+    Calculates reconstruction change across repeats.
+    
+    Inputs: 
+        recon_results (dict): {latents: {repeat: {drug: np.array of changes in continuous data when label of drug is changed}}}
+        repeats (int): number of repeats
+    Returns:
+        recon_average (dict): {latents: {drug: np.array of mean changes among different repeats in continuous data when label of drug is changed}}
+    '''
+    
     recon_average = dict()
-    for l in recon_results.keys():
+    for latent in recon_results.keys():
         average = defaultdict(dict)
-        for r in range(len(recon_results[l])):
-            for d in range(len(recon_results[l][r])):
-                tmp_recon = recon_results[l][r][d]
-                if d in average:
-                    average[d] = np.add(average[d], tmp_recon)
+        for repeat in range(len(recon_results[latent])):
+            for drug in range(len(recon_results[latent][repeat])):
+                tmp_recon = recon_results[latent][repeat][drug]
+                if drug in average:
+                    average[drug] = np.add(average[drug], tmp_recon)
                 else:
-                    average[d] = tmp_recon
+                    average[drug] = tmp_recon
         a = {k: (v / repeats) for k, v in average.items()}
-        recon_average[l] = a
+        recon_average[latent] = a
     return(recon_average)
 
 
 def overlapping_hits(nLatents, cor_results, repeats, con_names, drug): 
+    '''
+    Identifies overlapping hits in the repeats on the same latent space size
+    
+    Inputs:
+        nLatents: list of ints with size of latent space
+        cor_results: TODO
+        repeats (int): number of repeats
+        con_names: np.array of strings of feature names of continuous data
+        drug: np.array of input data whose features' data are changed to test their effects in the pipeline
+    Returns:
+        sig_hits: TODO
+        median_p_val: TODO
+    '''
+    
+    
     sig_hits = defaultdict(dict)
     overlaps_d = defaultdict(list)
     counts = list()
@@ -453,6 +647,19 @@ def overlapping_hits(nLatents, cor_results, repeats, con_names, drug):
     return(sig_hits, median_p_val)
 
 def identify_high_supported_hits(sig_hits, drug_h, version, path): 
+    '''
+    Get significant hits found in multiple sizes of the latent space
+    
+    Inputs:
+        sig_hits: TODO
+        drug_h: np.array of strings of feature names data type whose data are changed to test their effects in the pipeline
+        version: str of subfolder name where the results will be saved
+        path: str of folder name where the results will be saved
+    Returns:
+        all_hits: TODO
+        collected_overlap: TODO
+    '''
+    
     result = dict()
     collected_overlap = defaultdict(list)
     all_hits = list()
@@ -480,10 +687,20 @@ def identify_high_supported_hits(sig_hits, drug_h, version, path):
     return(all_hits, collected_overlap)
 
 
-
-
-def report_values(path, sig_hits, median_p_val, drug_h, all_hits, con_names): 
-
+def report_values(path, sig_hits, median_p_val, drug_h, all_hits, collected_overlap, con_names): 
+    '''
+    Saves the pi values of results of overlapping_hits() and  identify_high_supported_hits() functions
+    
+    Inputs:
+        path: str of folder name where the results will be saved
+        sig_hits: TODO
+        median_p_val: TODO
+        drug_h: np.array of strings of feature names data type whose data are changed to test their effects in the pipeline
+        all_hits: TODO
+        con_names: np.array of strings of feature names of continuous data
+    '''
+    
+    
     results_folder = path + 'results/sig_ci_files'
     isExist = os.path.exists(results_folder)
     if not isExist:
@@ -522,7 +739,26 @@ def report_values(path, sig_hits, median_p_val, drug_h, all_hits, con_names):
 
 
 def get_change_in_reconstruction(recon_average, groups, drug, drug_h, con_names, collected_overlap, sig_hits, con_all, version, path, types): 
-
+    '''
+    TODO
+    
+    Inputs:
+        recon_average: TODO
+        groups: TODO:
+        drug: np.array of input data whose features' data are changed to test their effects in the pipeline
+        drug_h: np.array of strings of feature names data type whose data are changed to test their effects in the pipeline
+        con_names: np.array of strings of feature names of continuous data
+        collected_overlap: TODO
+        sig_hits: TODO
+        con_all: TODO
+        version: str of subfolder name where the results will be saved
+        path: str of folder name where the results will be saved
+        types: TODO
+    Returns:
+        recon_average_corr_new_all: TODO 
+        recon_average_corr_all_indi_new: TODO
+    '''
+    
     recon_average_corr_all = dict()
     counts_average_all = dict()
     recon_average_corr_all_indi = dict()
@@ -592,32 +828,65 @@ def get_change_in_reconstruction(recon_average, groups, drug, drug_h, con_names,
     return(recon_average_corr_new_all, recon_average_corr_all_indi_new)
 
 
-def write_omics_results(path, up_down_list, collected_overlap, recon_average_corr_new_all, headers_all, con_types, data_of_interest): 
+def write_omics_results(path, up_down_list, collected_overlap, recon_average_corr_new_all, headers_all, con_types, drug_h, con_names): 
+    '''
+    TODO:
+    
+    Inputs:
+        path: str of folder name where the results will be saved
+        up_down_list: list of strs that correspond to data types whose upregulated or downregulated data points would be saved 
+        collected_overlap: TODO
+        recon_average_corr_new_all: TODO
+        headers_all: np.array of strings of feature names of all data
+        con_types: list of strings of continuous data type names
+        drug_h: np.array of strings of feature names data type whose data are changed to test their effects in the pipeline
+        con_names: np.array of strings of feature names of continuous data
+    
+    '''
  
     for i in range(len(con_types)):
-        if con_types[i] != data_of_interest:
-            for d in collected_overlap:
-                n = np.intersect1d(collected_overlap[d], headers_all[i])
-                
-                with open(path + f"results/{con_types[i]}_" + d.replace(" ", "_") + ".txt", "w") as o:
-                    o.write("\n".join(n))  
-                
-                if con_types[i] in up_down_list:
-                     
-                    vals = recon_average_corr_new_all[list(headers_all[i]).index(d),np.where(np.isin(con_names,n))[0]]
-                    up = n[vals > 0]
-                    down = n[vals < 0]
-                    with open(path + f"results/{con_types[i]}_up_" + d.replace(" ", "_") + ".txt", "w") as o:
-                        o.write("\n".join(up))
+        for d in collected_overlap:
+            n = np.intersect1d(collected_overlap[d], headers_all[i])
 
-                    with open(path + f"results/{con_types[i]}_down_" + d.replace(" ", "_")  + ".txt", "w") as o:
-                        o.write("\n".join(down))
-                        
+            with open(path + f"results/{con_types[i]}_" + d.replace(" ", "_") + ".txt", "w") as o:
+                o.write("\n".join(n))  
+
+            if con_types[i] in up_down_list:
+
+                vals = recon_average_corr_new_all[list(drug_h).index(d),np.where(np.isin(con_names,n))[0]]
+                up = n[vals > 0]
+                down = n[vals < 0]
+                with open(path + f"results/{con_types[i]}_up_" + d.replace(" ", "_") + ".txt", "w") as o:
+                    o.write("\n".join(up))
+
+                with open(path + f"results/{con_types[i]}_down_" + d.replace(" ", "_")  + ".txt", "w") as o:
+                    o.write("\n".join(down))
+
                         
 def make_files(collected_overlap, groups, con_all, path, recon_average_corr_all_indi_new, 
                con_names, con_dataset_names, drug_h, drug, all_hits, types, version = "v1"):
+    '''
+    TODO:
     
-    all_db_names = [item for sublist in con_names for item in sublist]
+    Inputs:
+        collected_overlap: TODO
+        groups: TODO
+        con_all: np.array of data of continuous data type
+        path: str of folder name where the results will be saved
+        recon_average_corr_all_indi_new: TODO
+        con_names: np.array of strings of feature names of continuous data
+        con_dataset_names: list of strings with the names of continuous data type
+        drug: np.array of input data whose feature data are changed to test their effects in the pipeline
+        drug_h: np.array of strings of feature names data type whose data are changed to test their effects in the pipeline
+        all_hits: TODO
+        types (list of lists): TODO
+        version: str: a subdirectory where data will be saved
+    
+    '''
+    
+    
+#     all_db_names = [item for sublist in con_names for item in sublist]
+    all_db_names = con_names
     ci_dict = {}
     for i,n in enumerate(con_dataset_names):
         ci_collected = []
@@ -653,8 +922,27 @@ def make_files(collected_overlap, groups, con_all, path, recon_average_corr_all_
         
 def get_inter_drug_variation(con_names, drug_h, recon_average_corr_all_indi_new, 
                              groups, collected_overlap, drug, con_all, path, types):
+    '''
+    TODO:
+    
+    Inputs:
+        con_names: np.array of strings of feature names of continuous data
+        drug_h: np.array of strings of feature names data type whose data are changed to test their effects in the pipeline
+        recon_average_corr_all_indi_new: TODO 
+        groups: TODO
+        collected_overlap: TODO 
+        drug: np.array of input data whose feature data are changed to test their effects in the pipeline
+        con_all:  np.array of data of continuous data type
+        path: str of folder name where the results will be saved
+        types (list of lists): TODO
+        
+    Returns:
+        df_indi_var: TODO
+    '''
+    
     # Inter drug variation 
-    all_db_names = [item for sublist in con_names for item in sublist]
+#     all_db_names = [item for sublist in con_names for item in sublist]
+    all_db_names = con_names
     inter_drug_variance = []
     inter_drug_std = []
     for d in drug_h:
@@ -677,7 +965,18 @@ def get_inter_drug_variation(con_names, drug_h, recon_average_corr_all_indi_new,
 
 
 def get_drug_similar_each_omics(con_names, con_dataset_names, all_hits, recon_average_corr_new_all, drug_h, version, path):
-
+    '''
+    TODO:
+    
+    Inputs:
+        con_names: np.array of strings of feature names of continuous data
+        con_dataset_names: list of strings with the names of continuous data type
+        all_hits: TODO
+        recon_average_corr_new_all: TODO
+        drug_h: np.array of strings of feature names data type whose data are changed to test their effects in the pipeline
+        version: str: a subdirectory where data will be saved
+        path: str of folder name where the results will be saved
+    '''
     
     con_dataset_names_v1 = con_dataset_names
     i = 0
@@ -700,181 +999,3 @@ def get_drug_similar_each_omics(con_names, con_dataset_names, all_hits, recon_av
         i += 1
 
     plt.close('all')
-
-
-    
-def get_best_epoch(results_df):
-    
-    #Rounding best_epoch to closest 10 (just in case if best_epoch is less than 5 - to closest number)
-    round_epoch = lambda x : round(x, 1) if (x >= 5) else round(x, 0)   
-    best_epoch = results_df['best_epochs'].mean()
-    best_epoch = int(round_epoch(best_epoch))
-    
-    return(best_epoch)
-
-
-def get_significant_param_values(results_df: pd.DataFrame, 
-                                 list_of_params: list, 
-                                 metric_name: str = 'likelihood_test', 
-                                 stat_test_name: str = 'ttest_rel'):
-    
-    params_dict_to_remove = defaultdict(list)
-    stat_test = getattr(stats, stat_test_name) 
-        
-    # Iterating through each of the hypeparameter
-    for col in list_of_params:
-
-        # Getting each value of the hyperparameter
-        unique_values = results_df[col].unique()
-
-
-        # finding which pairs of parameter values do not have significant differences
-        insignif_pairs_list = []
-        for i in range(len(unique_values)):
-            for j in range(i+1, len(unique_values)):
-                
-                # Getting the p-value of statistical results by comparing hyperparameter values sets where only the tested hyperparameter is different
-                _, pvalue = stat_test(
-                    results_df.loc[results_df[col] == unique_values[i], metric_name],
-                    results_df.loc[results_df[col] == unique_values[j], metric_name])
-
-                if pvalue < 0.05:
-                    insignif_pairs_list.append(tuple([unique_values[j], 
-                                                      unique_values[i]]))
-
-        # Removing the parameter that did not show significant differences (in the order from the most insignificant pairs)
-        # strategy: remove the unique value with most insignificant results first, repeat until none is left
-        while insignif_pairs_list:
-            insignif_values_dict = Counter(value for values_pair in insignif_pairs_list for value in values_pair)
-            value_max_occurs = max(insignif_values_dict, key=insignif_values_dict.get)
-            insignif_pairs_list = [x for x in insignif_pairs_list if value_max_occurs not in x]
-            if params_dict_to_remove.get(col) is None:
-                params_dict_to_remove[col] = []
-            params_dict_to_remove[col].append(value_max_occurs.item())
-                
-
-    # Removing the selected parameters to remove from the dataframe
-    results_df_rm_nonsignifs = pd.DataFrame(results_df)
-    for key, value_list in params_dict_to_remove.items():
-        results_df_rm_nonsignifs = results_df_rm_nonsignifs[results_df_rm_nonsignifs[key].isin(value_list)]
-    return(results_df_rm_nonsignifs, params_dict_to_remove)
-
-def get_sort_list(results_df):
-    
-    #Gets mean values of test accuracy reconstruction
-    results_df['recon_acc_test_mean'] = results_df['recon_acc_test'].map(lambda x: x.mean())
-    
-    # Sort values by reconstruction accuracy
-    results_df = results_df.sort_values('recon_acc_test_mean', ascending=False)
-    return (results_df)
-
-
-def get_length(hyperpars_vals_dict, hyperpar_name):
-    lengths = 1
-    for key in hyperpars_vals_dict:  
-        length = len(hyperpars_vals_dict[key])
-        # Adding +1 since we want to check if adding a parameter it overreaches
-        if key == hyperpar_name:
-            length+=1
-        lengths *= length
-
-    return(lengths)
-
-def get_best_params(results_df_sorted, n_combos_opt, hyperpars_names):
-
-    hyperpars_vals_dict = defaultdict(list)
-    for index, row in results_df_sorted.iterrows():
-        
-        for hyperpar_name in hyperpars_names:
-            if row[hyperpar_name] not in hyperpars_vals_dict[hyperpar_name]:
-                
-                length = get_length(hyperpars_vals_dict, hyperpar_name)
-                if length <= n_combos_opt:
-                    hyperpars_vals_dict[hyperpar_name].append(row[hyperpar_name])
-                else:
-                    break
-    hyperpars_vals_dict = dict(hyperpars_vals_dict)
-    return(hyperpars_vals_dict)
-
-def make_and_save_best_reconstruct_params(results_df, hyperparams_names, max_param_combos_to_save):
-    
-    # Getting the best number of epochs used in further trainings
-    best_epoch = get_best_epoch(results_df)
-    
-    print('Starting calculating the best hyperparameter values for further optimization') 
-    
-    # Removing insignificant hyperparameter values
-    results_df_rm_insignifs, params_dict_to_remove = get_significant_param_values(results_df, hyperparams_names)
-    
-    #Printing the removed parameter values
-    print(f'\nRemoved insignificant parameters:\n {OmegaConf.to_yaml(dict(params_dict_to_remove))}')
-    
-    # Getting up to n combinations of parameters that will be used further to optimize stability
-    results_df_sorted = get_sort_list(results_df_rm_insignifs)
-    best_hyperpars_vals_dict = get_best_params(results_df_sorted, max_param_combos_to_save, hyperparams_names)
-    best_hyperpars_vals_dict['tuned_num_epochs'] = best_epoch
-    
-    # Saving the best hyperparameter values (it will overwrite the file if it already exists)
-    with open('tuning_stability.yaml', "w") as f:
-        OmegaConf.save(OmegaConf.create(dict(best_hyperpars_vals_dict)), f)
-
-    #Printing the saved hyper parameter values
-    print(f'Saving the best hyperparameter values in tuning_stability.yaml for further optimization: \n{OmegaConf.to_yaml(dict(best_hyperpars_vals_dict))}\n')
-    print('Please manually review if the hyperparameter values were selected correctly and adjust them in the tuning_stability.yaml file.')
-    
-
-def get_best_stability_paramset(stability_df, hyperparams_names):
-    
-    params_to_save = dict()
-    
-    stability_df_sorted = stability_df.sort_values('difference', ascending=False).iloc[:1]
-    for hyperparam in hyperparams_names: 
-        params_to_save[hyperparam] = stability_df_sorted[hyperparam].item()
-        
-    return(params_to_save, stability_df_sorted)
-
-def get_best_4_latent_spaces(results_df_sorted):
-    best_latent = []
-    for index, row in results_df_sorted.iterrows():
-        if row['num_latent'] not in best_latent:
-            best_latent.append(int(row['num_latent']))
-        if len(best_latent) >= 2:
-            break
-            
-    #Adding two values from both sides 
-    best_hypers_diff = max(best_latent) - min(best_latent)
-    diff_from_zero = int(min(best_latent)/2)
-    
-    if min(best_latent) - best_hypers_diff > diff_from_zero:
-        best_latent.append(min(best_latent) - best_hypers_diff)
-        best_latent.append(max(best_latent) + best_hypers_diff)
-    else:
-        best_latent.append(min(best_latent) - diff_from_zero)
-        best_latent.append(max(best_latent) + diff_from_zero)
-    return(best_latent)
-
-def make_and_save_best_stability_params(results_df, hyperparams_names, nepochs):
-    
-    print('Starting calculating the best hyperparameter values used in further model trainings') 
-    
-    # Getting best set of hyperparameters
-    params_to_save, results_df_sorted = get_best_stability_paramset(results_df, hyperparams_names)
-    params_to_save['tuned_num_epochs'] = nepochs
-
-    # Saving best set of hyperparameters    
-    with open('training_latent.yaml', "w") as f:
-        OmegaConf.save(OmegaConf.create(dict(params_to_save)), f)
-        
-    # Printing the configuration saved 
-    print(f'Saving best hyperparameter values in training_latent.yaml: \n {OmegaConf.to_yaml(dict(params_to_save))}')
-    
-    # Getting the latent spaces for training_association script and using them with the best hyperparam set
-    best_latent = get_best_4_latent_spaces(results_df_sorted)
-    params_to_save['num_latent'] = list(best_latent)
-    
-    # Saving best set of hyperparameters for training_association script
-    with open('training_association.yaml', "w") as f:
-        OmegaConf.save(OmegaConf.create(dict(params_to_save)), f)
-
-    # Printing the configuration saved 
-    print(f'Saving best hyperparameter values in training_association.yaml: \n{OmegaConf.to_yaml(dict(params_to_save))}')

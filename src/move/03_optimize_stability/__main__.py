@@ -3,9 +3,9 @@ import hydra
 from move.conf.schema import MOVEConfig
 
 from move.training.train import optimize_stability
-from move.utils.data_utils import get_data, get_list_value, merge_configs
+from move.utils.data_utils import get_data, get_list_value, merge_configs, make_and_save_best_stability_params
 from move.utils.visualization_utils import draw_boxplot
-from move.utils.analysis import get_top10_stability, calculate_latent, make_and_save_best_stability_params # get_best_stability_paramset, get_best_4_latent_spaces
+from move.utils.analysis import get_top10_stability, calculate_latent
 
 @hydra.main(config_path="../conf", config_name="main")
 def main(base_config: MOVEConfig): 
@@ -15,9 +15,9 @@ def main(base_config: MOVEConfig):
                         config_types=['data', 'model', 'tuning_stability'])
     
     #Getting the variables used in the notebook
-    raw_data_path = cfg.data.raw_data_path
     interim_data_path = cfg.data.interim_data_path
     processed_data_path = cfg.data.processed_data_path 
+    headers_path = cfg.data.headers_path
     
     data_of_interest = cfg.data.data_of_interest
     categorical_names = cfg.data.categorical_names
@@ -47,7 +47,7 @@ def main(base_config: MOVEConfig):
         raise('Currently the code is implemented to take take only one value for batch_size')
     
     #Getting the data
-    cat_list, con_list, cat_names, con_names, headers_all, drug, drug_h = get_data(raw_data_path, interim_data_path, categorical_names, continuous_names, data_of_interest)
+    cat_list, con_list, cat_names, con_names, headers_all, drug, drug_h = get_data(headers_path, interim_data_path, categorical_names, continuous_names, data_of_interest)
     
     #Performing hyperparameter tuning
     embeddings, latents, con_recons, cat_recons, recon_acc = optimize_stability(nHiddens, nLatents, 
@@ -63,7 +63,8 @@ def main(base_config: MOVEConfig):
     # Getting stability results 
     stability_top10, stability_top10_df = get_top10_stability(nHiddens, nLatents, nDropout, nLayers, repeat, latents, batch_sizes, nBeta)
     
-    stability_total, rand_index, stability_total_df = calculate_latent(nHiddens, nLatents, nDropout, repeat, nLayers, nBeta, latents) 
+    stability_total, rand_index, stability_total_df = calculate_latent(nHiddens, nLatents, nDropout, repeat, nLayers, nBeta, latents, batch_sizes)
+ 
     
     # Plotting the results 
     try: 

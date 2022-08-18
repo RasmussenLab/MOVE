@@ -235,8 +235,8 @@ class VAE(nn.Module):
             total_shape += s
 
         con_errors = torch.stack(con_errors)
-        con_errors = con_errors / torch.Tensor(self.continuous_shapes)
-        MSE = torch.sum(con_errors * torch.Tensor(self.continuous_weights))
+        con_errors = con_errors / torch.Tensor(self.continuous_shapes).to(self.device)
+        MSE = torch.sum(con_errors * torch.Tensor(self.continuous_weights).to(self.device))
         return MSE
 
     # Reconstruction + KL divergence losses summed over all elements and batch
@@ -247,7 +247,7 @@ class VAE(nn.Module):
         if not (cat_out is None):
             cat_errors = self.calculate_cat_error(cat_in, cat_out)
             if not (self.categorical_weights is None):
-                CE = torch.sum(cat_errors * torch.Tensor(self.categorical_weights))
+                CE = torch.sum(cat_errors * torch.Tensor(self.categorical_weights).to(self.device))
             else:
                 CE = torch.sum(cat_errors) / len(cat_errors)
 

@@ -39,27 +39,27 @@ We have also included a notebook that goes through a short tutorial with a publi
 # Installation
 MOVE can be run both as a Python script and from the Jupyter notebook to ensure that one can run a pipeline conveniently and modify the scripts according to the available data. For instance, we had five types of omics data together with clinical data - your dataset may differ. 
 
+### Installing MOVE package
+
 To install the MOVE package, use: 
 ```
 pip install move-dl
 ```
 
-### Requirements
+### Requirements for Jupyter notebook
 To run scripts in the Jupyter notebook, install: 
 ```
-jupyter
 move-dl
+jupyter
 ```
 
-We have only run MOVE in a Linux environment, however as it is depedent on python it should be possible to run on Macs and potentially Windows machines as well. We ran this with python3.8 from Anaconda 5.3.0 using the following packages:
-
-We have only run MOVE in a Linux environment. However, as it depends on Python, it should be possible to run on Mac and Windows machines. We tested on an Anaconda (v5.3.0)  environment with Python 3.8.
+We have only run MOVE in a Linux environment. However, as it depends on Python, it should be possible to run on Mac and Windows machines. We tested on an Anaconda (v5.3.0) environment with Python 3.8.
 
 The training of the VAEs can be done using GPU or CPU. However, as with all deep learning, GPUs speed up the computations, but running on a server with multiple CPU cores is perfectly doable.
 
 
 ### How to run MOVE
-You can run the move-dl pipeline on Jupyter notebooks above from 01-05. Explanations are in the notebooks. Feel free to open an issue for help.
+You can run the move-dl pipeline on Jupyter notebooks from 01-05 located in tutorial/ folder. Explanations are in the notebooks. Feel free to open an issue for help.
 
 You can run MOVE as Python scripts with the following commands: 
 ```

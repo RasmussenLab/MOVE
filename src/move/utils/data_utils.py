@@ -80,23 +80,24 @@ def read_con(path, file_name):
     data = data[:,mask_col]
     return data, mask_col
 
-def read_header(path, file_name, mask=None, start=1):
+def read_header(path, file_name, mask=None):
     """
     Reads features names from the headers 
     inputs:
         path: pathway to the directory where file is located
         file_name: str of file name to read (in .npy format) 
-        mask: np.array of boolean objects, where False value corresponds to features to filtered out
-        start: int corresponding to how many lines to read for the header
     returns:
-        header: np.array of strings of feature names
+        header: list of strings of elements in the header
     """    
-    with open(path + file_name, "r") as f:
-        header = f.readline().rstrip().split("\t")[start:]
+
+    header = pd.read_csv(path + file_name, sep='\t', header=None)
+    header = header.squeeze().astype('str')
+
     if not mask is None:
-        header = np.array(header)
+        header =  header.to_numpy()
         header = header[mask]
-    
+        
+    header = list(header)
     return header
 
 def initiate_default_dicts(n_empty_dicts, n_list_dicts):
@@ -114,12 +115,12 @@ def initiate_default_dicts(n_empty_dicts, n_list_dicts):
      
     return(tuple(default_dicts))
 
-def get_data(raw_data_path, interim_data_path, categorical_data_names, continuous_data_names, data_of_interest):
+def get_data(headers_path, interim_data_path, categorical_data_names, continuous_data_names, data_of_interest):
     """
     Reads the data for models' inputs
     
     inputs:
-        raw_data_path: str of pathway to raw data folder (e.g. .tsv)
+        headers_path: str of pathway to headers data 
         interim_data_path: str of a pathway to a folder of intermediate data files (e.g. .npy)
         categorical_data_names: list of strings of categorical data type names
         continuous_data_names: list of strings of continuous data type names
@@ -127,9 +128,9 @@ def get_data(raw_data_path, interim_data_path, categorical_data_names, continuou
     returns:
         cat_list: list of np.arrays for data of categorical data type 
         con_list: list of np.arrays for data of continuous data type
-        cat_names: np.array of strings of feature names of continuous data 
-        con_names: np.array of strings of feature names of categorical data 
-        headers_all: np.array of strings of feature names of categorical data
+        cat_names: np.array of strings of feature names of categorical data
+        con_names: np.array of strings of feature names of continuous data
+        headers_all: np.array of strings of feature names of all data
         drug: np.array of input data whose feature data are changed to test their effects in the pipeline
         drug_h: np.array of strings of feature names data type whose data are changed to test their effects in the pipeline
     """   
@@ -140,15 +141,14 @@ def get_data(raw_data_path, interim_data_path, categorical_data_names, continuou
     # Get categorical variables
     for cat_data in categorical_data_names:
         cat = read_cat(interim_data_path, f"{cat_data}.npy")
-        cat_h = read_header(raw_data_path,  f"{cat_data}.tsv")
-          
+        cat_h = read_header(headers_path,  f"{cat_data}.txt")
         cat_list.append(cat)
         cat_names.append(cat_h)
 
      # Get continuous variables
     for con_data in continuous_data_names:
         con, con_mask = read_con(interim_data_path, f"{con_data}.npy")
-        con_h = read_header(raw_data_path, f"{con_data}.tsv", con_mask)
+        con_h = read_header(headers_path, f"{con_data}.txt", con_mask)
           
         con_list.append(con)
         con_names.append(con_h)
@@ -161,10 +161,10 @@ def get_data(raw_data_path, interim_data_path, categorical_data_names, continuou
     # Select dataset of interest
     if data_of_interest in categorical_data_names:
         drug = read_cat(interim_data_path, f"{data_of_interest}.npy")
-        drug_h = read_header(raw_data_path, f"{data_of_interest}.tsv")
+        drug_h = read_header(headers_path, f"{data_of_interest}.txt")
     elif data_of_interest in continuous_data_names:
-        drug, drug_mask = read_con(interim_data_path, f"{data_of_interest}.npy")
-        drug_h = read_header(raw_data_path, f"{data_of_interest}.tsv", drug_mask)  
+        drug, _ = read_con(interim_data_path, f"{data_of_interest}.npy")
+        drug_h = read_header(headers_path, f"{data_of_interest}.txt")  
     else:
         raise ValueError("""In data.yaml file data_of_interest is chosen neither
                                  from defined continuous nor categorical data types""")
@@ -335,7 +335,7 @@ def read_files(path, data_type, na):
      
     return raw_input, header
 
-def generate_file(var_type, raw_data_path, interim_data_path, data_type, ids, na='NA'):
+def generate_file(var_type, raw_data_path, interim_data_path, headers_path, data_type, ids, na='NA'):
     """
     Function encodes source data type and saves the file
      
@@ -352,17 +352,182 @@ def generate_file(var_type, raw_data_path, interim_data_path, data_type, ids, na
     if not isExist:
         os.makedirs(interim_data_path)
     
+    isExist = os.path.exists(headers_path)
+    if not isExist:
+        os.makedirs(headers_path)
+    
     # Preparing the data
     raw_input, header = read_files(raw_data_path, data_type, na)
     sorted_data = sort_data(raw_input, ids, header)
      
     if var_type == 'categorical':
         data_input = encode_cat(sorted_data, 'nan')
+        mask = None
+        
     elif var_type == 'continuous':
-        data_input, _ = encode_con(sorted_data)
-            
+        data_input, mask = encode_con(sorted_data)
+        
+    header = get_header(header, mask)
+    
+    np.savetxt(headers_path+data_type+'.txt', header, delimiter=',', fmt='%s')
     np.save(interim_data_path + f"{data_type}.npy", data_input)
 
+
+def get_header(header, mask=None, start=1):
+    """
+    Reads features names from the headers 
+    inputs:
+        header: list with values of the header column of input data  
+        mask: np.array of boolean objects, where False value corresponds to features to filtered out
+        start: int corresponding to how many lines to read for the header
+    returns:
+        header: np.array of strings of feature names
+    """   
+    header = header[start:]
+    if not mask is None:
+        header = np.array(header)
+        header = header[mask]
+    
+    return header    
+
+    
 def get_list_value(*args):
     arg_tuple = [arg[0] if len(arg) == 1 else arg for arg in args]
     return(arg_tuple)     
+
+
+
+
+def get_best_epoch(results_df):
+    
+    #Rounding best_epoch to closest 10 (just in case if best_epoch is less than 5 - to closest number)
+    round_epoch = lambda x : round(x, 0) if (x < 5) else round(x, -1)
+    best_epoch = results_df['best_epochs'].mean()
+    best_epoch = int(round_epoch(best_epoch))
+    
+    return(best_epoch)
+
+
+def get_sort_list(results_df):
+    
+    #Gets mean values of test accuracy reconstruction
+    results_df['recon_acc_test_mean'] = results_df['recon_acc_test'].map(lambda x: x.mean())
+    
+    # Sort values by reconstruction accuracy
+    results_df = results_df.sort_values('recon_acc_test_mean', ascending=False)
+    return (results_df)
+
+
+def get_length(hyperpars_vals_dict, hyperpar_name):
+    lengths = 1
+    for key in hyperpars_vals_dict:  
+        length = len(hyperpars_vals_dict[key])
+        # Adding +1 since we want to check if adding a parameter it overreaches
+        if key == hyperpar_name:
+            length+=1
+        lengths *= length
+
+    return(lengths)
+
+def get_best_params(results_df_sorted, n_combos_opt, hyperpars_names):
+
+    hyperpars_vals_dict = defaultdict(list)
+    for index, row in results_df_sorted.iterrows():
+        
+        for hyperpar_name in hyperpars_names:
+            if row[hyperpar_name] not in hyperpars_vals_dict[hyperpar_name]:
+                
+                length = get_length(hyperpars_vals_dict, hyperpar_name)
+                if length <= n_combos_opt:
+                    hyperpars_vals_dict[hyperpar_name].append(row[hyperpar_name])
+                else:
+                    break
+    hyperpars_vals_dict = dict(hyperpars_vals_dict)
+    return(hyperpars_vals_dict)
+
+def make_and_save_best_reconstruct_params(results_df, hyperparams_names, max_param_combos_to_save):
+    
+    # Getting the best number of epochs used in further trainings
+    best_epoch = get_best_epoch(results_df)
+    
+    print('Starting calculating the best hyperparameter values for further optimization') 
+    
+    results_df_sorted = get_sort_list(results_df)
+    best_hyperpars_vals_dict = get_best_params(results_df_sorted, max_param_combos_to_save, hyperparams_names)
+    best_hyperpars_vals_dict['tuned_num_epochs'] = best_epoch
+    
+    # Saving the best hyperparameter values (it will overwrite the file if it already exists)
+    with open('tuning_stability.yaml', "w") as f:
+        OmegaConf.save(OmegaConf.create(dict(best_hyperpars_vals_dict)), f)
+
+    #Printing the saved hyper parameter values
+    print(f'Saving the best hyperparameter values in tuning_stability.yaml for further optimization: \n{OmegaConf.to_yaml(dict(best_hyperpars_vals_dict))}\n')
+    print('Please manually review if the hyperparameter values were selected correctly and adjust them in the tuning_stability.yaml file.')
+    
+
+def get_best_stability_paramset(stability_df, hyperparams_names):
+    
+    params_to_save = dict()
+    stability_df_sorted = stability_df.sort_values('difference', ascending=False).iloc[:1]
+    for hyperparam in hyperparams_names: 
+        params_to_save[hyperparam] = stability_df_sorted[hyperparam].item()
+        
+    return(params_to_save, stability_df_sorted)
+
+def get_best_4_latent_spaces(results_df_sorted):
+    
+    #Selecting best two latent spaces
+    best_latent = []
+    for index, row in results_df_sorted.iterrows():
+        if row['num_latent'] not in best_latent:
+            best_latent.append(int(row['num_latent']))
+        if len(best_latent) >= 2:
+            break
+            
+    # Finding difference between best 2 latent spaces, and half size of the lowest best latent size
+    best_hypers_diff = max(best_latent) - min(best_latent)
+    half_diff_from_zero = int(min(best_latent)/2)
+    
+    # If only one latent space exist among user defined hyperparameter values, 
+    # appending 0.5, 1.5 and 2 sizes of the latent space.
+    if best_hypers_diff == 0:
+        best_latent.append(min(best_latent) - half_diff_from_zero)
+        best_latent.append(max(best_latent) + half_diff_from_zero)        
+        best_latent.append(max(best_latent) + half_diff_from_zero) 
+    # Else if the difference between best latent sizes is lower than half size of the lowest best latent size
+    # subtracting it from lowest latent size value, and adding it the highest value, and appending both of them among latent spaces   
+    elif best_hypers_diff < half_diff_from_zero:
+        best_latent.append(min(best_latent) - best_hypers_diff)
+        best_latent.append(max(best_latent) + best_hypers_diff)
+    # Else adding and subtracting half of the lowest latent space to lowest and biggest best latent space sizes 
+    else:
+        best_latent.append(half_diff_from_zero)
+        best_latent.append(max(best_latent) + half_diff_from_zero)
+    return(best_latent)
+
+def make_and_save_best_stability_params(results_df, hyperparams_names, nepochs):
+    
+    print('Starting calculating the best hyperparameter values used in further model trainings') 
+    
+    # Getting best set of hyperparameters
+    params_to_save, results_df_sorted = get_best_stability_paramset(results_df, hyperparams_names)
+    params_to_save['tuned_num_epochs'] = nepochs
+
+    # Saving best set of hyperparameters    
+    with open('training_latent.yaml', "w") as f:
+        OmegaConf.save(OmegaConf.create(dict(params_to_save)), f)
+        
+    # Printing the configuration saved 
+    print(f'Saving best hyperparameter values in training_latent.yaml: \n{OmegaConf.to_yaml(dict(params_to_save))}')
+    
+    # Getting the latent spaces for training_association script and using them with the best hyperparam set
+    best_latent = get_best_4_latent_spaces(results_df_sorted)
+    params_to_save['num_latent'] = list(best_latent)
+    
+    # Saving best set of hyperparameters for training_association script
+    with open('training_association.yaml', "w") as f:
+        OmegaConf.save(OmegaConf.create(dict(params_to_save)), f)
+
+    # Printing the configuration saved 
+    print(f'Saving best hyperparameter values in training_association.yaml: \n{OmegaConf.to_yaml(dict(params_to_save))}')
+

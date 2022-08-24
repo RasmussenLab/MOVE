@@ -1,6 +1,7 @@
 import os 
 import numpy as np
 import pandas as pd
+import itertools
 from collections import defaultdict
 from omegaconf import OmegaConf
 
@@ -530,4 +531,22 @@ def make_and_save_best_stability_params(results_df, hyperparams_names, nepochs):
 
     # Printing the configuration saved 
     print(f'Saving best hyperparameter values in training_association.yaml: \n{OmegaConf.to_yaml(dict(params_to_save))}')
+    
+def read_saved_files(nLatents, repeats, path, version, drug):
+    results, recon_results, groups, mean_bas = initiate_default_dicts(n_empty_dicts=0, n_list_dicts=4)
+    
+    iters = itertools.product(nLatents, range(repeats))
+    for nLatent, repeat in iters:
+        result = np.load(path + f'results/results_{str(nLatent)}_{str(repeat)}_{version}.npy', mmap_mode='r', allow_pickle = True)
+        mean_ba = np.load(path + f'results/mean_bas_{str(nLatent)}_{str(repeat)}_{version}.npy', mmap_mode='r', allow_pickle = True)
+        recon_result = np.load(path + f'results/recon_results_{str(nLatent)}_{str(repeat)}_{version}.npy', mmap_mode='r', allow_pickle = True)        
+        recon_result_dict = {i:recon_result[i] for i in range(recon_result.shape[0])}
 
+        results[nLatent].append(result)
+        recon_results[nLatent].append(recon_result_dict)
+        mean_bas[nLatent].append(mean_ba) 
+            
+    group = np.load(path + "results/results_groups_" + version + ".npy", mmap_mode='r', allow_pickle = True)
+    group_dict = {i:group[i] for i in range(group.shape[0])}
+    
+    return(results, recon_results, groups, mean_bas)

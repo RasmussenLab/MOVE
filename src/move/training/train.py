@@ -274,15 +274,26 @@ def train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHidden,
         categorical_names: list of strings of categorical data names
         data_of_interest: str of data type name whose features are changed to test their effects
         seed: int of seed number  
-    """ 
+    """
+        
+    # For data saving results
+    isExist = os.path.exists(path + 'wp2.2/sig_overlap/')
+    if not isExist:
+        os.makedirs(path + 'wp2.2/sig_overlap/')
 
+    isExist = os.path.exists(path + 'results/')
+    if not isExist:
+        os.makedirs(path + 'results/')
+    
     results, recon_results, recon_results_1, mean_bas = initiate_default_dicts(n_empty_dicts=0, n_list_dicts=4)
     results_df = []
     
     start, end = get_start_end_positions(cat_list, categorical_names, data_of_interest)
 
     iters = itertools.product(nLatents, range(repeats))
-
+    
+    
+    print('Beginning training the model.\n')
     # Running the framework    
     for nLatent, repeat in iters: 
         best_model, loss, ce, sse, KLD, train_loader, _, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_sizes, nHidden, nl, nLatent, nBeta, drop, cuda, kldsteps, batchsteps, nepochs, lrate, seed+repeat, test_loader=None, patience=None, early_stopping=False)
@@ -300,86 +311,18 @@ def train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHidden,
         recon_diff, groups = change_drug(best_model, train_test_loader, con_recon, drug, start, end, kld_w)
         stat = cal_sig_hits(recon_diff, groups, drug, mean_baseline, train_loader.dataset.con_all)
 
-#         results[nLatent].append(stat)
         recon_diff_corr = dict()
         for r_diff in recon_diff.keys():
-#             print(r_diff)
             recon_diff_corr[r_diff] = recon_diff[r_diff] - np.abs(mean_baseline[groups[r_diff]])
-#             print(recon_diff_corr[r_diff])
-#         print(len(list(recon_diff.keys())))
-#         mean_bas[nLatent].append(mean_baseline)
-#         recon_results[nLatent].append(recon_diff_corr)
-#         recon_results_1[nLatent].append(recon_diff)
-#         np.save('recon_results', recon_results)
-#         print(np.array(list(recon_diff_corr.values())))
         
-#         print(type(nLatent))
-#         print(type(repeat))
-#         print(stat.shape)
-#         print(np.array(list(recon_diff_corr.values())).shape)
-#         print(np.array(list(groups.values())).shape)        
-#         print(mean_baseline.shape)
-#         print(np.array(list(recon_diff.values())).shape)
-        
-#         np.save(f'results/results_{str(nLatent)}_{repeat}', stat)
-#         np.save(f'results/recon_results_{str(nLatent)}_{repeat}', recon_diff_corr)
-#         np.save(f'results/groups_{str(nLatent)}_{repeat}', groups)
-#         np.save(f'results/mean_bas_{str(nLatent)}_{repeat}', mean_baseline)
-#         np.save(f'results/recon_results_1_{str(nLatent)}_{repeat}', recon_diff)
-        
-        np.save(f'results2/results_{str(nLatent)}_{repeat}', stat)
-        np.save(f'results2/recon_results_{str(nLatent)}_{repeat}', np.array(list(recon_diff_corr.values())))
-        np.save(f'results2/groups_{str(nLatent)}_{repeat}', np.array(list(groups.values())))
-        np.save(f'results2/mean_bas_{str(nLatent)}_{repeat}', mean_baseline)
-        np.save(f'results/recon_results_1_{str(nLatent)}_{repeat}', np.array(list(recon_diff.values())))
-
-#         results_df = []
-#         results_df.append({
-#             'num_latent': nLatent,
-#             'repeats': repeat,
-#             'results': stat, 
-#             'recon_results': np.array(list(recon_diff_corr.values())), 
-#             'groups': np.array(list(groups.values())),
-#             'mean_bas': mean_baseline,
-#             'recon_results_1': np.array(list(recon_diff.values())) 
-#         })
-
-
-#         results_df = pd.DataFrame(results_df)
-#         results_df.to_pickle(f'results_df_{nLatent}_{repeat}.pkl')
-#         results_df.to_feather('resulsts_df.feather')
-#         results_df.to_hdf('results_df.hdf', 'df')
-#         np.save('results_df', results_df)
-#     print('resultings')
-#     results_df.to_pickle(path + 'results/assosiation_results' + version +'.pkl', compression='gzip')
+        # Saving the files 
+        np.save(path + f'results/results_{str(nLatent)}_{str(repeat)}_{version}', stat)
+        np.save(path + f'results/recon_results_{str(nLatent)}_{str(repeat)}_{version}', np.array(list(recon_diff_corr.values())))
+        np.save(path + f'results/mean_bas_{str(nLatent)}_{str(repeat)}_{version}', mean_baseline)
+        np.save(path + f'results/recon_results_1_{str(nLatent)}_{str(repeat)}_{version}', np.array(list(recon_diff.values())))        
+    np.save(path + "results/results_groups_" + version + ".npy", np.array(list(groups.values())))    
     
-    return(results_df)
-#     # Saving results
-#     isExist = os.path.exists(path + 'wp2.2/sig_overlap/')
-#     if not isExist:
-#         os.makedirs(path + 'wp2.2/sig_overlap/')
-
-#     isExist = os.path.exists(path + 'results/')
-#     if not isExist:
-#         os.makedirs(path + 'results/')
-
-#     with open(path + "results/results_" + version + ".npy", 'wb') as f:
-#         np.save(f, results)
-#     with open(path + "results/results_recon_" + version + ".npy", 'wb') as f:
-#         np.save(f, recon_results)
-#     with open(path + "results/results_groups_" + version + ".npy", 'wb') as f:
-#         np.save(f, groups)
-#     with open(path + "results/results_recon_mean_baseline_" + version + ".npy", 'wb') as f:
-#         np.save(f, mean_bas)
-#     with open(path + "results/results_recon_no_corr_" + version + ".npy", 'wb') as f:
-#         np.save(f, recon_results_1)
-
-#     cor_results = correction_new(results)
-
-#     with open(path + "wp2.2/sig_overlap/cor_results_" + version + ".npy", 'wb') as f:
-#         np.save(f, cor_results)
-        
-    
+    print('\nFinished training the model.')
     
 def train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_size, nHidden, nl, nLatent, b, drop, cuda, kldsteps, batchsteps, nepochs, lrate, seed, test_loader, patience, early_stopping):
     """

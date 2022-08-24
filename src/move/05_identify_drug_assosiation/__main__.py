@@ -3,9 +3,10 @@ import hydra
 from move.conf.schema import MOVEConfig
 
 from move.training.train import train_model_association
-from move.utils.data_utils import get_data, merge_configs
+from move.utils.data_utils import get_data, merge_configs, read_saved_files
 from move.utils.visualization_utils import visualize_indi_var, visualize_drug_similarity_across_all
 from move.utils.analysis import cal_reconstruction_change, overlapping_hits, identify_high_supported_hits, report_values, get_change_in_reconstruction, write_omics_results, make_files, get_inter_drug_variation, get_drug_similar_each_omics
+from move.utils.model_utils import correction_new
 
 import numpy as np 
 
@@ -55,19 +56,13 @@ def main(base_config: MOVEConfig):
     cat_list, con_list, cat_names, con_names, headers_all, drug, drug_h = get_data(headers_path, interim_data_path, categorical_names, continuous_names, data_of_interest)
     
     # Training the model
-    print('Beginning training the model.\n')
     train_model_association(processed_data_path, cuda, nepochs, nLatents, batch_sizes, nHiddens, nLayers, nBeta, nDropout, con_list, cat_list, continuous_weights, categorical_weights, version, repeats, kld_steps, batch_steps, lrate, drug, categorical_names, data_of_interest, seed)
-    print('\nFinished training the model.')
     
     # Loading the saved files by train_model_association() - for using the results without the need to rerun the function
-    results = np.load(processed_data_path + "results/results_" + version + ".npy", allow_pickle=True).item()
-    recon_results = np.load(processed_data_path + "results/results_recon_" + version + ".npy", allow_pickle=True).item()
-    groups = np.load(processed_data_path + "results/results_groups_" + version + ".npy", allow_pickle=True).item()
-    mean_bas = np.load(processed_data_path + "results/results_recon_mean_baseline_" + version + ".npy", allow_pickle=True).item()
-    recon_results_1 = np.load(processed_data_path + "results/results_recon_no_corr_" + version + ".npy", allow_pickle=True).item()
-    cor_results = np.load(processed_data_path + "wp2.2/sig_overlap/cor_results_" + version + ".npy", allow_pickle=True).item()
+    results, recon_results, groups, mean_bas = read_saved_files(nLatents, repeats, processed_data_path, version, drug)
     
     ### Starting the analysis
+    cor_results = correction_new(results)
     
     # Getting the reconstruction average results
     recon_average = cal_reconstruction_change(recon_results, repeats)

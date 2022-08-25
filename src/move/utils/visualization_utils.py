@@ -184,7 +184,7 @@ def draw_boxplot(path, df, title_text, y_label_text, save_fig_name):
     plt.ylabel(y_label_text, size=16)
     plt.xlabel('')
     plt.yticks(fontsize=16)
-    plt.savefig(path + f"hyperparameters/{save_fig_name}.png")
+    plt.savefig(path + f"hyperparameters/{save_fig_name}.png", bbox_inches='tight')
     
 
     

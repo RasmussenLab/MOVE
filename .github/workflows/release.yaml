@@ -1,5 +1,8 @@
 name: release on pypi
-on: push
+on:
+  push:
+    branches:
+      - main
 jobs:
   publish:
     name: Publish package

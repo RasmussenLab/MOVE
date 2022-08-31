@@ -175,7 +175,7 @@ def get_data(headers_path, interim_data_path, categorical_data_names, continuous
 
 # Functions for encoding
 
-def encode_cat(raw_input, na='NA'):
+def encode_cat(sorted_data, na='NA'):
     """
     Encodes categorical data into one-hot encoding
     
@@ -185,14 +185,16 @@ def encode_cat(raw_input, na='NA'):
          data_input: one hot encoded data
     """ 
      
-    matrix = np.array(raw_input)
+    matrix = np.array(sorted_data)
     n_labels = matrix.shape[1]
     n_samples = matrix.shape[0]
     
-    unique_sorted_data = np.unique(raw_input)
-    num_classes = len(unique_sorted_data[~np.isnan(unique_sorted_data)])
+    unique_sorted_data = np.unique(sorted_data)
+    x = np.where(unique_sorted_data == 'nan')
+    unique_sorted_data_nonan = np.delete(unique_sorted_data, x)
+    num_classes = len(unique_sorted_data_nonan)
     uniques = [*range(num_classes), 'nan']
- 
+    
     # make endocding dict
     encodings = defaultdict(dict)
     count = 0
@@ -205,7 +207,7 @@ def encode_cat(raw_input, na='NA'):
         encodings[u] = np.zeros(num_classes)
         encodings[u][count] = 1
         count += 1
-
+    
     # encode the data
     data_input = np.zeros((n_samples,n_labels,num_classes))
     i = 0
@@ -227,7 +229,7 @@ def encode_cat(raw_input, na='NA'):
         
     return data_input
 
-def encode_con(raw_input):
+def encode_con(sorted_data):
     """
     Log transforms and z-normalizes the data
     
@@ -237,17 +239,21 @@ def encode_con(raw_input):
          data_input: numpy array with log transformed and z-score normalized data
          mask_col: a np.array vector of Bolean values that correspond to nonzero sd values 
     """
-
-    matrix = np.array(raw_input)
-    consum = matrix.sum(axis=1)
+    
+    matrix = np.array(sorted_data)
+    consum = np.nansum(matrix, axis=1)
     
     data_input = np.log2(matrix + 1) 
+    
+    # change all nan in input to zero for encoding
+    np_index = np.isnan(matrix)
+    data_input[np_index] = 0
     
     # remove 0 variance
     std = np.nanstd(data_input, axis=0)
     mask_col = std != 0
     data_input = data_input[:,mask_col]
-     
+    
     # z-score normalize
     mean = np.nanmean(data_input, axis=0)
     std = np.nanstd(data_input, axis=0)
@@ -267,10 +273,10 @@ def sort_data(data, ids, labels):
     Returns:
          sorted_data: a list of source data sorted by IDs from baseline_ids.txt file
     """
-
+    
     n_labels = len(labels)
     sorted_data = list()
-
+    
     for _ids in ids:
         if _ids in data:
             sorted_data.append(data[_ids])
@@ -308,7 +314,7 @@ def read_ids(path, ids_file_name, ids_colname, ids_has_header=True):
     return ids
 
 
-def read_files(path, data_type, na):
+def read_files(var_type, path, data_type, na):
     """
     Function reads the input file into the dictionary
      
@@ -327,13 +333,22 @@ def read_files(path, data_type, na):
         header = f.readline()
         for line in f:
             line = line.rstrip()
-            tmp = np.array(line.split("\t"))
+            # make sure to enforce 25-char string to make sure no problems with missing
+            # when converting from e.g. NA to nan and it reads automatically as <U2
+            tmp = np.array(line.split("\t"), dtype=np.dtype('U25'))
             vals = tmp[1:]
-            vals[vals == na] = np.nan
-            vals = list(map(float, vals))
-            raw_input[tmp[0]] = vals
+            if var_type == 'categorical':
+                # store indexes of NAs
+                na_index = np.where(vals==na)
+                vals[na_index] = np.nan
+                raw_input[tmp[0]] = vals
+            elif var_type == 'continuous':
+                na_index = np.where(vals==na)
+                vals[na_index] = np.nan
+                vals_fl = list(map(float, vals))
+                raw_input[tmp[0]] = vals_fl
     header = header.split("\t")
-     
+    
     return raw_input, header
 
 def generate_file(var_type, raw_data_path, interim_data_path, headers_path, data_type, ids, na='NA'):
@@ -358,16 +373,16 @@ def generate_file(var_type, raw_data_path, interim_data_path, headers_path, data
         os.makedirs(headers_path)
     
     # Preparing the data
-    raw_input, header = read_files(raw_data_path, data_type, na)
+    raw_input, header = read_files(var_type, raw_data_path, data_type, na)
     sorted_data = sort_data(raw_input, ids, header)
-     
+    
     if var_type == 'categorical':
         data_input = encode_cat(sorted_data, 'nan')
         mask = None
-        
+    
     elif var_type == 'continuous':
         data_input, mask = encode_con(sorted_data)
-        
+    
     header = get_header(header, mask)
     
     np.savetxt(headers_path+data_type+'.txt', header, delimiter=',', fmt='%s')

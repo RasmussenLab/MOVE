@@ -11,7 +11,7 @@ def main(config: MOVEConfig) -> str:
           python -m move.02_optimize_reconstruction
           python -m move.03_optimize_stability
           python -m move.04_analyze_latent
-          python -m move.05_identify_drug_assosiation
+          python -m move.05_identify_associations
           
           To override the hyperparameter values, please write user defined values in the working directory in the following files:
           data.yaml, model.yaml, tuning_reconstruction.yaml, tuning_stability, training_latent.yaml, training_association.yaml. 

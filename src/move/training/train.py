@@ -92,7 +92,9 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
     for nHidden, nLatent, nl, drop, b, batch_size, r in iters:
 
         combi = str([nHidden] * nl) + "+" + str(nLatent) + ", drop: " + str(drop) +", b: " + str(b) + ", batch: " + str(batch_size)
-
+        
+        print('Testing: ', combi)
+        
         best_model, loss, ce, sse, KLD, train_loader, _, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list_train, con_list_train, categorical_weights, continuous_weights, batch_size, nHidden, nl, nLatent, b, drop, cuda, kldsteps, batchsteps, nepochs, lrate, seed+r, test_loader, patience, early_stopping=True)   
 
 
@@ -160,6 +162,9 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
     np.save(processed_data_path + "hyperparameters/test_recon_acc_benchmark_final.npy", recon_acc_tests)
     np.save(processed_data_path + "hyperparameters/test_loss_benchmark_final.npy", loss_tests)
     np.save(processed_data_path + "hyperparameters/test_likelihood_benchmark_final.npy", likelihood_tests)
+    
+    # print tsv
+    results_df.to_csv(processed_data_path + "hyperparameters/hyperparameters.results.tsv", sep="\t")
     
     print('The results saved.\n')
     

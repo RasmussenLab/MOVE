@@ -67,7 +67,7 @@ python -m move.01_encode_data
 python -m move.02_optimize_reconstruction
 python -m move.03_optimize_stability
 python -m move.04_analyze_latent
-python -m move.05_identify_drug_assosiation
+python -m move.05_identify_associations
 ```
 
 Python scripts have the same functions as notebooks. 

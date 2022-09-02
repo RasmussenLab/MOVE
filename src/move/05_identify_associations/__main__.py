@@ -67,10 +67,11 @@ def main(base_config: MOVEConfig):
     # Getting the reconstruction average results
     recon_average = cal_reconstruction_change(recon_results, repeats)
     
-    # Getting overlapping hits
+    # Getting overlapping hits in same latent space (ie. from repeats)
     sig_hits, median_p_val = overlapping_hits(nLatents, cor_results, repeats, con_names, drug)
     
     # Getting high supported hits
+    # Significant hits across latent spaces
     all_hits, collected_overlap = identify_high_supported_hits(sig_hits, drug_h, version, processed_data_path)
     
     # Saving the pi values of results of overlapping_hits() and  identify_high_supported_hits() functions

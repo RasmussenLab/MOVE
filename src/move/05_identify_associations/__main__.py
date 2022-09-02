@@ -88,6 +88,13 @@ def main(base_config: MOVEConfig):
     # Writing all the hits for each drug and database separately. Also, writing what features were increased or decreased with the association with the drug 
     write_omics_results(processed_data_path, up_down_list, collected_overlap, recon_average_corr_new_all, headers_all, continuous_names, drug_h, con_names)
     
+    ## TEMPORARY CODE TO WRITE OUT SIGNIFICANT HITS ACROSS LATENT ##
+    fh_out = open('processed_data/results/significant.hits.tsv', 'w')
+    for key,value in collected_overlap.items():
+        for v in value:
+            fh_out.write('%s\t%s\n' % (key, v))
+    fh_out.close()
+    
     # Saving the effect sizes (95 % interval) of results of get_change_in_reconstruction() functions
     # DOES NOT WORK ATM
     #make_files(collected_overlap, groups, con_list_concat, processed_data_path, recon_average_corr_all_indi_new, con_names, continuous_names, drug_h, drug, all_hits, types, version)

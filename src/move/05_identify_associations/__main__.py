@@ -35,7 +35,7 @@ def main(base_config: MOVEConfig):
     lrate = cfg.model.lrate
     kld_steps = cfg.model.kld_steps
     batch_steps = cfg.model.batch_steps
-
+    
     nHiddens = cfg.training_association.num_hidden
     nLatents = cfg.training_association.num_latent
     nLayers = cfg.training_association.num_layers
@@ -89,15 +89,19 @@ def main(base_config: MOVEConfig):
     write_omics_results(processed_data_path, up_down_list, collected_overlap, recon_average_corr_new_all, headers_all, continuous_names, drug_h, con_names)
     
     # Saving the effect sizes (95 % interval) of results of get_change_in_reconstruction() functions
-    make_files(collected_overlap, groups, con_list_concat, processed_data_path, recon_average_corr_all_indi_new, con_names, continuous_names, drug_h, drug, all_hits, types, version)
+    # DOES NOT WORK ATM
+    #make_files(collected_overlap, groups, con_list_concat, processed_data_path, recon_average_corr_all_indi_new, con_names, continuous_names, drug_h, drug, all_hits, types, version)
     
-    # Getting inter drug variation 
-    df_indi_var = get_inter_drug_variation(con_names, drug_h, recon_average_corr_all_indi_new, groups, collected_overlap, drug, con_list_concat, processed_data_path, types)
-
+    # Getting inter drug variation
+    # DOES NOT WORK ATM
+    #df_indi_var = get_inter_drug_variation(con_names, drug_h, recon_average_corr_all_indi_new, groups, collected_overlap, drug, con_list_concat, processed_data_path, types)
+    
+    # DEPENDENT ON THE ABOVE FUNCTIONS
     # Visualizing variation, heatmap of similarities within drugs across all data and specific for each omics
-    visualize_indi_var(df_indi_var, version, processed_data_path)
-    visualize_drug_similarity_across_all(recon_average_corr_new_all, drug_h, version, processed_data_path)
-    get_drug_similar_each_omics(con_names, continuous_names, all_hits, recon_average_corr_new_all, drug_h, version, processed_data_path)
+    # DOES NOT WORK ATM
+    #visualize_indi_var(df_indi_var, version, processed_data_path)
+    #visualize_drug_similarity_across_all(recon_average_corr_new_all, drug_h, version, processed_data_path)
+    #get_drug_similar_each_omics(con_names, continuous_names, all_hits, recon_average_corr_new_all, drug_h, version, processed_data_path)
     
 if __name__ == "__main__":
     main()

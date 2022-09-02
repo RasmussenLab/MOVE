@@ -553,16 +553,16 @@ def read_saved_files(nLatents, repeats, path, version, drug):
     
     iters = itertools.product(nLatents, range(repeats))
     for nLatent, repeat in iters:
-        result = np.load(f'results/05_identify_associations/results_{str(nLatent)}_{str(repeat)}_{version}.npy', mmap_mode='r', allow_pickle = True)
-        mean_ba = np.load(f'results/05_identify_associations/mean_bas_{str(nLatent)}_{str(repeat)}_{version}.npy', mmap_mode='r', allow_pickle = True)
-        recon_result = np.load(f'results/05_identify_associations/recon_results_{str(nLatent)}_{str(repeat)}_{version}.npy', mmap_mode='r', allow_pickle = True)
+        result = np.load(path + f'05_identify_associations/results_{str(nLatent)}_{str(repeat)}_{version}.npy', mmap_mode='r', allow_pickle = True)
+        mean_ba = np.load(path + f'05_identify_associations/mean_bas_{str(nLatent)}_{str(repeat)}_{version}.npy', mmap_mode='r', allow_pickle = True)
+        recon_result = np.load(path + f'05_identify_associations/recon_results_{str(nLatent)}_{str(repeat)}_{version}.npy', mmap_mode='r', allow_pickle = True)
         recon_result_dict = {i:recon_result[i] for i in range(recon_result.shape[0])}
         
         results[nLatent].append(result)
         recon_results[nLatent].append(recon_result_dict)
         mean_bas[nLatent].append(mean_ba) 
     
-    group = np.load("results/05_identify_associations/results_groups_" + version + ".npy", mmap_mode='r', allow_pickle = True)
+    group = np.load(path + "05_identify_associations/results_groups_" + version + ".npy", mmap_mode='r', allow_pickle = True)
     group_dict = {i:group[i] for i in range(group.shape[0])}
     
     return(results, recon_results, groups, mean_bas)

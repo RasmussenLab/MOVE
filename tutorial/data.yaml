@@ -1,4 +1,4 @@
-na_value: NA
+na_value: na
 
 # raw - for raw data (e.g., the TSVs)
 # interim - for intermediate data (e.g., the NPYs)
@@ -6,24 +6,38 @@ na_value: NA
 raw_data_path: data/
 interim_data_path: interim_data/
 processed_data_path: processed_data/
-headers_path: headers/
+#headers_path: headers/
 version: v1
 
-ids_file_name: random.small.ids.txt
+ids_file_name: baseline_ids.txt
 ids_has_header: False
 ids_colname: 0
 
 categorical_inputs:
-  - name: random.small.drugs
+  - name: diabetes_genotypes
+    weight: 1
+  - name: baseline_drugs
+    weight: 1
+  - name: baseline_categorical
     weight: 1
 
 continuous_inputs:
-  - name: random.small.proteomics
+  - name: baseline_continuous
+    weight: 2
+  - name: baseline_transcriptomics
     weight: 1
-  - name: random.small.metagenomics
+  - name: baseline_diet_wearables
+    weight: 1
+  - name: baseline_proteomic_antibodies
+    weight: 1
+  - name: baseline_target_metabolomics
+    weight: 1
+  - name: baseline_untarget_metabolomics
+    weight: 1
+  - name: baseline_metagenomics
     weight: 1
 
-data_of_interest: random.small.drugs
+data_of_interest: baseline_drugs
 
 categorical_names: ${names:${data.categorical_inputs}}
 continuous_names: ${names:${data.continuous_inputs}}
@@ -31,12 +45,10 @@ categorical_weights: ${weights:${data.categorical_inputs}}
 continuous_weights: ${weights:${data.continuous_inputs}}
 
 data_features_to_visualize_notebook4:
-  - drugs_1
-  - proteomics_1
-  - proteomics_124
-  - proteomics_193
-  - metagenomics_695
+  - drug_1
+  - clinical_continuous_2
+  - clinical_continuous_3
 
 write_omics_results_notebook5:
-  - random.small.proteomics
-  - random.small.metagenomics
+  - baseline_target_metabolomics
+  - baseline_untarget_metabolomics 

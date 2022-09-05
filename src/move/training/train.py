@@ -1,20 +1,21 @@
 # Import functions
-import os
-import torch
-import numpy as np
 import copy
-import pandas as pd 
-
-from torch.utils.data import DataLoader
-
-import umap.umap_ as umap
+import itertools
+import os
 import random
-import itertools 
+
+import numpy as np
+import pandas as pd
+import torch
+import umap.umap_ as umap
+from torch.utils.data import DataLoader
 
 from move.models import vae
 from move.utils import dataloaders
-from move.utils.model_utils import get_latent, cal_recon, cal_cat_recon, cal_con_recon, get_baseline, change_drug, cal_sig_hits, correction_new, get_start_end_positions 
 from move.utils.data_utils import initiate_default_dicts
+from move.utils.model_utils import (cal_cat_recon, cal_con_recon, cal_recon,
+                                    cal_sig_hits, change_drug, get_baseline,
+                                    get_latent, get_start_end_positions)
 from move.utils.seed import set_global_seed
 
 
@@ -166,7 +167,6 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
     print('The results saved.\n')
     
     return(likelihood_tests, recon_acc_tests, recon_acc, results_df)
-
 
 
 def optimize_stability(nHiddens, nLatents, nDropout, nBeta, repeat, nepochs, nLayers, batch_sizes, lrate, kldsteps, batchsteps, cuda, path, con_list, cat_list, continuous_weights, categorical_weights, seed):

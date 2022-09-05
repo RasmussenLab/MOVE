@@ -3,6 +3,7 @@ import copy
 import itertools
 import os
 import random
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -279,17 +280,9 @@ def train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHidden,
     """
         
     # For data saving results
-    isExist = os.path.exists(path + '05_identify_associations')
-    if not isExist:
-        os.makedirs(path + '05_identify_associations')
-    
-    isExist = os.path.exists(path + '05_identify_associations/sig_overlap/')
-    if not isExist:
-        os.makedirs(path + '05_identify_associations/sig_overlap/')
-    
-    results, recon_results, recon_results_1, mean_bas = initiate_default_dicts(n_empty_dicts=0, n_list_dicts=4)
-    
-    results_df = []
+    output_path = Path(path) / "05_identify_associations"
+    (output_path / "sig_overlap").mkdir(parents=True, exist_ok=True)
+
     start, end = get_start_end_positions(cat_list, categorical_names, data_of_interest)
     iters = itertools.product(nLatents, range(repeats))
     
@@ -316,12 +309,12 @@ def train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHidden,
             recon_diff_corr[r_diff] = recon_diff[r_diff] - np.abs(mean_baseline[groups[r_diff]])
         
         # Saving the files 
-        np.save(path + f'05_identify_associations/results_{str(nLatent)}_{str(repeat)}_{version}', stat)
-        np.save(path + f'05_identify_associations/recon_results_{str(nLatent)}_{str(repeat)}_{version}', np.array(list(recon_diff_corr.values())))
-        np.save(path + f'05_identify_associations/mean_bas_{str(nLatent)}_{str(repeat)}_{version}', mean_baseline)
-        np.save(path + f'05_identify_associations/recon_results_1_{str(nLatent)}_{str(repeat)}_{version}', np.array(list(recon_diff.values())))
+        np.save(output_path / f'results_{nLatent}_{repeat}_{version}', stat)
+        np.save(output_path / f'recon_results_{nLatent}_{repeat}_{version}', np.array(list(recon_diff_corr.values())))
+        np.save(output_path / f'mean_bas_{nLatent}_{repeat}_{version}', mean_baseline)
+        np.save(output_path / f'recon_results_1_{nLatent}_{repeat}_{version}', np.array(list(recon_diff.values())))
     
-    np.save(path + "05_identify_associations/results_groups_" + version + ".npy", np.array(list(groups.values())))
+    np.save(output_path / f"results_groups_{version}.npy", np.array(list(groups.values())))
     print('\nFinished training the model.')
     
 def train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_size, nHidden, nl, nLatent, b, drop, cuda, kldsteps, batchsteps, nepochs, lrate, seed, test_loader, patience, early_stopping):

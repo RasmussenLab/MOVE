@@ -613,37 +613,37 @@ def overlapping_hits(nLatents, cor_results, repeats, con_names, drug):
         median_p_val: TODO
     '''
     
-    
     sig_hits = defaultdict(dict)
     overlaps_d = defaultdict(list)
     counts = list()
-
+    
     new_list = nLatents[::-1]
-
+    
     median_p_val = defaultdict(dict)
     for l in range(len(new_list)):
         for d in range(cor_results[0][new_list[l]].shape[0]):
             hits_tmp = list()
             p_cors = defaultdict(list)
             for repeat in range(repeats):
-
+                
                 ns = con_names[cor_results[repeat][new_list[l]][d,:] <= 0.05]
-
+                
                 p_cor = cor_results[repeat][new_list[l]][d,:]
                 p_cor = p_cor[p_cor <= 0.05]
                 for i,ns_t in enumerate(ns):
                     p_cors[ns_t].append(p_cor[i])
-
+                
                 hits_tmp.extend(ns)
-
+            
             overlap_tmp = [hits_tmp.count(x) for x in np.unique(hits_tmp)]
             overlap = np.array(np.unique(hits_tmp))[np.array(overlap_tmp) >= 5]
             m_p = []
             for o_t in overlap:
                 m_p.append(np.median(p_cors[o_t]))
-
+            
             sig_hits[d][new_list[l]] = overlap
             median_p_val[d][new_list[l]] = m_p
+    
     return(sig_hits, median_p_val)
 
 def identify_high_supported_hits(sig_hits, drug_h, version, path): 

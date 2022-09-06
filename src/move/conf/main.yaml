@@ -9,7 +9,7 @@ defaults:
   - training_latent: main.yaml
   - training_association: main.yaml
   - experiment: null
-
+  - override /hydra/job_logging: none #disabling hydra logging and using custom logging instead
 hydra:
   output_subdir: null
   run:

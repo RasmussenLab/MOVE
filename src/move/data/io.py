@@ -5,77 +5,113 @@ from typing import Union
 
 import hydra
 import numpy as np
+import pandas as pd
+from numpy.typing import ArrayLike
 from omegaconf import OmegaConf
 
 from move import conf
 from move.conf.schema import MOVEConfig
+from move.core.typing import PathLike
 
 
-def read_config(filepath: Union[str, Path]) -> MOVEConfig:
+def read_config(filepath: Union[str, Path] = None) -> MOVEConfig:
     """Composes configuration for the MOVE framework.
 
-    Parameters
-    ----------
-    filepath : Union[str, Path]
-        Path to YAML configuration file
+    Args:
+        filepath: Path to YAML configuration file
 
-    Returns
-    -------
-    move.conf.MOVEConfig
+    Returns:
+        Merged configuration
     """
     with hydra.initialize_config_module(conf.__name__):
         base_config = hydra.compose("main")
 
-    user_config = OmegaConf.load(filepath)
-    return OmegaConf.merge(base_config, user_config)
+    if filepath is not None:
+        user_config = OmegaConf.load(filepath)
+        return OmegaConf.merge(base_config, user_config)
+    else:
+        return base_config
 
 
-# NOTE: Adapted from Notebook #4
+def read_cat(filepath: PathLike) -> np.ndarray:
+    """Reads categorical data in a NumPy file.
 
-# Functions for reading data
-def read_cat(file):
-    data = np.load(file)
+    Args:
+        filepath: Path to NumPy file containing a categorical dataset
+
+    Returns:
+        The dataset
+    """
+    data = np.load(filepath)
     data = data.astype(np.float32)
-    data_input = data.reshape(data.shape[0], -1)
-    return data, data_input  # ???: Is second output necessary?
+    return data
 
 
-def read_con(file):
-    data = np.load(file)
+def read_con(filepath: PathLike) -> tuple[np.ndarray]:
+    """Reads continuous data in a NumPy file and filters out columns (features)
+    whose sum is zero.
+
+    Args:
+        filepath: Path to NumPy file containing a continuous dataset
+
+    Returns:
+        The dataset and a mask of excluded features
+    """
+    data = np.load(filepath)
     data = data.astype(np.float32)
     data[np.isnan(data)] = 0
-    consum = data.sum(axis=0)
-    mask_col = consum != 0
+    mask_col = data.sum(axis=0) != 0
     data = data[:, mask_col]
     return data, mask_col
 
 
-def read_header(file, mask=None, start=1):
-    with open(file, "r") as f:
-        h = f.readline().rstrip().split("\t")[start:]
-    if not mask is None:
-        h = np.array(h)
-        h = h[mask]
-    return h
+def read_header(filepath: PathLike, mask: ArrayLike=None) -> list[str]:
+    """Reads features names from the headers
+
+    Args:
+        filepath: Path to file
+        mask: Mask to exclude names from header
+
+    Returns:
+        list of strings of elements in the header
+    """
+
+    header = pd.read_csv(filepath, sep="\t", header=None)
+    header = header.iloc[:, 0].astype("str")
+    if mask is not None:
+        header = header[mask]
+    return header.to_list()
 
 
-def read_data(config: MOVEConfig):
-    categorical_vars = []
-    continuous_vars = []
+def read_data(
+    config: MOVEConfig,
+) -> tuple[list[np.ndarray], list[str], list[np.ndarray], list[str]]:
+    """Reads the pre-processed categorical and continuous data.
 
-    categorical_headers = []
-    continuous_headers = []
+    Args:
+        config: Hydra configuration
 
-    output_path = Path(config.data.interim_data_path)
+    Returns:
+        Returns two pairs of list containing the pre-processed data and its
+        headers
+    """
+    interim_path = Path(config.data.interim_data_path)
+    headers_path = Path(config.data.headers_path)
 
-    for var_list, header_list, input_configs in [
-        (categorical_vars, categorical_headers, config.data.categorical_inputs),
-        (continuous_vars, continuous_headers, config.data.continuous_inputs),
-    ]:
-        for input_config in input_configs:
-            var, _ = read_cat(output_path / f"{input_config.name}.npy")
-            header = read_header(output_path / f"{input_config.name}.tsv")
-            var_list.append(var)
-            header_list += header
+    categorical_data, categorical_headers = [], []
+    for input_config in config.data.categorical_inputs:
+        name = input_config.name
+        data = read_cat(interim_path / f"{name}.npy")
+        categorical_data.append(data)
+        header = read_header(headers_path / f"{name}.txt")
+        categorical_headers.append(header)
 
-    return categorical_vars, categorical_headers, continuous_vars, continuous_headers
+    continuous_data, continuous_headers = [], []
+    for input_config in config.data.continuous_inputs:
+        name = input_config.name
+        data, mask = read_con(interim_path / f"{name}.npy")
+        continuous_data.append(data)
+        header = read_header(headers_path / f"{name}.txt", mask)
+        continuous_headers.append(header)
+
+    return categorical_data, categorical_headers, continuous_data, continuous_headers

@@ -22,7 +22,9 @@ from scipy import stats
 from move.utils.data_utils import initiate_default_dicts
 from move.utils import dataloaders
 from move.models import vae
+import logging
 
+logger = logging.getLogger('analysis')
 
 def get_top10_stability(nHiddens, nLatents, drop_outs, nLayers, repeat, latents, batch_sizes, nBeta):
     '''
@@ -55,7 +57,7 @@ def get_top10_stability(nHiddens, nLatents, drop_outs, nLayers, repeat, latents,
         
         name = str([nHidden] * nl) + "+" + str(nLatent) + ", do: " + str(drop) +", b: " + str(b)
 
-        print(name)
+        logger.info(name)
         top10_changes[name] = [ [] for i in range(npatient) ]
      
         for r in range(repeat):
@@ -75,7 +77,7 @@ def get_top10_stability(nHiddens, nLatents, drop_outs, nLayers, repeat, latents,
                     #summed_max = np.mean(row[old_pos])
                     top10_changes[name][index].append(np.mean(abs(old_sum - row[old_pos])))
                     step.append(np.mean(abs(old_sum - row[old_pos])))
-            print(r)
+            logger.info(r)
             if r != 0:
                 stability_top10[name].append(np.mean(step))
                 stability_top10_df.append({
@@ -553,7 +555,7 @@ def get_feat_importance_on_weights(path, model, train_loader, cat_names, con_nam
     pos = 0
     for s in cat_shapes:
         n = s[1] * s[2]
-        print(n)
+        logger.info(n)
         cat_w_sum_tmp = w_sum_cat[pos:(n + pos)]
         cat_w_sum_tmp = cat_w_sum_tmp.reshape(s[1], s[2])
         sum_d = np.sum(cat_w_sum_tmp, axis=1)
@@ -766,7 +768,7 @@ def get_change_in_reconstruction(recon_average, groups, drug, drug_h, con_names,
 
     for l in recon_average.keys():
         for d in recon_average[l].keys():
-            print(d)
+            logger.info(d)
             tmp_recon = np.copy(recon_average[l][d])
             gr = groups[d]
             g = [not (np.all(a_s == types[0]) or (np.all(a_s == [0,0]))) for a_s in drug[gr,d,:]]
@@ -806,7 +808,7 @@ def get_change_in_reconstruction(recon_average, groups, drug, drug_h, con_names,
     recon_average_corr_new_all = list()
     recon_average_corr_all_indi_new = dict()
     for d in recon_average_corr_all.keys():
-        print(d)
+        logger.info(d)
         counts_tmp = np.array(counts_average_all[d])
         tmp_l = np.array(recon_average_corr_all[d])[counts_tmp != 0]
         included_names = con_names[counts_tmp != 0]

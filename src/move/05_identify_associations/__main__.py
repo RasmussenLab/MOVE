@@ -7,11 +7,16 @@ from move.utils.data_utils import get_data, merge_configs, read_saved_files
 from move.utils.visualization_utils import visualize_indi_var, visualize_drug_similarity_across_all
 from move.utils.analysis import cal_reconstruction_change, overlapping_hits, identify_high_supported_hits, report_values, get_change_in_reconstruction, write_omics_results, make_files, get_inter_drug_variation, get_drug_similar_each_omics
 from move.utils.model_utils import correction_new
+from move.utils.logger import get_logger
 
 import numpy as np 
 
 @hydra.main(config_path="../conf", config_name="main")
 def main(base_config: MOVEConfig): 
+    # Making logger for data writing
+    logger = get_logger(logging_path='./logs/',
+                        file_name='05_identify_associations.log',
+                        script_name=__name__)
     
     # Overriding base_config with the user defined configs.
     cfg = merge_configs(base_config=base_config, 

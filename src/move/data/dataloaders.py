@@ -59,7 +59,7 @@ def concat_cat_list(
 
 
 def concat_con_list(con_list, mask=None):
-    con_shapes = [con.shape for con in con_list]
+    con_shapes = [con.shape[1] for con in con_list]
     con_all = np.concatenate(con_list, axis=1)
     mask = con_all.sum(axis=1) != 0  # True if row sum is not zero
     return con_shapes, mask, con_all

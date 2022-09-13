@@ -85,7 +85,7 @@ def read_header(filepath: PathLike, mask: ArrayLike=None) -> list[str]:
 
 def read_data(
     config: MOVEConfig,
-) -> tuple[list[np.ndarray], list[str], list[np.ndarray], list[str]]:
+) -> tuple[list[np.ndarray], list[list[str]], list[np.ndarray], list[list[str]]]:
     """Reads the pre-processed categorical and continuous data.
 
     Args:

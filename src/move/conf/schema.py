@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
-from typing import List
+from typing import Any, List
 
 @dataclass
 class InputConfig:
@@ -97,8 +97,32 @@ class TrainingAssociationConfig:
     tuned_num_epochs: int
 
 @dataclass
+class TrainingLoopConfig:
+    _target_: str
+    num_epochs: int
+    lr: float
+    kld_warmup_steps: list[int]
+    batch_dilation_steps: list[int]
+    early_stopping: bool
+    patience: bool
+    cuda: bool
+
+@dataclass
+class TaskConfig:
+    model: VAEConfig
+    training_loop: TrainingLoopConfig
+
+@dataclass
+class IdentifyAssociationsBayesConfig(TaskConfig):
+    target_dataset: str
+    target_value: Any
+    num_refits: int = 30
+    fdr_threshold: float = 0.05
+
+@dataclass
 class MOVEConfig:
     data: DataConfig
+    task: TaskConfig
     model: VAEConfig
     tune_reconstruction: TuningReconstructionConfig
     tune_stability: TuningStabilityConfig
@@ -118,6 +142,7 @@ def extract_names(configs: List[InputConfig]) -> List[int]:
 # Store config schema
 cs = ConfigStore.instance()
 cs.store(name="config", node=MOVEConfig)
+cs.store(group="task", name="identify_associations_bayes", node=IdentifyAssociationsBayesConfig)
 
 # Register custom resolvers
 OmegaConf.register_new_resolver("weights", extract_weights)

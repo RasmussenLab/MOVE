@@ -4,6 +4,10 @@ import pandas as pd
 import itertools
 from collections import defaultdict
 from omegaconf import OmegaConf
+import logging
+
+# Defining a logger name for logging
+logger = logging.getLogger('data_utils')
 
 def merge_configs(base_config, config_types):
     """
@@ -32,7 +36,8 @@ def merge_configs(base_config, config_types):
     
     # Printing what was overrided
     override_types_str = ', '.join(str(override_type) for override_type in override_types)
-    print(f'Overriding the default config with configs from {override_types_str}')
+    
+    logger.info(f'Overriding the default config with configs from {override_types_str}')
     
     # Merging the base and user defined config file
     config = OmegaConf.merge(base_config, user_config_dict)
@@ -41,7 +46,7 @@ def merge_configs(base_config, config_types):
     config_section_dict = {x: config[x] for x in config_types if x in config}
     config_section = OmegaConf.create(config_section_dict)
 
-    print(f'\nConfiguration used: \n---\n{OmegaConf.to_yaml(config_section)}---\n')
+    logger.info(f'\n\nConfiguration used:\n{OmegaConf.to_yaml(config_section)}')
     return(config_section)
 
 
@@ -381,14 +386,14 @@ def generate_file(var_type, raw_data_path, interim_data_path, headers_path, data
         mask = None
     
     elif var_type == 'continuous':
-        print(data_type)
         data_input, mask = encode_con(sorted_data)
     
     header = get_header(header, mask)
     
     np.savetxt(headers_path+data_type+'.txt', header, delimiter=',', fmt='%s')
     np.save(interim_data_path + f"{data_type}.npy", data_input)
-
+    
+    logger.info(f'  Encoded {data_type}')
 
 def get_header(header, mask=None, start=1):
     """
@@ -467,7 +472,7 @@ def make_and_save_best_reconstruct_params(results_df, hyperparams_names, max_par
     # Getting the best number of epochs used in further trainings
     best_epoch = get_best_epoch(results_df)
     
-    print('Starting calculating the best hyperparameter values for further optimization') 
+    logger.info('Starting calculating the best hyperparameter values for further optimization') 
     
     results_df_sorted = get_sort_list(results_df)
     best_hyperpars_vals_dict = get_best_params(results_df_sorted, max_param_combos_to_save, hyperparams_names)
@@ -478,8 +483,8 @@ def make_and_save_best_reconstruct_params(results_df, hyperparams_names, max_par
         OmegaConf.save(OmegaConf.create(dict(best_hyperpars_vals_dict)), f)
 
     #Printing the saved hyper parameter values
-    print(f'Saving the best hyperparameter values in tuning_stability.yaml for further optimization: \n{OmegaConf.to_yaml(dict(best_hyperpars_vals_dict))}\n')
-    print('Please manually review if the hyperparameter values were selected correctly and adjust them in the tuning_stability.yaml file.')
+    logger.info(f'Saving the best hyperparameter values in tuning_stability.yaml for further optimization:\n \n{OmegaConf.to_yaml(dict(best_hyperpars_vals_dict))}\n')
+    logger.warning('Please manually review if the hyperparameter values were selected correctly and adjust them in the tuning_stability.yaml file.')
     
 
 def get_best_stability_paramset(stability_df, hyperparams_names):
@@ -524,7 +529,7 @@ def get_best_4_latent_spaces(results_df_sorted):
 
 def make_and_save_best_stability_params(results_df, hyperparams_names, nepochs):
     
-    print('Starting calculating the best hyperparameter values used in further model trainings') 
+    logger.info('Starting calculating the best hyperparameter values used in further model trainings') 
     
     # Getting best set of hyperparameters
     params_to_save, results_df_sorted = get_best_stability_paramset(results_df, hyperparams_names)
@@ -535,7 +540,7 @@ def make_and_save_best_stability_params(results_df, hyperparams_names, nepochs):
         OmegaConf.save(OmegaConf.create(dict(params_to_save)), f)
         
     # Printing the configuration saved 
-    print(f'Saving best hyperparameter values in training_latent.yaml: \n{OmegaConf.to_yaml(dict(params_to_save))}')
+    logger.info(f'Saving best hyperparameter values in training_latent.yaml: \n\n{OmegaConf.to_yaml(dict(params_to_save))}')
     
     # Getting the latent spaces for training_association script and using them with the best hyperparam set
     best_latent = get_best_4_latent_spaces(results_df_sorted)
@@ -546,8 +551,8 @@ def make_and_save_best_stability_params(results_df, hyperparams_names, nepochs):
         OmegaConf.save(OmegaConf.create(dict(params_to_save)), f)
 
     # Printing the configuration saved 
-    print(f'Saving best hyperparameter values in training_association.yaml: \n{OmegaConf.to_yaml(dict(params_to_save))}')
-    
+    logger.info(f'Saving best hyperparameter values in training_association.yaml: \n \n{OmegaConf.to_yaml(dict(params_to_save))}')
+    logger.warning('Please manually review if the hyperparameter values were selected correctly and adjust them in the training_association.yaml and training_latent.yaml files.')
 def read_saved_files(nLatents, repeats, path, version, drug):
     results, recon_results, groups, mean_bas = initiate_default_dicts(n_empty_dicts=0, n_list_dicts=4)
     

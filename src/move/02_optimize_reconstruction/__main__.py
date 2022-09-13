@@ -5,9 +5,15 @@ from move.conf.schema import MOVEConfig
 from move.training.train import optimize_reconstruction
 from move.utils.data_utils import get_data, merge_configs, make_and_save_best_reconstruct_params 
 from move.utils.visualization_utils import visualize_likelihood, visualize_recon_acc
+from move.utils.logger import get_logger
 
 @hydra.main(config_path="../conf", config_name="main")
 def main(base_config: MOVEConfig): 
+    
+    # Making logger for data writing
+    logger = get_logger(logging_path='./logs/',
+                        file_name='02_optimize_reconstruction.log',
+                        script_name=__name__)
     
     # Overriding base_config with the user defined configs.
     cfg = merge_configs(base_config=base_config, 
@@ -65,9 +71,9 @@ def main(base_config: MOVEConfig):
         visualize_likelihood(processed_data_path, nLayers, nHiddens, nDropout, nBeta, nLatents, likelihood_tests)
         visualize_recon_acc(processed_data_path, nLayers, nHiddens, nDropout, nBeta, nLatents, recon_acc_tests, 'test')
         visualize_recon_acc(processed_data_path, nLayers, nHiddens, nDropout, nBeta, nLatents, recon_acc, 'train')  
-        print('Visualizing the hyperparameter tuning results\n')
+        logger.info('Visualizing the hyperparameter tuning results\n')
     except:
-        print('Could not visualize the results\n')
+        logger.warning('Could not visualize the results\n')
 
     # Getting and saving the best n hyperparameter set value combinations for further optimisation 
     hyperparams_names = ['num_hidden','num_latent', 'num_layers', 'dropout', 'beta', 'batch_sizes']

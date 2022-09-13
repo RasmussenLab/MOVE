@@ -4,7 +4,10 @@ import numpy as np
 import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader
+import logging
 
+
+logger = logging.getLogger('vae.py')
 
 class VAE(nn.Module):
     """Variational autoencoder.
@@ -320,7 +323,7 @@ class VAE(nn.Module):
 
             optimizer.step()
 
-        print(
+        logger.info(
             "\tEpoch: {}\tLoss: {:.6f}\tCE: {:.7f}\tSSE: {:.6f}\t"
             "KLD: {:.4f}\tBatchsize: {}".format(
                 epoch,
@@ -483,7 +486,7 @@ class VAE(nn.Module):
             row += len(mu)
 
         test_loss /= len(dataloader)
-        print("====> Test set loss: {:.4f}".format(test_loss))
+        logger.info("====> Test set loss: {:.4f}".format(test_loss))
         
         latent = latent.numpy()
         latent_var = latent_var.numpy()

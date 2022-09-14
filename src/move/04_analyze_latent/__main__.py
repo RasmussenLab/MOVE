@@ -10,7 +10,7 @@ from move.utils.logger import get_logger
 
 import numpy as np
 
-@hydra.main(config_path="../conf", config_name="main")
+@hydra.main(config_path="../conf", config_name="main", version_base="1.2")
 def main(base_config: MOVEConfig): 
     # Making logger for data writing
     logger = get_logger(logging_path='./logs/',

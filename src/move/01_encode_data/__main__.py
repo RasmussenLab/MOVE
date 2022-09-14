@@ -10,7 +10,7 @@ from move.utils.data_utils import read_ids, generate_file, merge_configs
 from move.utils.logger import get_logger
 
 
-@hydra.main(config_path="../conf", config_name="main")
+@hydra.main(config_path="../conf", config_name="main", version_base="1.2")
 def main(base_config: MOVEConfig):
 
     # Making logger for data writing

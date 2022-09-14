@@ -8,7 +8,7 @@ from move.utils.visualization_utils import draw_boxplot
 from move.utils.analysis import get_top10_stability, calculate_latent
 from move.utils.logger import get_logger
 
-@hydra.main(config_path="../conf", config_name="main")
+@hydra.main(config_path="../conf", config_name="main", version_base="1.2")
 def main(base_config: MOVEConfig): 
     # Making logger for data writing
     logger = get_logger(logging_path='./logs/',

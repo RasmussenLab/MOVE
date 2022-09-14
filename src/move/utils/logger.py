@@ -11,13 +11,14 @@ def get_logger(logging_path, file_name, script_name):
     
     # Logging to the file and console
     file_handler = logging.FileHandler(os.path.join(logging_path, file_name))
-    stream_handler = logging.StreamHandler()
+    #stream_handler = logging.StreamHandler()
     
     formatter = '%(levelname)-7s %(name)-10s   %(message)s'
     
     logging.basicConfig(level=logging.INFO, 
                         format=formatter,
-                        handlers=[file_handler, stream_handler])
+    #                    handlers=[file_handler, stream_handler])
+                        handlers=[file_handler])
     
     logger = logging.getLogger(script_name)
 

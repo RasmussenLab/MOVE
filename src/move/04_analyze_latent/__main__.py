@@ -18,7 +18,7 @@ def main(base_config: MOVEConfig):
                         script_name=__name__)
 
     # Overriding base_config with the user defined configs.
-    cfg = merge_configs(base_config=base_config, 
+    cfg: MOVEConfig = merge_configs(base_config=base_config, 
                 config_types=['data', 'model', 'training_latent'])
     
     #Getting the variables used in the notebook
@@ -70,8 +70,9 @@ def main(base_config: MOVEConfig):
     cat_total_recon = calc_categorical_reconstruction_acc(cat_shapes, cat_class, cat_recon)
     all_values = calc_continuous_reconstruction_acc(con_shapes, con_recon, train_loader)
     
-    # Plotting the reconstruction distributions   
-    plot_reconstruction_distribs(processed_data_path, cat_total_recon, all_values)
+    # Plotting the reconstruction distributions
+    all_names = cfg.data.categorical_names + cfg.data.continuous_names
+    plot_reconstruction_distribs(processed_data_path, cat_total_recon, all_values, all_names)
     
     # Getting the embeddings
     logger.info('Getting the embeddings.')    

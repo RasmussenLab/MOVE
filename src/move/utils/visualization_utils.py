@@ -156,23 +156,6 @@ def visualize_recon_acc(path, nLayers, nHiddens, nDropout, nBeta, nLatents, reco
     plt.savefig(path + f"hyperparameters/all_recon_{data_type}.png")
 
     
-def plot_graphs():
-    fig = plt.figure()
-    plt.plot(epochs, loss, '-g', label='loss')
-    plt.plot(epochs, ce, '-b', label='CE')
-    plt.plot(epochs, sse, '-r', label='SSE')
-    plt.plot(epochs, KLD, '-y', label='KLD')
-    plt.legend()
-    plt.savefig(path + "/evaluation/loss_" + combi +".png")
-    plt.clf()
-
-    fig = plt.figure()
-    plt.plot(epochs, loss, '-b', label='loss')
-    plt.plot(batchsteps, loss_test, '-r', label='test loss')
-    plt.legend()
-    plt.savefig(path + "/evaluation/test_loss_" + combi +".png")
-    plt.clf()    
-    
     
 def draw_boxplot(path, df, title_text, y_label_text, save_fig_name):
     
@@ -279,10 +262,10 @@ def visualize_training(path, losses, ce, sse, KLD, epochs):
     plt.legend()
     plt.savefig(path + "loss_test.png")
     
-def plot_reconstruction_distribs(path, cat_total_recon, all_values):
+def plot_reconstruction_distribs(path, cat_total_recon, all_values, all_names):
     
     # Plot the reconstruction distributions
-    df = pd.DataFrame(cat_total_recon + all_values, index = ['Clinical\n(categorical)', 'Genomics', 'Drug data', 'Clinical\n(continuous)', 'Diet +\n wearables','Proteomics','Targeted\nmetabolomics','Untargeted\nmetabolomics', 'Transcriptomics', 'Metagenomics'])
+    df = pd.DataFrame(cat_total_recon + all_values, index=all_names)
     df_t = df.T
 
     fig = plt.figure(figsize=(25,15))

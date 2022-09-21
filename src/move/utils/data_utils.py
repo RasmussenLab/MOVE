@@ -553,6 +553,7 @@ def make_and_save_best_stability_params(results_df, hyperparams_names, nepochs):
     # Printing the configuration saved 
     logger.info(f'Saving best hyperparameter values in training_association.yaml: \n \n{OmegaConf.to_yaml(dict(params_to_save))}')
     logger.warning('Please manually review if the hyperparameter values were selected correctly and adjust them in the training_association.yaml and training_latent.yaml files.')
+
 def read_saved_files(nLatents, repeats, path, version, drug):
     results, recon_results, groups, mean_bas = initiate_default_dicts(n_empty_dicts=0, n_list_dicts=4)
     
@@ -567,7 +568,7 @@ def read_saved_files(nLatents, repeats, path, version, drug):
         recon_results[nLatent].append(recon_result_dict)
         mean_bas[nLatent].append(mean_ba) 
     
-    group = np.load(path + "05_identify_associations/results_groups_" + version + ".npy", mmap_mode='r', allow_pickle = True)
-    group_dict = {i:group[i] for i in range(group.shape[0])}
+    groups = np.load(path + "05_identify_associations/results_groups_" + version + ".npy", mmap_mode='r', allow_pickle = True)
+    groups_dict = {i:groups[i] for i in range(groups.shape[0])}
     
-    return(results, recon_results, groups, mean_bas)
+    return(results, recon_results, groups_dict, mean_bas)

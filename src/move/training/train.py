@@ -3,6 +3,7 @@ import copy
 import itertools
 import os
 import random
+import logging
 from pathlib import Path
 
 import numpy as np
@@ -19,6 +20,8 @@ from move.utils.model_utils import (cal_cat_recon, cal_con_recon, cal_recon,
                                     get_latent, get_start_end_positions)
 from move.utils.seed import set_global_seed
 
+
+logger = logging.getLogger('train')
 
 def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_sizes, nepochs, repeat, lrate, kldsteps, batchsteps, patience, cuda, processed_data_path, cat_list, con_list, continuous_weights, categorical_weights, seed):
     """
@@ -89,12 +92,13 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
 
     results_df = []
     
-    print('Beginning the hyperparameter tuning for reconstruction.\n')
+    logger.info('Beginning the hyperparameter tuning for reconstruction.\n')
     iters = itertools.product(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_sizes, range(repeat))
     for nHidden, nLatent, nl, drop, b, batch_size, r in iters:
 
         combi = str([nHidden] * nl) + "+" + str(nLatent) + ", drop: " + str(drop) +", b: " + str(b) + ", batch: " + str(batch_size)
-        print('Testing: ', combi)
+        
+        logging.info(f'Testing: {combi}')
         
         best_model, loss, ce, sse, KLD, train_loader, _, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list_train, con_list_train, categorical_weights, continuous_weights, batch_size, nHidden, nl, nLatent, b, drop, cuda, kldsteps, batchsteps, nepochs, lrate, seed+r, test_loader, patience, early_stopping=True)
         
@@ -145,7 +149,7 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
     
     results_df = pd.DataFrame(results_df)
     
-    print('\nFinished the hyperparameter tuning for reconstruction. Saving the results.')
+    logger.info('Finished the hyperparameter tuning for reconstruction. Saving the results.')
     
     # Save output
     np.save(processed_data_path + "hyperparameters/latent_benchmark_final.npy", latents)
@@ -165,7 +169,7 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
     
     # print tsv
     results_df.to_csv(processed_data_path + "hyperparameters/hyperparameters.results.tsv", sep="\t")
-    print('The results saved.\n')
+    logger.info('The results saved.\n')
     
     return(likelihood_tests, recon_acc_tests, recon_acc, results_df)
 
@@ -204,11 +208,11 @@ def optimize_stability(nHiddens, nLatents, nDropout, nBeta, repeat, nepochs, nLa
     
     models, latents, embeddings, con_recons, cat_recons, recon_acc, los, likelihood = initiate_default_dicts(1, 7)
     
-    print('Beginning the hyperparameter tuning for stability.\n')
+    logger.info('Beginning the hyperparameter tuning for stability.')
     iters = itertools.product(nHiddens, nLatents, nLayers, nDropout, nBeta, range(repeat))
     for nHidden, nLatent, nl, drop, b, r in iters:
         combi = str([nHidden] * nl) + "+" + str(nLatent) + ", do: " + str(drop) +", b: " + str(b)
-        print(combi)
+        logger.info(combi)
 
         best_model, loss, ce, sse, KLD, train_loader, _, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_sizes, nHidden, nl, nLatent, b, drop, cuda, kldsteps, batchsteps, nepochs, lrate, seed+r, test_loader=None, patience=None, early_stopping=False)
 
@@ -235,7 +239,7 @@ def optimize_stability(nHiddens, nLatents, nDropout, nBeta, repeat, nepochs, nLa
         cat_recons[combi].append(cat_recon)
     
     # Saving the results
-    print('\nFinished the hyperparameter tuning for stability. Saving the results.')
+    logger.info('\nFinished the hyperparameter tuning for stability. Saving the results.')
     
     np.save(path + "hyperparameters/embedding_stab.npy", embeddings)
     np.save(path + "hyperparameters/latent_stab.npy", latents)
@@ -243,7 +247,7 @@ def optimize_stability(nHiddens, nLatents, nDropout, nBeta, repeat, nepochs, nLa
     np.save(path + "hyperparameters/cat_recon_stab.npy", cat_recons)
     np.save(path + "hyperparameters/recon_acc_stab.npy", recon_acc)
     
-    print('The results saved.\n')
+    logger.info('The results saved.\n')
     
     return(embeddings, latents, con_recons, cat_recons, recon_acc)
 
@@ -286,10 +290,10 @@ def train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHidden,
     start, end = get_start_end_positions(cat_list, categorical_names, data_of_interest)
     iters = itertools.product(nLatents, range(repeats))
     
-    print('Beginning training the model.\n')
+    logger.info('Beginning training the model.\n')
     # Running the framework    
     for nLatent, repeat in iters:
-        print('Training model with latent %i and repeat %i' % (nLatent, repeat))
+        logger.info('Training model with latent %i and repeat %i' % (nLatent, repeat))
         best_model, loss, ce, sse, KLD, train_loader, _, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_sizes, nHidden, nl, nLatent, nBeta, drop, cuda, kldsteps, batchsteps, nepochs, lrate, seed+repeat, test_loader=None, patience=None, early_stopping=False)
         
         train_test_loader = DataLoader(dataset=train_loader.dataset, batch_size=train_loader.batch_size, drop_last=False,
@@ -313,9 +317,9 @@ def train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHidden,
         np.save(output_path / f'recon_results_{nLatent}_{repeat}_{version}', np.array(list(recon_diff_corr.values())))
         np.save(output_path / f'mean_bas_{nLatent}_{repeat}_{version}', mean_baseline)
         np.save(output_path / f'recon_results_1_{nLatent}_{repeat}_{version}', np.array(list(recon_diff.values())))
-    
+   
     np.save(output_path / f"results_groups_{version}.npy", np.array(list(groups.values())))
-    print('\nFinished training the model.')
+    logger.info('\nFinished training the model.')
     
 def train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_size, nHidden, nl, nLatent, b, drop, cuda, kldsteps, batchsteps, nepochs, lrate, seed, test_loader, patience, early_stopping):
     """
@@ -405,7 +409,7 @@ def train_model(cat_list, con_list, categorical_weights, continuous_weights, bat
         if early_stopping:
             out = model.latent(test_loader, kld_w)
             loss_test.append(out[-2])
-            print("Likelihood: " + str(out[-1]))
+            logger.info("Likelihood: " + str(out[-1]))
             
             if out[-1] > l_min and count < patience: 
                 count+=1

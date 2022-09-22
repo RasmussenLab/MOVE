@@ -2,12 +2,13 @@
 
 defaults:
   - _self_
-  - data: main.yaml
+  - data: base_data
   - model: vae.yaml
   - tuning_reconstruction: main.yaml
   - tuning_stability: main.yaml
   - training_latent: main.yaml
   - training_association: main.yaml
+  - task: null
   - experiment: null
   - override /hydra/job_logging: none #disabling hydra logging and using custom logging instead
   - override /hydra/hydra_logging: none

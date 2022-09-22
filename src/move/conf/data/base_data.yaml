@@ -10,9 +10,9 @@ processed_data_path: processed_data/
 headers_path: headers/
 version: v1
 
-ids_file_name: baseline_ids.txt
-ids_has_header: True
-ids_colname: 0
+ids_file_name: baseline_ids.txt  # RENAME
+ids_has_header: True  # DEPRECATE
+ids_colname: 0  # DEPRECATE
 
 categorical_inputs:
   - name: diabetes_genotypes

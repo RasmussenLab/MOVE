@@ -1,20 +1,27 @@
-__all__ = ["read_config"]
+__all__ = [
+    "dump_feature_names",
+    "read_config",
+    "read_sample_names",
+    "read_tsv",
+]
 
 from pathlib import Path
-from typing import Union
+from typing import Union, TYPE_CHECKING
 
 import hydra
 import numpy as np
 import pandas as pd
 from numpy.typing import ArrayLike
-from omegaconf import OmegaConf
+from omegaconf import DictConfig, OmegaConf
 
 from move import conf
-from move.conf.schema import MOVEConfig
 from move.core.typing import PathLike
 
+if TYPE_CHECKING:
+    from move.conf.schema import MOVEConfig
 
-def read_config(filepath: Union[str, Path] = None) -> MOVEConfig:
+
+def read_config(filepath: Union[str, Path] = None) -> DictConfig:
     """Composes configuration for the MOVE framework.
 
     Args:
@@ -65,7 +72,7 @@ def read_con(filepath: PathLike) -> tuple[np.ndarray]:
     return data, mask_col
 
 
-def read_header(filepath: PathLike, mask: ArrayLike=None) -> list[str]:
+def read_header(filepath: PathLike, mask: ArrayLike = None) -> list[str]:
     """Reads features names from the headers
 
     Args:
@@ -84,7 +91,7 @@ def read_header(filepath: PathLike, mask: ArrayLike=None) -> list[str]:
 
 
 def read_data(
-    config: MOVEConfig,
+    config: "MOVEConfig",
 ) -> tuple[list[np.ndarray], list[list[str]], list[np.ndarray], list[list[str]]]:
     """Reads the pre-processed categorical and continuous data.
 
@@ -115,3 +122,37 @@ def read_data(
         continuous_headers.append(header)
 
     return categorical_data, categorical_headers, continuous_data, continuous_headers
+
+
+def read_sample_names(path: PathLike) -> list[str]:
+    """Reads sample names from a text file. The text file should have one line
+    per sample name.
+
+    Args:
+        path: Path to the text file
+
+    Returns:
+        A list of sample names
+    """
+    with open(path, "r", encoding="utf-8") as file:
+        return [i.strip() for i in file.readlines()]
+
+
+def read_tsv(path: PathLike) -> tuple[np.ndarray, np.ndarray]:
+    """Read a dataset from a TSV file. The TSV is expected to have an index
+    column (0th index).
+
+    Args:
+        path: Path to TSV
+
+    Returns:
+        Tuple containing (1) feature names and (2) 2D matrix (samples x
+        features)
+    """
+    data = pd.read_csv(path, index_col=0, sep="\t").sort_index()
+    return data.columns.values, data.values
+
+
+def dump_feature_names(path: PathLike, names: np.ndarray) -> None:
+    with open(path, "w", encoding="utf-8") as file:
+        file.writelines([f"{name}\n" for name in names])

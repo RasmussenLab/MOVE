@@ -14,6 +14,12 @@ FILES = {
         "3e741373d53e98947b484a528e0238ae",
         7897316,
     ),
+    "maize_microbiome_names": FileInfo(
+        "https://github.com/jorgemf/DeepLatentMicrobiome/raw/91e384b7115978bb3c"
+        "d0f61c7dd3d8ffc866efc3/Datasets/tax_table_all_80_cleanNames.csv",
+        "b4c57c6f34b1afa3e4a81ef742e931d6",
+        67346,
+    ),
     "maize_metadata": FileInfo(
         "https://github.com/jorgemf/DeepLatentMicrobiome/raw/91e384b7115978bb3c"
         "d0f61c7dd3d8ffc866efc3/Datasets/metadata_table_all_80.csv",
@@ -23,7 +29,7 @@ FILES = {
 }
 
 
-def fetch(dataset_name: str, destination: Path):
+def fetch(dataset_name: str, destination: Path) -> Path:
     """Downloads a maize dataset.
 
     Parameters

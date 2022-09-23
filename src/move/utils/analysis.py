@@ -943,7 +943,7 @@ def get_inter_drug_variation(con_names, drug_h, recon_average_corr_all_indi_new,
     '''
     
     # Inter drug variation 
-#     all_db_names = [item for sublist in con_names for item in sublist]
+    # all_db_names = [item for sublist in con_names for item in sublist]
     all_db_names = con_names
     inter_drug_variance = []
     inter_drug_std = []
@@ -952,12 +952,14 @@ def get_inter_drug_variation(con_names, drug_h, recon_average_corr_all_indi_new,
         recon_data_d = recon_average_corr_all_indi_new[f]
         gr = groups[f]
         sig_drug_names = collected_overlap[d]
-        sig_data = recon_data_d[:,np.where(np.isin(all_db_names,sig_drug_names))[0]]
+        #sig_data = recon_data_d[:,np.where(np.isin(all_db_names,sig_drug_names))[0]]   # error in indexing - changed to line below
+        sig_data = recon_data_d[np.where(np.isin(all_db_names,sig_drug_names))[0],:]
+        sig_data = np.transpose(sig_data)
         g = [not (np.all(a_s == types[0]) or (np.all(a_s == [0,0]))) for a_s in drug[gr,f,:]]
         con_tmp = con_all[gr]
         con_tmp = con_tmp[g]
         sig_part_df = pd.DataFrame(sig_data, columns = sig_drug_names)
-        sig_part_df = sig_part_df.T
+        #sig_part_df = sig_part_df.T
         sig_part_df[np.isnan(sig_part_df)] = np.nan
         inter_drug_variance.append(np.nanvar(sig_part_df))
         inter_drug_std.append(np.nanstd(sig_part_df))

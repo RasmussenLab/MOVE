@@ -1,10 +1,13 @@
 __all__ = [
     "dump_feature_names",
+    "dump_mappings",
+    "load_mappings",
     "read_config",
     "read_sample_names",
     "read_tsv",
 ]
 
+import json
 from pathlib import Path
 from typing import Union, TYPE_CHECKING
 
@@ -150,6 +153,16 @@ def read_tsv(path: PathLike) -> tuple[np.ndarray, np.ndarray]:
     """
     data = pd.read_csv(path, index_col=0, sep="\t").sort_index()
     return data.columns.values, data.values
+
+
+def load_mappings(path: PathLike) -> dict[dict[str, int]]:
+    with open(path, "r", encoding="utf-8") as file:
+        return json.load(file)
+
+
+def dump_mappings(path: PathLike, mappings: dict[dict[str, int]]) -> None:
+    with open(path, "w", encoding="utf-8") as file:
+        json.dump(mappings, file, indent=4, ensure_ascii=False)
 
 
 def dump_feature_names(path: PathLike, names: np.ndarray) -> None:

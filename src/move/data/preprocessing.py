@@ -1,45 +1,52 @@
-__all__ = ["one_hot_encode", "scale"]
-
-from typing import Optional
+__all__ = ["one_hot_encode", "one_hot_encode_single", "scale"]
 
 import numpy as np
+import pandas as pd
 from sklearn.preprocessing import scale as standardize
 
 
-def one_hot_encode(x: np.ndarray, num_classes: Optional[int] = None) -> np.ndarray:
-    """One-hot encode a matrix with number of samples in its rows and number
-    of features in its columns. Columns share number of classes.
+def one_hot_encode(x: np.ndarray) -> tuple[np.ndarray, dict[str, int]]:
+    """One-hot encode a matrix with samples in its rows and features in its
+    columns. Columns share number of classes.
 
     Args:
-        x: a 1D or 2D matrix
-        num_classes: expected number of classes. Automatically determined if
-        None.
+        x: a 1D or 2D matrix, can be numerical or contain strings
 
     Returns:
-        3D one-hot encoded matrix, extra dim corresponds to number of classes
+        A 3D one-hot encoded matrix (extra dim corresponds to number of
+        classes) and a mapping between classes and corresponding codes
     """
     x = np.copy(x)
+    shape = x.shape
     if x.ndim == 1:
         x = x[:, np.newaxis]
-    # temporarily mark NaN as -1
-    has_nan = np.any(np.isnan(x))
-    x[np.isnan(x)] = np.nanmax(x) + 1
-    x = x.astype(int)
-    if num_classes is None:
-        num_classes = x.max() + 1
-    else:
-        num_classes += has_nan
-        if x.max() <= num_classes:
-            raise ValueError(f"Expected {num_classes} classes, but found more.")
+    categories, codes = np.unique(x.astype(str), return_inverse=True)
+    num_classes = len(categories)
     encoded_x = np.zeros((x.size, num_classes), dtype=np.uint8)
-    encoded_x[np.arange(x.size), x.ravel()] = 1
-    encoded_x = encoded_x.reshape(*x.shape, num_classes)
-    # remove NaN column
-    if has_nan:
+    encoded_x[np.arange(x.size), codes.astype(np.uint8).ravel()] = 1
+    encoded_x = encoded_x.reshape(*shape, num_classes)
+    if np.any(pd.isna(x)):
+        # remove NaN column
+        categories = categories[:-1]
         encoded_x = encoded_x[:, :, :-1]
-    # remove empty classes
-    encoded_x = encoded_x[:, :, encoded_x.sum(axis=(0, 1)) > 0]
-    return encoded_x
+    mapping = {category: code for code, category in enumerate(categories)}
+    return encoded_x, mapping
+
+
+def one_hot_encode_single(mapping: dict[str, int], value: str) -> np.ndarray:
+    """One-hot encode a single value given an existing mapping.
+
+    Args:
+        mapping: cateogry-to-code lookup dictionary
+        value: category
+
+    Returns:
+        2D array
+    """
+    code = mapping[value]
+    value = np.zeros((1, len(mapping)))
+    value[0, code] = 1
+    return value
 
 
 def scale(x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:

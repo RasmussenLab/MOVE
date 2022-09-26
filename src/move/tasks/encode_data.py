@@ -25,12 +25,15 @@ def encode_data(config: DataConfig):
     interim_data_path = Path(config.interim_data_path)
     interim_data_path.mkdir(exist_ok=True)
 
+    mappings = {}
     for dataset_name in config.categorical_names:
         logger.info(f"Encoding '{dataset_name}'")
         names, values = io.read_tsv(raw_data_path / f"{dataset_name}.tsv")
-        values = preprocessing.one_hot_encode(values)
+        values, mapping = preprocessing.one_hot_encode(values)
+        mappings[dataset_name] = mapping
         io.dump_feature_names(interim_data_path / f"{dataset_name}.txt", names)
         np.save(interim_data_path / f"{dataset_name}.npy", values)
+    io.dump_mappings(interim_data_path / "mappings.json", mappings)
 
     for dataset_name in config.continuous_names:
         logger.info(f"Encoding '{dataset_name}'")

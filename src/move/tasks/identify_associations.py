@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 
 from move.conf.schema import IdentifyAssociationsBayesConfig, MOVEConfig
+from move.core.logging import get_logger
 from move.data.io import read_data
 from move.data.perturbations import perturb_data
 from move.models.vae import VAE
@@ -17,12 +18,15 @@ from move.training.training_loop import TrainingLoopOutput
 def identify_associations(config: MOVEConfig):
     """Trains multiple models to identify associations between the dataset
     of interest and the continuous datasets."""
-    # TODO: logging
+    logger = get_logger(__name__)
     task_config: IdentifyAssociationsBayesConfig = config.task
+
     # Create output folders
     output_path = Path(config.data.processed_data_path) / "05_identify_associations"
     output_path.mkdir(exist_ok=True, parents=True)
+
     # Read original data and create perturbed datasets
+    logger.info(f"Perturbing dataset: '{task_config.target_dataset}'")
     cat_list, cat_names, con_list, con_names = read_data(config)
     con_shapes = [con.shape[1] for con in con_list]
     dataloaders = perturb_data(
@@ -36,11 +40,15 @@ def identify_associations(config: MOVEConfig):
     num_features = len(dataloaders) - 1  # F
     num_samples = len(baseline_dataloader.sampler)  # N
     num_continuous = sum(con_shapes)  # C
+    logger.debug(f"# perturbed features: {num_features}")
+    logger.debug(f"# continuous features: {num_continuous}")
 
     # Train models
+    logger.info("Training models")
     mean_diff = np.zeros((num_features, num_samples, num_continuous))
     normalizer = 1 / task_config.num_refits
-    for _ in range(task_config.num_refits):
+    for j in range(task_config.num_refits):
+        logger.debug(f"Training refit {j + 1}/{task_config.num_refits}")
         # Initialize model
         model: VAE = hydra.utils.instantiate(
             task_config.model,
@@ -63,6 +71,7 @@ def identify_associations(config: MOVEConfig):
             mean_diff[i, :, :] += diff * normalizer
 
     # Calculate Bayes factors
+    logger.info("Identifying significant features")
     bayes_k = np.empty((num_features, num_continuous))
     for i in range(num_features):
         diff = mean_diff[i, :, :]  # shape: N x C
@@ -75,11 +84,13 @@ def identify_associations(config: MOVEConfig):
     # Calculate FDR
     fdr = np.cumsum(1 - prob) / np.arange(1, prob.size + 1)
     idx = np.argmin(np.abs(fdr - task_config.fdr_threshold))
+    logger.debug(f"FDR index: {idx}")
     # Find significant IDs
     sig_ids = sort_ids[:idx]
     sig_ids = np.vstack((sig_ids // num_continuous, sig_ids % num_continuous)).T
 
     # Prepare results
+    logger.info("Writing results")
     results = pd.DataFrame(sig_ids, columns=["feature_a_id", "feature_b_id"])
     results.sort_values("feature_a_id", inplace=True)
     dataset_idx = config.data.categorical_names.index(task_config.target_dataset)

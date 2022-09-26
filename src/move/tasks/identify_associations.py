@@ -9,8 +9,9 @@ import pandas as pd
 
 from move.conf.schema import IdentifyAssociationsBayesConfig, MOVEConfig
 from move.core.logging import get_logger
-from move.data.io import read_data
+from move.data import io
 from move.data.perturbations import perturb_data
+from move.data.preprocessing import one_hot_encode_single
 from move.models.vae import VAE
 from move.training.training_loop import TrainingLoopOutput
 
@@ -21,21 +22,28 @@ def identify_associations(config: MOVEConfig):
     logger = get_logger(__name__)
     task_config: IdentifyAssociationsBayesConfig = config.task
 
-    # Create output folders
-    output_path = Path(config.data.processed_data_path) / "05_identify_associations"
+    interim_path = Path(config.data.interim_data_path)
+    output_path = Path(config.data.processed_data_path) / "identify_associations"
     output_path.mkdir(exist_ok=True, parents=True)
 
     # Read original data and create perturbed datasets
     logger.info(f"Perturbing dataset: '{task_config.target_dataset}'")
-    cat_list, cat_names, con_list, con_names = read_data(config)
+    cat_list, cat_names, con_list, con_names = io.read_data(config)
+
+    mappings = io.load_mappings(interim_path / "mappings.json")
+    target_mapping = mappings[task_config.target_dataset]
+    target_value = one_hot_encode_single(target_mapping, task_config.target_value)
+    logger.debug(f"Target value: {task_config.target_value} ({target_value[0]})")
+
     con_shapes = [con.shape[1] for con in con_list]
     dataloaders = perturb_data(
         cat_list,
         con_list,
         config.data.categorical_names,
         task_config.target_dataset,
-        task_config.target_value,
+        target_value,
     )
+
     baseline_dataloader = dataloaders[-1]
     num_features = len(dataloaders) - 1  # F
     num_samples = len(baseline_dataloader.sampler)  # N
@@ -84,7 +92,7 @@ def identify_associations(config: MOVEConfig):
     # Calculate FDR
     fdr = np.cumsum(1 - prob) / np.arange(1, prob.size + 1)
     idx = np.argmin(np.abs(fdr - task_config.fdr_threshold))
-    logger.debug(f"FDR index: {idx}")
+    logger.debug(f"# significant hits: {idx}")
     # Find significant IDs
     sig_ids = sort_ids[:idx]
     sig_ids = np.vstack((sig_ids // num_continuous, sig_ids % num_continuous)).T

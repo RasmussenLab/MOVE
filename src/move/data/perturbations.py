@@ -1,6 +1,5 @@
 __all__ = ["perturb_data"]
 
-from typing import Any
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
@@ -14,7 +13,7 @@ def perturb_data(
     con_list: list[np.ndarray],
     cat_dataset_names: list[str],
     target_dataset_name: str,
-    target_value: Any,
+    target_value: np.ndarray,
 ) -> list[DataLoader]:
     """Add perturbations to training data. For each feature in the target
     categorical dataset change its value to target
@@ -36,7 +35,9 @@ def perturb_data(
     _, baseline_dataloader = make_dataloader(
         cat_list, con_list, shuffle=False, batch_size=num_samples
     )
-    start, end = get_start_end_positions(cat_list, cat_dataset_names, target_dataset_name)
+    start, end = get_start_end_positions(
+        cat_list, cat_dataset_names, target_dataset_name
+    )
     cat_all: torch.Tensor = baseline_dataloader.dataset.cat_all
     num_features = target_shape[1]
 

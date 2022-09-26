@@ -52,7 +52,7 @@ def one_hot_encode_single(mapping: dict[str, int], value: str) -> np.ndarray:
     Returns:
         2D array
     """
-    code = mapping[value]
+    code = mapping[str(value)]
     value = np.zeros((1, len(mapping)))
     value[0, code] = 1
     return value

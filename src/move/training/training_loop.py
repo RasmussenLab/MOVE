@@ -31,6 +31,7 @@ def training_loop(
     min_likelihood = float("inf")
     counter = 0
 
+    kld_weight = 0.0
     kld_rate = 20 / len(kld_warmup_steps)
     kld_multiplier = 1 + kld_rate
 
@@ -38,10 +39,13 @@ def training_loop(
         if epoch in kld_warmup_steps:
             kld_weight = 0.05 * kld_multiplier
             kld_multiplier += kld_rate
+
         if epoch in batch_dilation_steps:
             train_dataloader = dilate_batch(train_dataloader)
+
         for i, output in enumerate(model.encoding(train_dataloader, epoch, lr, kld_weight)):
             outputs[i].append(output)
+
         if early_stopping:
             output = model.latent(valid_dataloader, kld_weight)
             valid_likelihood = output[-1]

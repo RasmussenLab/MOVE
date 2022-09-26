@@ -21,21 +21,21 @@ def identify_associations(config: MOVEConfig):
     task_config: IdentifyAssociationsBayesConfig = config.task
     # Create output folders
     output_path = Path(config.data.processed_data_path) / "05_identify_associations"
-    output_path.mkdir(exist_ok=True)
+    output_path.mkdir(exist_ok=True, parents=True)
     # Read original data and create perturbed datasets
     cat_list, cat_names, con_list, con_names = read_data(config)
     con_shapes = [con.shape[1] for con in con_list]
     dataloaders = perturb_data(
         cat_list,
-        cat_names,
         con_list,
+        config.data.categorical_names,
         task_config.target_dataset,
         task_config.target_value,
     )
     baseline_dataloader = dataloaders[-1]
     num_features = len(dataloaders) - 1  # F
     num_samples = len(baseline_dataloader.sampler)  # N
-    num_continuous = sum(baseline_dataloader.dataset.con_all)  # C
+    num_continuous = sum(con_shapes)  # C
 
     # Train models
     mean_diff = np.zeros((num_features, num_samples, num_continuous))
@@ -51,7 +51,7 @@ def identify_associations(config: MOVEConfig):
         _: TrainingLoopOutput = hydra.utils.call(
             task_config.training_loop,
             model=model,
-            train_datloader=baseline_dataloader,
+            train_dataloader=baseline_dataloader,
         )
         model.eval()
         # Calculate baseline reconstruction
@@ -82,7 +82,7 @@ def identify_associations(config: MOVEConfig):
     # Prepare results
     results = pd.DataFrame(sig_ids, columns=["feature_a_id", "feature_b_id"])
     results.sort_values("feature_a_id", inplace=True)
-    dataset_idx = cat_names.index(task_config.target_dataset)
+    dataset_idx = config.data.categorical_names.index(task_config.target_dataset)
     a_df = pd.DataFrame(dict(x=cat_names[dataset_idx])).reset_index()
     a_df.columns = ["feature_a_id", "feature_a_name"]
     con_names = reduce(list.__add__, con_names)

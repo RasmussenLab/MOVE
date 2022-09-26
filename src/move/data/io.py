@@ -103,14 +103,13 @@ def read_data(
         headers
     """
     interim_path = Path(config.data.interim_data_path)
-    headers_path = Path(config.data.headers_path)
 
     categorical_data, categorical_headers = [], []
     for input_config in config.data.categorical_inputs:
         name = input_config.name
         data = read_cat(interim_path / f"{name}.npy")
         categorical_data.append(data)
-        header = read_header(headers_path / f"{name}.txt")
+        header = read_header(interim_path / f"{name}.txt")
         categorical_headers.append(header)
 
     continuous_data, continuous_headers = [], []
@@ -118,7 +117,7 @@ def read_data(
         name = input_config.name
         data, mask = read_con(interim_path / f"{name}.npy")
         continuous_data.append(data)
-        header = read_header(headers_path / f"{name}.txt", mask)
+        header = read_header(interim_path / f"{name}.txt", mask)
         continuous_headers.append(header)
 
     return categorical_data, categorical_headers, continuous_data, continuous_headers

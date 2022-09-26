@@ -72,6 +72,7 @@ class VAEConfig(ModelConfig):
     num_latent: int = MISSING
     beta: float = MISSING
     dropout: float = MISSING
+    cuda: bool = False
 
 
 @dataclass
@@ -134,7 +135,6 @@ class TrainingLoopConfig:
     batch_dilation_steps: list[int] = MISSING
     early_stopping: bool = MISSING
     patience: int = MISSING
-    cuda: bool = MISSING
 
 
 @dataclass

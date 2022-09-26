@@ -3,6 +3,17 @@ from pathlib import Path
 
 
 def get_logger(name):
+    """Return a logger with the specified name. The logger writes messages to
+    a log file and the console.
+
+    Args:
+        name: name of the logger. If it contains a dot, only the succeeding
+        substring is used (e.g., `foo.bar` => `bar`).
+
+    Returns:
+        Logger
+    """
+
     if "." in name:
         name = name.split(".")[-1]
 

@@ -1,8 +1,14 @@
 __all__ = ["one_hot_encode", "one_hot_encode_single", "scale"]
 
+from typing import Any
+
 import numpy as np
 import pandas as pd
 from sklearn.preprocessing import scale as standardize
+
+
+def _category_name(value: Any) -> str:
+    return value if isinstance(value, str) else str(int(value))
 
 
 def one_hot_encode(x: np.ndarray) -> tuple[np.ndarray, dict[str, int]]:
@@ -20,16 +26,19 @@ def one_hot_encode(x: np.ndarray) -> tuple[np.ndarray, dict[str, int]]:
     shape = x.shape
     if x.ndim == 1:
         x = x[:, np.newaxis]
-    categories, codes = np.unique(x.astype(str), return_inverse=True)
+    has_na = np.any(pd.isna(x))
+    if x.dtype == object:
+        x = x.astype(str)
+    categories, codes = np.unique(x, return_inverse=True)
     num_classes = len(categories)
     encoded_x = np.zeros((x.size, num_classes), dtype=np.uint8)
     encoded_x[np.arange(x.size), codes.astype(np.uint8).ravel()] = 1
     encoded_x = encoded_x.reshape(*shape, num_classes)
-    if np.any(pd.isna(x)):
+    if has_na:
         # remove NaN column
         categories = categories[:-1]
         encoded_x = encoded_x[:, :, :-1]
-    mapping = {category: code for code, category in enumerate(categories)}
+    mapping = {_category_name(category): code for code, category in enumerate(categories)}
     return encoded_x, mapping
 
 

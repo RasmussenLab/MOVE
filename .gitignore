@@ -26,5 +26,10 @@ wheels/
 .installed.cfg
 MANIFEST
 
-# Hydra logs
+# Logs
 outputs/
+*.log
+
+# Tutorial files
+tutorial/interim_data/
+tutorial/processed_data/

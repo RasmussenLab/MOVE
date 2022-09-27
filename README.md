@@ -54,7 +54,7 @@ MOVE has five-six steps:
 
 ## How to run MOVE
 
-You can run the move-dl pipeline using the command line or using Jupyter notebooks. Notebooks with explanations are in the tutorial folder. Feel free to open an issue for help.
+You can run the move-dl pipeline using the command line or using Jupyter notebooks. Notebooks with explanations are in the [tutorial](https://github.com/RasmussenLab/MOVE/tree/developer/tutorial) folder. Feel free to open an issue for help.
 
 You can run MOVE as Python module with the following commands: 
 ```
@@ -68,7 +68,7 @@ python -m move.05_identify_associations
 
 ## How to use MOVE with your data
 
-Your data files should be tab separated, include a header and the first column should be the IDs of your samples. The configuration of MOVE is done using yaml files that describe the input data (data.yaml), the model (model.yaml) and files associated with each of the steps (tuning_reconstruction.yaml, tuning_stability.yaml, training_latent.yaml, training_association.yaml). These should be placed in the working directory. Please see the tutorial for more information.
+Your data files should be tab separated, include a header and the first column should be the IDs of your samples. The configuration of MOVE is done using yaml files that describe the input data (data.yaml), the model (model.yaml) and files associated with each of the steps (tuning_reconstruction.yaml, tuning_stability.yaml, training_latent.yaml, training_association.yaml). These should be placed in the working directory. Please see the [tutorial](https://github.com/RasmussenLab/MOVE/tree/developer/tutorial) for more information.
 
 
 # Data sets
@@ -77,5 +77,5 @@ Your data files should be tab separated, include a header and the first column s
 The data used in notebooks are not available for testing due to the informed consent given by study participants, the various national ethical approvals for the study, and the European General Data Protection Regulation (GDPR). Therefore, individual-level clinical and omics data cannot be transferred from the centralized IMI-DIRECT repository. Requests for access to summary statistics IMI-DIRECT data, including those presented here, can be made to DIRECTdataaccess@Dundee.ac.uk. Requesters will be informed on how summary-level data can be accessed via the DIRECT secure analysis platform following submission of appropriate application. The IMI-DIRECT data access policy is available at [here](https://directdiabetes.org).
 
 ## Simulated and publicaly available data set
-We have therefore added a simulated data set that can be used for testing the workflow and a publicly available maize rhizosphere microbiome data set. We have also included a notebook that goes through a short tutorial with a publicly-available maize rhizosphere microbiome dataset.
+We have therefore added a simulated data set that can be used for testing the workflow and a publicly available maize rhizosphere microbiome data set. We have also included a notebook that goes through a short [tutorial](https://github.com/RasmussenLab/MOVE/tree/developer/tutorial) with a publicly-available maize rhizosphere microbiome dataset.
 

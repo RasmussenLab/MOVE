@@ -67,7 +67,7 @@ def concat_con_list(con_list, mask=None):
 
 def make_dataloader(
     cat_list: list[np.ndarray] = None, con_list: list[np.ndarray] = None, **kwargs
-):
+) -> tuple[np.ndarray, DataLoader]:
     """Creates a DataLoader that combines categorical and continuous datasets.
 
     Args:
@@ -81,7 +81,8 @@ def make_dataloader(
         ValueError: If both inputs are None
 
     Returns:
-        DataLoader
+        Tuple containing (1) mask to remove rows (samples) with all zeros and
+        (2) DataLoader
     """
     if cat_list is None and con_list is None:
         raise ValueError("At least one type of data must be in the input")
@@ -94,7 +95,7 @@ def make_dataloader(
     if con_list:
         con_shapes, con_mask, con_all = concat_con_list(con_list)
 
-    mask = reduce(
+    mask: np.ndarray = reduce(
         np.logical_and, [mask for mask in [cat_mask, con_mask] if mask is not None]
     )
     if cat_all is not None:

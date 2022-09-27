@@ -35,15 +35,18 @@ def identify_associations(config: MOVEConfig):
     mappings = io.load_mappings(interim_path / "mappings.json")
     target_mapping = mappings[task_config.target_dataset]
     target_value = one_hot_encode_single(target_mapping, task_config.target_value)
-    logger.debug(f"Target value: {task_config.target_value} ({target_value[0]})")
+    logger.debug(
+        f"Target value: {task_config.target_value} => {target_value.astype(int)[0]}"
+    )
 
-    train_dataloader = make_dataloader(
+    train_mask, train_dataloader = make_dataloader(
         cat_list,
         con_list,
         shuffle=True,
         batch_size=task_config.batch_size,
         drop_last=True,
     )
+    logger.debug(f"Masked training samples: {np.sum(~train_mask)}/{train_mask.size}")
 
     con_shapes = [con.shape[1] for con in con_list]
     dataloaders = perturb_data(
@@ -110,15 +113,15 @@ def identify_associations(config: MOVEConfig):
     bayes_p = np.exp(bayes_k) / (1 + np.exp(bayes_k))
     sort_ids = np.argsort(bayes_k, axis=None)[::-1]
     prob = np.take(bayes_p, sort_ids)  # shape: NC
-    logger.debug(f"Bayes proba range: {prob[[-1, 0]]}")
+    logger.debug(f"Bayes proba range: [{prob[-1]:.3f} {prob[0]:.3f}]")
 
     # Calculate FDR
     fdr = np.cumsum(1 - prob) / np.arange(1, prob.size + 1)
     idx = np.argmin(np.abs(fdr - task_config.fdr_threshold))
-    logger.debug(f"FDR range: {fdr[[0, -1]]}")
+    logger.debug(f"FDR range: [{fdr[0]:.3f} {fdr[-1]:.3f}]")
 
     if idx > 0:
-        logger.log(f"# significant hits: {idx}")
+        logger.debug(f"# significant hits: {idx}")
         sig_ids = sort_ids[:idx]
         sig_ids = np.vstack((sig_ids // num_continuous, sig_ids % num_continuous)).T
 

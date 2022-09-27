@@ -2,7 +2,6 @@ __all__ = ["identify_associations"]
 
 from functools import reduce
 from pathlib import Path
-from random import shuffle
 
 import hydra
 import numpy as np
@@ -42,8 +41,8 @@ def identify_associations(config: MOVEConfig):
         cat_list,
         con_list,
         shuffle=True,
-        batch_size=10,
-        drop_last=True
+        batch_size=task_config.batch_size,
+        drop_last=True,
     )
 
     con_shapes = [con.shape[1] for con in con_list]
@@ -69,7 +68,7 @@ def identify_associations(config: MOVEConfig):
     target_dataset_idx = config.data.categorical_names.index(task_config.target_dataset)
     target_dataset = cat_list[target_dataset_idx]
     feature_mask = np.all(target_dataset == target_value, axis=2)
-    feature_mask |= (np.sum(target_dataset, axis=2) == 0)
+    feature_mask |= np.sum(target_dataset, axis=2) == 0
 
     # Train models
     logger.info("Training models")
@@ -96,7 +95,7 @@ def identify_associations(config: MOVEConfig):
         for i in range(num_features):
             _, perturb_recon = model.reconstruct(dataloaders[i])
             diff = perturb_recon - baseline_recon  # shape: N x C
-            mean_diff[i, :, :] += (diff * normalizer)
+            mean_diff[i, :, :] += diff * normalizer
 
     # Calculate Bayes factors
     logger.info("Identifying significant features")

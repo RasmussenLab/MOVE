@@ -100,9 +100,8 @@ def main(base_config: MOVEConfig):
             fh_out.write('%s\t%s\n' % (key, v))
     fh_out.close()
     
-    # Saving the effect sizes (95 % interval) of results of get_change_in_reconstruction() functions
-    # DOES NOT WORK ATM
-    #make_files(collected_overlap, groups, con_list_concat, processed_data_path, recon_average_corr_all_indi_new, con_names, continuous_names, drug_h, drug, all_hits, types, version)
+    # Saving the effect sizes (95 % interval) of results of get_change_in_reconstruction() functions 
+    make_files(collected_overlap, groups, con_list_concat, processed_data_path, recon_average_corr_all_indi_new, con_names, continuous_names, drug_h, drug, all_hits, types, version)
     
     # Getting inter drug variation 
     df_indi_var = get_inter_drug_variation(con_names, drug_h, recon_average_corr_all_indi_new, groups, collected_overlap, drug, con_list_concat, processed_data_path, types)

@@ -104,15 +104,13 @@ def main(base_config: MOVEConfig):
     # DOES NOT WORK ATM
     #make_files(collected_overlap, groups, con_list_concat, processed_data_path, recon_average_corr_all_indi_new, con_names, continuous_names, drug_h, drug, all_hits, types, version)
     
-    # Getting inter drug variation
-    # DOES NOT WORK ATM
-    #df_indi_var = get_inter_drug_variation(con_names, drug_h, recon_average_corr_all_indi_new, groups, collected_overlap, drug, con_list_concat, processed_data_path, types)
-    
-    # DEPENDENT ON THE ABOVE FUNCTIONS
-    # Visualizing variation, heatmap of similarities within drugs across all data and specific for each omics
-    # DOES NOT WORK ATM
-    #visualize_indi_var(df_indi_var, version, processed_data_path)
-    #visualize_drug_similarity_across_all(recon_average_corr_new_all, drug_h, version, processed_data_path)
+    # Getting inter drug variation 
+    df_indi_var = get_inter_drug_variation(con_names, drug_h, recon_average_corr_all_indi_new, groups, collected_overlap, drug, con_list_concat, processed_data_path, types)
+     
+    # Visualizing variation, heatmap of similarities within drugs across all data and specific for each omics 
+    visualize_indi_var(df_indi_var, version, processed_data_path)
+    visualize_drug_similarity_across_all(recon_average_corr_new_all, drug_h, version, processed_data_path)
+    # currently not implemented correctly
     #get_drug_similar_each_omics(con_names, continuous_names, all_hits, recon_average_corr_new_all, drug_h, version, processed_data_path)
     
 if __name__ == "__main__":

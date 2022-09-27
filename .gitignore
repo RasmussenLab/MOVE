@@ -33,3 +33,4 @@ outputs/
 # Tutorial files
 tutorial/interim_data/
 tutorial/processed_data/
+tutorial/data/maize*

@@ -505,3 +505,9 @@ class VAE(nn.Module):
             test_loss,
             test_likelihood,
         )
+
+    def __repr__(self) -> str:
+        return (
+            f"VAE ({self.input_size} ⇄ {' ⇄ '.join(map(str, self.num_hidden))}"
+            f" ⇄ {self.num_latent})"
+        )

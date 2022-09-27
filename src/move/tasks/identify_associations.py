@@ -78,14 +78,16 @@ def identify_associations(config: MOVEConfig):
     mean_diff = np.zeros((num_features, num_samples, num_continuous))
     normalizer = 1 / task_config.num_refits
     for j in range(task_config.num_refits):
-        logger.debug(f"Training refit {j + 1}/{task_config.num_refits}")
         # Initialize model
         model: VAE = hydra.utils.instantiate(
             task_config.model,
             continuous_shapes=baseline_dataloader.dataset.con_shapes,
             categorical_shapes=baseline_dataloader.dataset.cat_shapes,
         )
+        if j == 0:
+            logger.debug(f"Model: {model}")
         # Train model
+        logger.debug(f"Training refit {j + 1}/{task_config.num_refits}")
         _: TrainingLoopOutput = hydra.utils.call(
             task_config.training_loop,
             model=model,

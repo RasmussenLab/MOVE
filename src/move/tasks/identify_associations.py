@@ -2,6 +2,7 @@ __all__ = ["identify_associations"]
 
 from functools import reduce
 from pathlib import Path
+from random import shuffle
 
 import hydra
 import numpy as np
@@ -10,6 +11,7 @@ import pandas as pd
 from move.conf.schema import IdentifyAssociationsBayesConfig, MOVEConfig
 from move.core.logging import get_logger
 from move.data import io
+from move.data.dataloaders import make_dataloader
 from move.data.perturbations import perturb_data
 from move.data.preprocessing import one_hot_encode_single
 from move.models.vae import VAE
@@ -35,6 +37,14 @@ def identify_associations(config: MOVEConfig):
     target_mapping = mappings[task_config.target_dataset]
     target_value = one_hot_encode_single(target_mapping, task_config.target_value)
     logger.debug(f"Target value: {task_config.target_value} ({target_value[0]})")
+
+    train_dataloader = make_dataloader(
+        cat_list,
+        con_list,
+        shuffle=True,
+        batch_size=10,
+        drop_last=True
+    )
 
     con_shapes = [con.shape[1] for con in con_list]
     dataloaders = perturb_data(
@@ -77,7 +87,7 @@ def identify_associations(config: MOVEConfig):
         _: TrainingLoopOutput = hydra.utils.call(
             task_config.training_loop,
             model=model,
-            train_dataloader=baseline_dataloader,
+            train_dataloader=train_dataloader,
         )
         model.eval()
         # Calculate baseline reconstruction

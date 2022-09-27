@@ -41,6 +41,7 @@ The training of the VAEs can be done using CPUs only or GPU acceleration. If you
 
 MOVE has five-six steps:
 
+```
 01. Encode the data into a format that can be read by MOVE
 02. Finding the right architecture of the network focusing on reconstruction accuracy
 03. Finding the right architecture of the network focusing on stability of the model
@@ -49,7 +50,7 @@ MOVE has five-six steps:
 05a. Using an ensemble of VAEs with the T-test approach
 05b. Using an ensemble of VAEs with the Bayesian decision theory approach
 06. If both 5a and 5b were run select the overlap between them
-
+```
 
 ## How to run MOVE
 

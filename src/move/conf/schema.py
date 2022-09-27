@@ -139,12 +139,14 @@ class TrainingLoopConfig:
 
 @dataclass
 class TaskConfig:
+    batch_size: Optional[int]
     model: Optional[VAEConfig]
     training_loop: Optional[TrainingLoopConfig]
 
 
 @dataclass
 class EncodeDataConfig(TaskConfig):
+    batch_size = None
     model = None
     training_loop = None   
 

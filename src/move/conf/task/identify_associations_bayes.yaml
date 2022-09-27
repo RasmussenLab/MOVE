@@ -1,13 +1,13 @@
 defaults:
   - identify_associations_schema
 
+batch_size: 10
+
 num_refits: 10
 fdr_threshold: 0.05
 
 target_dataset: baseline_drugs
-target_value:
-  - 1
-  - 0
+target_value: 1
 
 model:
   categorical_weights: ${data.categorical_weights}

@@ -19,6 +19,7 @@ from move.training.training_loop import TrainingLoopOutput
 def identify_associations(config: MOVEConfig):
     """Trains multiple models to identify associations between the dataset
     of interest and the continuous datasets."""
+
     logger = get_logger(__name__)
     task_config: IdentifyAssociationsBayesConfig = config.task
 
@@ -51,6 +52,15 @@ def identify_associations(config: MOVEConfig):
     logger.debug(f"# perturbed features: {num_features}")
     logger.debug(f"# continuous features: {num_continuous}")
 
+    orig_con = baseline_dataloader.dataset.con_all
+    nan_mask = (orig_con == 0).numpy()  # NaN values encoded as 0s
+    logger.debug(f"# NaN values: {np.sum(nan_mask)}/{orig_con.numel()}")
+
+    target_dataset_idx = config.data.categorical_names.index(task_config.target_dataset)
+    target_dataset = cat_list[target_dataset_idx]
+    feature_mask = np.all(target_dataset == target_value, axis=2)
+    feature_mask |= (np.sum(target_dataset, axis=2) == 0)
+
     # Train models
     logger.info("Training models")
     mean_diff = np.zeros((num_features, num_samples, num_continuous))
@@ -76,42 +86,49 @@ def identify_associations(config: MOVEConfig):
         for i in range(num_features):
             _, perturb_recon = model.reconstruct(dataloaders[i])
             diff = perturb_recon - baseline_recon  # shape: N x C
-            mean_diff[i, :, :] += diff * normalizer
+            mean_diff[i, :, :] += (diff * normalizer)
 
     # Calculate Bayes factors
     logger.info("Identifying significant features")
     bayes_k = np.empty((num_features, num_continuous))
     for i in range(num_features):
-        diff = mean_diff[i, :, :]  # shape: N x C
-        prob = np.mean(diff > 1e-8, axis=0)  # shape: C
+        mask = feature_mask[:, [i]] | nan_mask  # N x C
+        diff = np.ma.masked_array(mean_diff[i, :, :], mask=mask)  # shape: N x C
+        prob = np.ma.compressed(np.mean(diff > 1e-8, axis=0))  # shape: C
         bayes_k[i, :] = np.abs(np.log(prob + 1e-8) - np.log(1 - prob + 1e-8))
+
     # Calculate Bayes probabilities
     bayes_p = np.exp(bayes_k) / (1 + np.exp(bayes_k))
     sort_ids = np.argsort(bayes_k, axis=None)[::-1]
     prob = np.take(bayes_p, sort_ids)  # shape: NC
+    logger.debug(f"Bayes proba range: {prob[[-1, 0]]}")
+
     # Calculate FDR
     fdr = np.cumsum(1 - prob) / np.arange(1, prob.size + 1)
     idx = np.argmin(np.abs(fdr - task_config.fdr_threshold))
-    logger.debug(f"# significant hits: {idx}")
-    # Find significant IDs
-    sig_ids = sort_ids[:idx]
-    sig_ids = np.vstack((sig_ids // num_continuous, sig_ids % num_continuous)).T
+    logger.debug(f"FDR range: {fdr[[0, -1]]}")
 
-    # Prepare results
-    logger.info("Writing results")
-    results = pd.DataFrame(sig_ids, columns=["feature_a_id", "feature_b_id"])
-    results.sort_values("feature_a_id", inplace=True)
-    dataset_idx = config.data.categorical_names.index(task_config.target_dataset)
-    a_df = pd.DataFrame(dict(x=cat_names[dataset_idx])).reset_index()
-    a_df.columns = ["feature_a_id", "feature_a_name"]
-    con_names = reduce(list.__add__, con_names)
-    b_df = pd.DataFrame(dict(x=con_names)).reset_index()
-    b_df.columns = ["feature_b_id", "feature_b_name"]
-    results = results.merge(a_df, on="feature_a_id").merge(b_df, on="feature_b_id")
-    results["feature_b_dataset"] = pd.cut(
-        results.feature_a_id,
-        bins=np.cumsum([0] + con_shapes),
-        right=False,
-        labels=config.data.continuous_names,
-    )
-    results.to_csv(output_path / "results_sig_assoc.tsv", sep="\t")
+    if idx > 0:
+        logger.log(f"# significant hits: {idx}")
+        sig_ids = sort_ids[:idx]
+        sig_ids = np.vstack((sig_ids // num_continuous, sig_ids % num_continuous)).T
+
+        # Prepare results
+        logger.info("Writing results")
+        results = pd.DataFrame(sig_ids, columns=["feature_a_id", "feature_b_id"])
+        results.sort_values("feature_a_id", inplace=True)
+        a_df = pd.DataFrame(dict(x=cat_names[target_dataset_idx])).reset_index()
+        a_df.columns = ["feature_a_id", "feature_a_name"]
+        con_names = reduce(list.__add__, con_names)
+        b_df = pd.DataFrame(dict(x=con_names)).reset_index()
+        b_df.columns = ["feature_b_id", "feature_b_name"]
+        results = results.merge(a_df, on="feature_a_id").merge(b_df, on="feature_b_id")
+        results["feature_b_dataset"] = pd.cut(
+            results.feature_a_id,
+            bins=np.cumsum([0] + con_shapes),
+            right=False,
+            labels=config.data.continuous_names,
+        )
+        results.to_csv(output_path / "results_sig_assoc.tsv", sep="\t")
+    else:
+        logger.info("No significant hits were found.")

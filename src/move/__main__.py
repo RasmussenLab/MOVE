@@ -6,7 +6,7 @@ from omegaconf import OmegaConf
 import move.tasks
 from move.conf.schema import (
     EncodeDataConfig,
-    IdentifyAssociationsBayesConfig,
+    IdentifyAssociationsConfig,
     MOVEConfig,
 )
 
@@ -23,7 +23,7 @@ def main(config: MOVEConfig) -> str:
     task_type = OmegaConf.get_type(config.task)
     if task_type is EncodeDataConfig:
         move.tasks.encode_data(config.data)
-    elif task_type is IdentifyAssociationsBayesConfig:
+    elif issubclass(task_type, IdentifyAssociationsConfig):
         move.tasks.identify_associations(config)
     else:
         print(

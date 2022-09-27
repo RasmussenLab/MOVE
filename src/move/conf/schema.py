@@ -1,6 +1,7 @@
 __all__ = [
     "MOVEConfig",
     "EncodeDataConfig",
+    "IdentifyAssociationsConfig",
     "IdentifyAssociationsBayesConfig",
     "IdentifyAssociationsTTestConfig",
 ]
@@ -157,19 +158,20 @@ class EncodeDataConfig(TaskConfig):
 
 
 @dataclass
-class IdentifyAssociationsTTestConfig(TaskConfig):
+class IdentifyAssociationsConfig(TaskConfig):
     target_dataset: str = MISSING
     target_value: str = MISSING
     num_refits: int = MISSING
-    num_latent: list[int] = MISSING
 
 
 @dataclass
-class IdentifyAssociationsBayesConfig(TaskConfig):
-    target_dataset: str = MISSING
-    target_value: str = MISSING
-    num_refits: int = MISSING
+class IdentifyAssociationsBayesConfig(IdentifyAssociationsConfig):
     fdr_threshold: float = MISSING
+
+
+@dataclass
+class IdentifyAssociationsTTestConfig(IdentifyAssociationsConfig):
+    num_latent: list[int] = MISSING
 
 
 @dataclass
@@ -205,13 +207,13 @@ cs.store(
 )
 cs.store(
     group="task",
-    name="identify_associations_ttest_schema",
-    node=IdentifyAssociationsTTestConfig,
+    name="identify_associations_bayes_schema",
+    node=IdentifyAssociationsBayesConfig,
 )
 cs.store(
     group="task",
-    name="identify_associations_bayes_schema",
-    node=IdentifyAssociationsBayesConfig,
+    name="identify_associations_ttest_schema",
+    node=IdentifyAssociationsTTestConfig,
 )
 
 # Register custom resolvers

@@ -4,7 +4,7 @@ defaults:
 batch_size: 10
 
 num_refits: 10
-fdr_threshold: 0.05
+sig_threshold: 0.05
 
 target_dataset: baseline_drugs
 target_value: 1

@@ -162,11 +162,12 @@ class IdentifyAssociationsConfig(TaskConfig):
     target_dataset: str = MISSING
     target_value: str = MISSING
     num_refits: int = MISSING
+    sig_threshold: float = 0.05
 
 
 @dataclass
 class IdentifyAssociationsBayesConfig(IdentifyAssociationsConfig):
-    fdr_threshold: float = MISSING
+    ...
 
 
 @dataclass

@@ -1,4 +1,9 @@
-__all__ = ["MOVEConfig", "IdentifyAssociationsBayesConfig"]
+__all__ = [
+    "MOVEConfig",
+    "EncodeDataConfig",
+    "IdentifyAssociationsBayesConfig",
+    "IdentifyAssociationsTTestConfig",
+]
 
 from dataclasses import dataclass, field
 
@@ -148,13 +153,21 @@ class TaskConfig:
 class EncodeDataConfig(TaskConfig):
     batch_size = None
     model = None
-    training_loop = None   
+    training_loop = None
+
+
+@dataclass
+class IdentifyAssociationsTTestConfig(TaskConfig):
+    target_dataset: str = MISSING
+    target_value: str = MISSING
+    num_refits: int = MISSING
+    num_latent: list[int] = MISSING
 
 
 @dataclass
 class IdentifyAssociationsBayesConfig(TaskConfig):
     target_dataset: str = MISSING
-    target_value: Any = MISSING
+    target_value: str = MISSING
     num_refits: int = MISSING
     fdr_threshold: float = MISSING
 
@@ -192,7 +205,12 @@ cs.store(
 )
 cs.store(
     group="task",
-    name="identify_associations_schema",
+    name="identify_associations_ttest_schema",
+    node=IdentifyAssociationsTTestConfig,
+)
+cs.store(
+    group="task",
+    name="identify_associations_bayes_schema",
     node=IdentifyAssociationsBayesConfig,
 )
 

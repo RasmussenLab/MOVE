@@ -53,9 +53,9 @@ def one_hot_encode_single(mapping: dict[str, int], value: str) -> np.ndarray:
         2D array
     """
     code = mapping[str(value)]
-    value = np.zeros((1, len(mapping)))
-    value[0, code] = 1
-    return value
+    encoded_value = np.zeros((1, len(mapping)))
+    encoded_value[0, code] = 1
+    return encoded_value
 
 
 def scale(x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:

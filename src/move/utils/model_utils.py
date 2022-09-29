@@ -370,7 +370,7 @@ def correction_new(results):
 
 def get_start_end_positions(
     cat_list: List[np.ndarray], categorical_names: List[str], data_of_interest: str
-) -> Tuple[int]:
+) -> Tuple[int, int]:
     """
     Gets start and end indexes where features of a data type of interest are in the input dataset
     

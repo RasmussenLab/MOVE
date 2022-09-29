@@ -13,10 +13,10 @@ class MOVEDataset(TensorDataset):
 
     def __init__(
         self,
-        cat_all: torch.Tensor = None,
-        con_all: torch.Tensor = None,
-        cat_shapes: list = None,
-        con_shapes: list = None,
+        cat_all: Optional[torch.Tensor] = None,
+        con_all: Optional[torch.Tensor] = None,
+        cat_shapes: Optional[list] = None,
+        con_shapes: Optional[list] = None,
     ) -> None:
         # Check
         num_samples = None if cat_all is None else cat_all.shape[0]
@@ -39,7 +39,9 @@ class MOVEDataset(TensorDataset):
     def __len__(self) -> int:
         return self.num_samples
 
-    def __getitem__(self, idx: int) -> tuple[torch.Tensor]:
+    def __getitem__(
+        self, idx: int
+    ) -> tuple[Optional[torch.Tensor], Optional[torch.Tensor]]:
         cat_slice = None if self.cat_all is None else self.cat_all[idx]
         con_slice = None if self.con_all is None else self.con_all[idx]
         return cat_slice, con_slice
@@ -66,7 +68,9 @@ def concat_con_list(con_list, mask=None):
 
 
 def make_dataloader(
-    cat_list: list[np.ndarray] = None, con_list: list[np.ndarray] = None, **kwargs
+    cat_list: Optional[list[np.ndarray]] = None,
+    con_list: Optional[list[np.ndarray]] = None,
+    **kwargs
 ) -> tuple[np.ndarray, DataLoader]:
     """Creates a DataLoader that combines categorical and continuous datasets.
 

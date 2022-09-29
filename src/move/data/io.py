@@ -9,7 +9,7 @@ __all__ = [
 
 import json
 from pathlib import Path
-from typing import Union, TYPE_CHECKING
+from typing import Optional, Union, TYPE_CHECKING
 
 import hydra
 import numpy as np
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from move.conf.schema import MOVEConfig
 
 
-def read_config(filepath: Union[str, Path] = None) -> DictConfig:
+def read_config(filepath: Optional[Union[str, Path]] = None) -> DictConfig:
     """Composes configuration for the MOVE framework.
 
     Args:
@@ -57,7 +57,7 @@ def read_cat(filepath: PathLike) -> np.ndarray:
     return data
 
 
-def read_con(filepath: PathLike) -> tuple[np.ndarray]:
+def read_con(filepath: PathLike) -> tuple[np.ndarray, np.ndarray]:
     """Reads continuous data in a NumPy file and filters out columns (features)
     whose sum is zero.
 
@@ -75,7 +75,7 @@ def read_con(filepath: PathLike) -> tuple[np.ndarray]:
     return data, mask_col
 
 
-def read_header(filepath: PathLike, mask: ArrayLike = None) -> list[str]:
+def read_header(filepath: PathLike, mask: Optional[ArrayLike] = None) -> list[str]:
     """Reads features names from the headers
 
     Args:
@@ -85,7 +85,6 @@ def read_header(filepath: PathLike, mask: ArrayLike = None) -> list[str]:
     Returns:
         list of strings of elements in the header
     """
-
     header = pd.read_csv(filepath, sep="\t", header=None)
     header = header.iloc[:, 0].astype("str")
     if mask is not None:
@@ -155,12 +154,12 @@ def read_tsv(path: PathLike) -> tuple[np.ndarray, np.ndarray]:
     return data.columns.values, data.values
 
 
-def load_mappings(path: PathLike) -> dict[dict[str, int]]:
+def load_mappings(path: PathLike) -> dict[str, dict[str, int]]:
     with open(path, "r", encoding="utf-8") as file:
         return json.load(file)
 
 
-def dump_mappings(path: PathLike, mappings: dict[dict[str, int]]) -> None:
+def dump_mappings(path: PathLike, mappings: dict[str, dict[str, int]]) -> None:
     with open(path, "w", encoding="utf-8") as file:
         json.dump(mappings, file, indent=4, ensure_ascii=False)
 

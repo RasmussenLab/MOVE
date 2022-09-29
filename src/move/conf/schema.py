@@ -188,12 +188,12 @@ class MOVEConfig:
     name: str = MISSING
 
 
-def extract_weights(configs: list[InputConfig]) -> list[int]:
+def extract_weights(configs: list[InputConfig]) -> list[float]:
     """Extracts the weights from a list of input configs."""
     return [item.weight for item in configs]
 
 
-def extract_names(configs: list[InputConfig]) -> list[int]:
+def extract_names(configs: list[InputConfig]) -> list[str]:
     """Extracts the weights from a list of input configs."""
     return [item.name for item in configs]
 

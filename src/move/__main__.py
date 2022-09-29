@@ -9,10 +9,11 @@ from move.conf.schema import (
     IdentifyAssociationsConfig,
     MOVEConfig,
 )
+from move.core.logging import get_logger
 
 
 @hydra.main(config_path="conf", config_name="main")
-def main(config: MOVEConfig) -> str:
+def main(config: MOVEConfig) -> None:
     """Run MOVE.
 
     Example:
@@ -21,7 +22,10 @@ def main(config: MOVEConfig) -> str:
     if not hasattr(config, "task"):
         raise ValueError("No task defined.")
     task_type = OmegaConf.get_type(config.task)
-    if task_type is EncodeDataConfig:
+    if task_type is None:
+        logger = get_logger("move")
+        logger.info("No task specified.")
+    elif task_type is EncodeDataConfig:
         move.tasks.encode_data(config.data)
     elif issubclass(task_type, IdentifyAssociationsConfig):
         move.tasks.identify_associations(config)

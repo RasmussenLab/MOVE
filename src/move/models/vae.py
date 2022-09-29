@@ -1,5 +1,6 @@
 __all__ = ["VAE"]
 
+from typing import Optional
 import numpy as np
 import torch
 from torch import nn, optim
@@ -32,10 +33,10 @@ class VAE(nn.Module):
 
     def __init__(
         self,
-        categorical_shapes: list[tuple] = None,
-        continuous_shapes: list[tuple] = None,
-        categorical_weights: list[int] = None,
-        continuous_weights: list[int] = None,
+        categorical_shapes: Optional[list[tuple]] = None,
+        continuous_shapes: Optional[list[tuple]] = None,
+        categorical_weights: Optional[list[int]] = None,
+        continuous_weights: Optional[list[int]] = None,
         num_hidden: list[int] = [200, 200],
         num_latent: int = 20,
         beta: float = 0.01,
@@ -385,7 +386,7 @@ class VAE(nn.Module):
         return cat_out_class, cat_target
 
 
-    def _validate_batch(self, batch: tuple[torch.Tensor]) -> torch.Tensor:
+    def _validate_batch(self, batch: tuple[torch.Tensor, torch.Tensor]) -> torch.Tensor:
         cat, con = batch
         if self.num_categorical is None:
             return con

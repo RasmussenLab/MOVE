@@ -163,7 +163,7 @@ def identify_associations(config: MOVEConfig):
 
                 # Train model
                 logger.debug(f"Training refit {j + 1}/{task_config.num_refits}")
-                _: TrainingLoopOutput = hydra.utils.call(
+                _ = hydra.utils.call(
                     task_config.training_loop,
                     model=model,
                     train_dataloader=train_dataloader,
@@ -182,7 +182,7 @@ def identify_associations(config: MOVEConfig):
                 # T-test between baseline and perturb difference
                 for i in range(num_features):
                     _, perturb_recon = model.reconstruct(dataloaders[i])
-                    perturb_diff = perturb_recon - baseline_diff
+                    perturb_diff = perturb_recon - baseline_recon
                     mask = feature_mask[:, [i]] | nan_mask
                     _, pvalues[k, j, i, :] = ttest_rel(
                         a=np.where(mask, np.nan, perturb_diff),

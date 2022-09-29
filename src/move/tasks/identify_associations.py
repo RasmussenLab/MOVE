@@ -28,7 +28,7 @@ def identify_associations(config: MOVEConfig):
     of interest and the continuous datasets."""
 
     logger = get_logger(__name__)
-    task_config: IdentifyAssociationsConfig = config.task
+    task_config: IdentifyAssociationsConfig = config.task  # type: ignore
 
     interim_path = Path(config.data.interim_data_path)
     output_path = Path(config.data.processed_data_path) / "identify_associations"
@@ -97,7 +97,7 @@ def identify_associations(config: MOVEConfig):
 
             # Train model
             logger.debug(f"Training refit {j + 1}/{task_config.num_refits}")
-            _: TrainingLoopOutput = hydra.utils.call(
+            _ = hydra.utils.call(
                 task_config.training_loop,
                 model=model,
                 train_dataloader=train_dataloader,
@@ -204,9 +204,9 @@ def identify_associations(config: MOVEConfig):
 
     task_type = OmegaConf.get_type(task_config)
     if task_type is IdentifyAssociationsBayesConfig:
-        sig_ids = _bayes_approach(task_config)
+        sig_ids = _bayes_approach(task_config)  # type: ignore
     elif task_type is IdentifyAssociationsTTestConfig:
-        sig_ids = _ttest_approach(task_config)
+        sig_ids = _ttest_approach(task_config)  # type: ignore
     else:
         raise ValueError("Unsupported type of task")
 
@@ -220,10 +220,10 @@ def identify_associations(config: MOVEConfig):
         results = pd.DataFrame(sig_ids, columns=["feature_a_id", "feature_b_id"])
         results.sort_values("feature_a_id", inplace=True)
         a_df = pd.DataFrame(dict(x=cat_names[target_dataset_idx])).reset_index()
-        a_df.columns = ["feature_a_id", "feature_a_name"]
+        a_df.columns = ["feature_a_id", "feature_a_name"]  # type: ignore
         con_names = reduce(list.__add__, con_names)
         b_df = pd.DataFrame(dict(x=con_names)).reset_index()
-        b_df.columns = ["feature_b_id", "feature_b_name"]
+        b_df.columns = ["feature_b_id", "feature_b_name"]  # type: ignore
         results = results.merge(a_df, on="feature_a_id").merge(b_df, on="feature_b_id")
         results["feature_b_dataset"] = pd.cut(
             results.feature_a_id,

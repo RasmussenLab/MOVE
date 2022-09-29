@@ -7,6 +7,7 @@ from torch import nn, optim
 from torch.utils.data import DataLoader
 import logging
 
+from move.core.typing import FloatArray
 
 logger = logging.getLogger('vae.py')
 
@@ -398,7 +399,7 @@ class VAE(nn.Module):
     @torch.no_grad()
     def reconstruct(
         self, dataloader: DataLoader
-    ) -> tuple[list[np.ndarray], np.ndarray]:
+    ) -> tuple[list[FloatArray], FloatArray]:
         """Generates a reconstruction of the data contained in the DataLoader.
 
         Args:

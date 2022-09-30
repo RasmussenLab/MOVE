@@ -1,4 +1,6 @@
 
+from typing import Optional
+
 from torch.utils.data import DataLoader
 
 from move.models.vae import VAE
@@ -8,6 +10,7 @@ TrainingLoopOutput = tuple[list[float], list[float], list[float], list[float], f
 
 def dilate_batch(dataloader: DataLoader) -> DataLoader:
     """Increase the batch size of a dataloader."""
+    assert dataloader.batch_size is not None
     dataset = dataloader.dataset
     batch_size = int(dataloader.batch_size * 1.5)
     return DataLoader(dataset, batch_size, shuffle=True, drop_last=True)
@@ -16,7 +19,7 @@ def dilate_batch(dataloader: DataLoader) -> DataLoader:
 def training_loop(
     model: VAE,
     train_dataloader: DataLoader,
-    valid_dataloader: DataLoader=None,
+    valid_dataloader: Optional[DataLoader]=None,
     lr:float=1e-4,
     num_epochs: int=100,
     batch_dilation_steps: list[int]=[],
@@ -46,7 +49,7 @@ def training_loop(
         for i, output in enumerate(model.encoding(train_dataloader, epoch, lr, kld_weight)):
             outputs[i].append(output)
 
-        if early_stopping:
+        if early_stopping and valid_dataloader is not None:
             output = model.latent(valid_dataloader, kld_weight)
             valid_likelihood = output[-1]
             if valid_likelihood > min_likelihood and counter < patience:

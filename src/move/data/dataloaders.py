@@ -17,8 +17,8 @@ class MOVEDataset(TensorDataset):
         self,
         cat_all: Optional[torch.Tensor] = None,
         con_all: Optional[torch.Tensor] = None,
-        cat_shapes: Optional[list] = None,
-        con_shapes: Optional[list] = None,
+        cat_shapes: Optional[list[tuple[int, ...]]] = None,
+        con_shapes: Optional[list[int]] = None,
     ) -> None:
         # Check
         num_samples = None if cat_all is None else cat_all.shape[0]

@@ -53,8 +53,8 @@ def perturb_data(
         perturbed_dataset = MOVEDataset(
             perturbed_cat,
             baseline_dataset.con_all,
-            baseline_dataset.con_shapes,
             baseline_dataset.cat_shapes,
+            baseline_dataset.con_shapes,
         )
         perturbed_dataloader = DataLoader(
             perturbed_dataset, shuffle=False, batch_size=num_samples

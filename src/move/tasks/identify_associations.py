@@ -2,25 +2,37 @@ __all__ = ["identify_associations"]
 
 from functools import reduce
 from pathlib import Path
+from typing import Literal, cast
 
 import hydra
 import numpy as np
 import pandas as pd
 from omegaconf import OmegaConf
+from torch.utils.data import SequentialSampler
 
 from move.conf.schema import (
-    IdentifyAssociationsConfig,
     IdentifyAssociationsBayesConfig,
+    IdentifyAssociationsConfig,
     IdentifyAssociationsTTestConfig,
     MOVEConfig,
 )
 from move.core.logging import get_logger
 from move.data import io
-from move.data.dataloaders import make_dataloader
+from move.data.dataloaders import MOVEDataset, make_dataloader
 from move.data.perturbations import perturb_data
 from move.data.preprocessing import one_hot_encode_single
 from move.models.vae import VAE
-from move.training.training_loop import TrainingLoopOutput
+
+
+def _get_type_task(
+    task_config: IdentifyAssociationsConfig,
+) -> Literal["bayes", "ttest"]:
+    task_type = OmegaConf.get_type(task_config)
+    if task_type is IdentifyAssociationsBayesConfig:
+        return "bayes"
+    if task_type is IdentifyAssociationsTTestConfig:
+        return "ttest"
+    raise ValueError("Unsupported type of task!")
 
 
 def identify_associations(config: MOVEConfig):
@@ -28,7 +40,9 @@ def identify_associations(config: MOVEConfig):
     of interest and the continuous datasets."""
 
     logger = get_logger(__name__)
-    task_config: IdentifyAssociationsConfig = config.task  # type: ignore
+    task_config = cast(IdentifyAssociationsConfig, config.task)
+    task_type = _get_type_task(task_config)
+    logger.info(f"Beginning Task: identify associations ({task_type})")
 
     interim_path = Path(config.data.interim_data_path)
     output_path = Path(config.data.processed_data_path) / "identify_associations"
@@ -64,13 +78,15 @@ def identify_associations(config: MOVEConfig):
     )
 
     baseline_dataloader = dataloaders[-1]
+    baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
     num_features = len(dataloaders) - 1  # F
-    num_samples = len(baseline_dataloader.sampler)  # N
+    num_samples = len(cast(SequentialSampler, baseline_dataloader.sampler))  # N
     num_continuous = sum(con_shapes)  # C
     logger.debug(f"# perturbed features: {num_features}")
     logger.debug(f"# continuous features: {num_continuous}")
 
-    orig_con = baseline_dataloader.dataset.con_all
+    assert baseline_dataset.con_all is not None
+    orig_con = baseline_dataset.con_all
     nan_mask = (orig_con == 0).numpy()  # NaN values encoded as 0s
     logger.debug(f"# NaN values: {np.sum(nan_mask)}/{orig_con.numel()}")
 
@@ -89,8 +105,8 @@ def identify_associations(config: MOVEConfig):
             # Initialize model
             model: VAE = hydra.utils.instantiate(
                 task_config.model,
-                continuous_shapes=baseline_dataloader.dataset.con_shapes,
-                categorical_shapes=baseline_dataloader.dataset.cat_shapes,
+                continuous_shapes=baseline_dataset.con_shapes,
+                categorical_shapes=baseline_dataset.cat_shapes,
             )
             if j == 0:
                 logger.debug(f"Model: {model}")
@@ -154,8 +170,8 @@ def identify_associations(config: MOVEConfig):
                 # Initialize model
                 model: VAE = hydra.utils.instantiate(
                     task_config.model,
-                    continuous_shapes=baseline_dataloader.dataset.con_shapes,
-                    categorical_shapes=baseline_dataloader.dataset.cat_shapes,
+                    continuous_shapes=baseline_dataset.con_shapes,
+                    categorical_shapes=baseline_dataset.cat_shapes,
                     num_latent=num_latent,
                 )
                 if j == 0:
@@ -202,13 +218,12 @@ def identify_associations(config: MOVEConfig):
 
         return np.flatnonzero(sig_ids)  # 1D
 
-    task_type = OmegaConf.get_type(task_config)
-    if task_type is IdentifyAssociationsBayesConfig:
-        sig_ids = _bayes_approach(task_config)  # type: ignore
-    elif task_type is IdentifyAssociationsTTestConfig:
-        sig_ids = _ttest_approach(task_config)  # type: ignore
+    if task_type == "bayes":
+        task_config = cast(IdentifyAssociationsBayesConfig, task_config)
+        sig_ids = _bayes_approach(task_config)
     else:
-        raise ValueError("Unsupported type of task")
+        task_config = cast(IdentifyAssociationsTTestConfig, task_config)
+        sig_ids = _ttest_approach(task_config)
 
     # Prepare results
     logger.debug(f"Significant hits found: {sig_ids.size}")

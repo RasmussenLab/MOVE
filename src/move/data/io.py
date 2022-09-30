@@ -9,16 +9,15 @@ __all__ = [
 
 import json
 from pathlib import Path
-from typing import Optional, Union, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Union, cast
 
 import hydra
 import numpy as np
 import pandas as pd
-from numpy.typing import ArrayLike
 from omegaconf import DictConfig, OmegaConf
 
 from move import conf
-from move.core.typing import PathLike
+from move.core.typing import BoolArray, PathLike
 
 if TYPE_CHECKING:
     from move.conf.schema import MOVEConfig
@@ -38,7 +37,7 @@ def read_config(filepath: Optional[Union[str, Path]] = None) -> DictConfig:
 
     if filepath is not None:
         user_config = OmegaConf.load(filepath)
-        return OmegaConf.merge(base_config, user_config)
+        return cast(DictConfig, OmegaConf.merge(base_config, user_config))
     else:
         return base_config
 
@@ -75,7 +74,7 @@ def read_con(filepath: PathLike) -> tuple[np.ndarray, np.ndarray]:
     return data, mask_col
 
 
-def read_header(filepath: PathLike, mask: Optional[ArrayLike] = None) -> list[str]:
+def read_header(filepath: PathLike, mask: Optional[BoolArray] = None) -> list[str]:
     """Reads features names from the headers
 
     Args:

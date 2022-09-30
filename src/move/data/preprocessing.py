@@ -38,7 +38,9 @@ def one_hot_encode(x: np.ndarray) -> tuple[np.ndarray, dict[str, int]]:
         # remove NaN column
         categories = categories[:-1]
         encoded_x = encoded_x[:, :, :-1]
-    mapping = {_category_name(category): code for code, category in enumerate(categories)}
+    mapping = {
+        _category_name(category): code for code, category in enumerate(categories)
+    }
     return encoded_x, mapping
 
 

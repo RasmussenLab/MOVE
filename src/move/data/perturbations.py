@@ -1,5 +1,7 @@
 __all__ = ["perturb_data"]
 
+from typing import cast
+
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
@@ -35,10 +37,12 @@ def perturb_data(
     _, baseline_dataloader = make_dataloader(
         cat_list, con_list, shuffle=False, batch_size=num_samples
     )
+    baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
     start, end = get_start_end_positions(
         cat_list, cat_dataset_names, target_dataset_name
     )
-    cat_all: torch.Tensor = baseline_dataloader.dataset.cat_all
+    assert baseline_dataset.cat_all is not None
+    cat_all = baseline_dataset.cat_all
     num_features = target_shape[1]
 
     dataloaders = []
@@ -48,9 +52,9 @@ def perturb_data(
         target_dataset[:, i, :] = torch.FloatTensor(target_value)
         perturbed_dataset = MOVEDataset(
             perturbed_cat,
-            baseline_dataloader.dataset.con_all,
-            baseline_dataloader.dataset.con_shapes,
-            baseline_dataloader.dataset.cat_shapes,
+            baseline_dataset.con_all,
+            baseline_dataset.con_shapes,
+            baseline_dataset.cat_shapes,
         )
         perturbed_dataloader = DataLoader(
             perturbed_dataset, shuffle=False, batch_size=num_samples

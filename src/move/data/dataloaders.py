@@ -7,6 +7,8 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 
+from move.core.typing import BoolArray, FloatArray
+
 
 class MOVEDataset(TensorDataset):
     "Characterizes a dataset for PyTorch"
@@ -48,8 +50,8 @@ class MOVEDataset(TensorDataset):
 
 
 def concat_cat_list(
-    cat_list: list[np.ndarray],
-) -> Optional[tuple[list[tuple[int, ...]], np.ndarray, np.ndarray]]:
+    cat_list: list[FloatArray],
+) -> tuple[list[tuple[int, ...]], BoolArray, FloatArray]:
     cat_shapes = []
     cat_flat = []
     for cat in cat_list:
@@ -60,18 +62,20 @@ def concat_cat_list(
     return cat_shapes, mask, cat_all
 
 
-def concat_con_list(con_list, mask=None):
+def concat_con_list(
+    con_list: list[FloatArray],
+) -> tuple[list[int], BoolArray, FloatArray]:
     con_shapes = [con.shape[1] for con in con_list]
-    con_all = np.concatenate(con_list, axis=1)
+    con_all: FloatArray = np.concatenate(con_list, axis=1)
     mask = con_all.sum(axis=1) != 0  # True if row sum is not zero
     return con_shapes, mask, con_all
 
 
 def make_dataloader(
-    cat_list: Optional[list[np.ndarray]] = None,
-    con_list: Optional[list[np.ndarray]] = None,
+    cat_list: Optional[list[FloatArray]] = None,
+    con_list: Optional[list[FloatArray]] = None,
     **kwargs
-) -> tuple[np.ndarray, DataLoader]:
+) -> tuple[BoolArray, DataLoader]:
     """Creates a DataLoader that combines categorical and continuous datasets.
 
     Args:
@@ -99,7 +103,7 @@ def make_dataloader(
     if con_list:
         con_shapes, con_mask, con_all = concat_con_list(con_list)
 
-    mask: np.ndarray = reduce(
+    mask: BoolArray = reduce(
         np.logical_and, [mask for mask in [cat_mask, con_mask] if mask is not None]
     )
     if cat_all is not None:

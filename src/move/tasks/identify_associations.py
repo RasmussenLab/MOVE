@@ -17,6 +17,7 @@ from move.conf.schema import (
     MOVEConfig,
 )
 from move.core.logging import get_logger
+from move.core.typing import FloatArray
 from move.data import io
 from move.data.dataloaders import MOVEDataset, make_dataloader
 from move.data.perturbations import perturb_data
@@ -95,7 +96,7 @@ def identify_associations(config: MOVEConfig):
     feature_mask = np.all(target_dataset == target_value, axis=2)
     feature_mask |= np.sum(target_dataset, axis=2) == 0
 
-    def _bayes_approach(task_config: IdentifyAssociationsBayesConfig) -> np.ndarray:
+    def _bayes_approach(task_config: IdentifyAssociationsBayesConfig) -> tuple[FloatArray, ...]:
         # Train models
         logger.info("Training models")
         mean_diff = np.zeros((num_features, num_samples, num_continuous))
@@ -125,22 +126,22 @@ def identify_associations(config: MOVEConfig):
             # Calculate perturb reconstruction => keep track of mean difference
             for i in range(num_features):
                 _, perturb_recon = model.reconstruct(dataloaders[i])
-                diff = perturb_recon - baseline_recon  # shape: N x C
+                diff = perturb_recon - baseline_recon  # 2D: N x C
                 mean_diff[i, :, :] += diff * normalizer
 
         # Calculate Bayes factors
         logger.info("Identifying significant features")
         bayes_k = np.empty((num_features, num_continuous))
         for i in range(num_features):
-            mask = feature_mask[:, [i]] | nan_mask  # N x C
-            diff = np.ma.masked_array(mean_diff[i, :, :], mask=mask)  # shape: N x C
-            prob = np.ma.compressed(np.mean(diff > 1e-8, axis=0))  # shape: C
+            mask = feature_mask[:, [i]] | nan_mask  # 2D: N x C
+            diff = np.ma.masked_array(mean_diff[i, :, :], mask=mask)  # 2D: N x C
+            prob = np.ma.compressed(np.mean(diff > 1e-8, axis=0))  # 1D: C
             bayes_k[i, :] = np.abs(np.log(prob + 1e-8) - np.log(1 - prob + 1e-8))
 
         # Calculate Bayes probabilities
         bayes_p = np.exp(bayes_k) / (1 + np.exp(bayes_k))
         sort_ids = np.argsort(bayes_k, axis=None)[::-1]
-        prob = np.take(bayes_p, sort_ids)  # shape: NC
+        prob = np.take(bayes_p, sort_ids)  # 1D: N x C
         logger.debug(f"Bayes proba range: [{prob[-1]:.3f} {prob[0]:.3f}]")
 
         # Calculate FDR
@@ -148,9 +149,9 @@ def identify_associations(config: MOVEConfig):
         idx = np.argmin(np.abs(fdr - task_config.sig_threshold))
         logger.debug(f"FDR range: [{fdr[0]:.3f} {fdr[-1]:.3f}]")
 
-        return sort_ids[:idx]
+        return sort_ids[:idx], prob[:idx]
 
-    def _ttest_approach(task_config: IdentifyAssociationsTTestConfig) -> np.ndarray:
+    def _ttest_approach(task_config: IdentifyAssociationsTTestConfig) -> tuple[FloatArray, ...]:
         from scipy.stats import ttest_rel
 
         # Train models
@@ -215,18 +216,27 @@ def identify_associations(config: MOVEConfig):
         reject = pvalues <= task_config.sig_threshold  # 4D: L x R x F x C
         overlap = reject.sum(axis=1) >= overlap_thres  # 3D: L x F x C
         sig_ids = overlap.sum(axis=0) >= 3  # 2D: F x C
+        sig_ids = np.flatnonzero(sig_ids)  # 1D
 
-        return np.flatnonzero(sig_ids)  # 1D
+        # Report median p-value
+        masked_pvalues = np.ma.masked_array(pvalues, mask=~reject)  # 4D
+        masked_pvalues = np.ma.median(masked_pvalues, axis=1)  # 3D
+        masked_pvalues = np.ma.median(masked_pvalues, axis=0)  # 2D
+        sig_pvalues = np.ma.compressed(np.take(masked_pvalues, sig_ids))  # 1D
+
+        return sig_ids, sig_pvalues
 
     if task_type == "bayes":
         task_config = cast(IdentifyAssociationsBayesConfig, task_config)
-        sig_ids = _bayes_approach(task_config)
+        sig_ids, *extra_cols = _bayes_approach(task_config)
+        extra_colnames = ["proba"]
     else:
         task_config = cast(IdentifyAssociationsTTestConfig, task_config)
-        sig_ids = _ttest_approach(task_config)
+        sig_ids, *extra_cols = _ttest_approach(task_config)
+        extra_colnames = ["p_value"]
 
     # Prepare results
-    logger.debug(f"Significant hits found: {sig_ids.size}")
+    logger.info(f"Significant hits found: {sig_ids.size}")
 
     if sig_ids.size > 0:
         sig_ids = np.vstack((sig_ids // num_continuous, sig_ids % num_continuous)).T
@@ -241,9 +251,11 @@ def identify_associations(config: MOVEConfig):
         b_df.columns = ["feature_b_id", "feature_b_name"]  # type: ignore
         results = results.merge(a_df, on="feature_a_id").merge(b_df, on="feature_b_id")
         results["feature_b_dataset"] = pd.cut(
-            results.feature_a_id,
+            results.feature_b_id,
             bins=np.cumsum([0] + con_shapes),
             right=False,
             labels=config.data.continuous_names,
         )
+        for col, colname in zip(extra_cols, extra_colnames):
+            results[colname] = col
         results.to_csv(output_path / "results_sig_assoc.tsv", sep="\t")

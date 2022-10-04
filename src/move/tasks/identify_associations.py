@@ -17,7 +17,7 @@ from move.conf.schema import (
     MOVEConfig,
 )
 from move.core.logging import get_logger
-from move.core.typing import FloatArray
+from move.core.typing import IntArray, FloatArray
 from move.data import io
 from move.data.dataloaders import MOVEDataset, make_dataloader
 from move.data.perturbations import perturb_data
@@ -96,7 +96,7 @@ def identify_associations(config: MOVEConfig):
     feature_mask = np.all(target_dataset == target_value, axis=2)
     feature_mask |= np.sum(target_dataset, axis=2) == 0
 
-    def _bayes_approach(task_config: IdentifyAssociationsBayesConfig) -> tuple[FloatArray, ...]:
+    def _bayes_approach(task_config: IdentifyAssociationsBayesConfig) -> tuple[IntArray, FloatArray]:
         # Train models
         logger.info("Training models")
         mean_diff = np.zeros((num_features, num_samples, num_continuous))
@@ -151,7 +151,7 @@ def identify_associations(config: MOVEConfig):
 
         return sort_ids[:idx], prob[:idx]
 
-    def _ttest_approach(task_config: IdentifyAssociationsTTestConfig) -> tuple[FloatArray, ...]:
+    def _ttest_approach(task_config: IdentifyAssociationsTTestConfig) -> tuple[IntArray, FloatArray]:
         from scipy.stats import ttest_rel
 
         # Train models
@@ -210,6 +210,7 @@ def identify_associations(config: MOVEConfig):
 
         # Correct p-values (Bonferroni)
         pvalues = np.minimum(pvalues * num_continuous, 1.0)
+        np.save(interim_path / "pvals.npy", pvalues)
 
         # Find significant hits
         overlap_thres = task_config.num_refits // 2
@@ -244,14 +245,14 @@ def identify_associations(config: MOVEConfig):
         logger.info("Writing results")
         results = pd.DataFrame(sig_ids, columns=["feature_a_id", "feature_b_id"])
         results.sort_values("feature_a_id", inplace=True)
-        a_df = pd.DataFrame(dict(x=cat_names[target_dataset_idx])).reset_index()
-        a_df.columns = ["feature_a_id", "feature_a_name"]  # type: ignore
+        a_df = pd.DataFrame(dict(feature_a_name=cat_names[target_dataset_idx])).reset_index()
+        a_df.index.name = "feature_a_id"
         con_names = reduce(list.__add__, con_names)
-        b_df = pd.DataFrame(dict(x=con_names)).reset_index()
-        b_df.columns = ["feature_b_id", "feature_b_name"]  # type: ignore
+        b_df = pd.DataFrame(dict(feature_b_name=con_names)).reset_index()
+        b_df.index.name = "feature_b_id"
         results = results.merge(a_df, on="feature_a_id").merge(b_df, on="feature_b_id")
         results["feature_b_dataset"] = pd.cut(
-            results.feature_b_id,
+            results["feature_b_id"],
             bins=np.cumsum([0] + con_shapes),
             right=False,
             labels=config.data.continuous_names,

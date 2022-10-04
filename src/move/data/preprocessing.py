@@ -4,14 +4,17 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+from numpy.typing import ArrayLike
 from sklearn.preprocessing import scale as standardize
+
+from move.core.typing import BoolArray, IntArray, FloatArray
 
 
 def _category_name(value: Any) -> str:
     return value if isinstance(value, str) else str(int(value))
 
 
-def one_hot_encode(x: np.ndarray) -> tuple[np.ndarray, dict[str, int]]:
+def one_hot_encode(x_: ArrayLike) -> tuple[IntArray, dict[str, int]]:
     """One-hot encode a matrix with samples in its rows and features in its
     columns. Columns share number of classes.
 
@@ -22,10 +25,10 @@ def one_hot_encode(x: np.ndarray) -> tuple[np.ndarray, dict[str, int]]:
         A 3D one-hot encoded matrix (extra dim corresponds to number of
         classes) and a mapping between classes and corresponding codes
     """
-    x = np.copy(x)
-    shape = x.shape
+    x: np.ndarray = np.copy(x_)
     if x.ndim == 1:
         x = x[:, np.newaxis]
+    shape = x.shape
     has_na = np.any(pd.isna(x))
     if x.dtype == object:
         x = x.astype(str)
@@ -44,7 +47,7 @@ def one_hot_encode(x: np.ndarray) -> tuple[np.ndarray, dict[str, int]]:
     return encoded_x, mapping
 
 
-def one_hot_encode_single(mapping: dict[str, int], value: str) -> np.ndarray:
+def one_hot_encode_single(mapping: dict[str, int], value: str) -> IntArray:
     """One-hot encode a single value given an existing mapping.
 
     Args:
@@ -60,7 +63,7 @@ def one_hot_encode_single(mapping: dict[str, int], value: str) -> np.ndarray:
     return encoded_value
 
 
-def scale(x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+def scale(x: np.ndarray) -> tuple[FloatArray, BoolArray]:
     """Center to mean and scale to unit variance. Convert NaN values to 0.
 
     Args:

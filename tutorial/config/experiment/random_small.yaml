@@ -1,0 +1,5 @@
+# @package _global_
+
+defaults:
+  - override /data: random_small
+  - override /task: random_small__id_assoc_ttest

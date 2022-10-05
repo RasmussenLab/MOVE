@@ -1,0 +1,17 @@
+
+defaults:
+  - base_data
+
+raw_data_path: data
+interim_data_path: interim_data
+processed_data_path: results
+
+categorical_inputs:
+  - name: random.small.drugs
+    weight: 1
+
+continuous_inputs:
+  - name: random.small.proteomics
+    weight: 1
+  - name: random.small.metagenomics
+    weight: 1

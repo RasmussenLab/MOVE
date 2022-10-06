@@ -2,6 +2,7 @@ import argparse
 from collections import namedtuple
 from hashlib import md5
 from pathlib import Path
+from typing import Literal
 from warnings import warn
 
 import pandas as pd
@@ -28,9 +29,10 @@ FILES = {
         8146942,
     ),
 }
+DATASET_NAME = Literal["maize_microbiome", "maize_microbiome_names", "maize_metadata"]
 
 
-def fetch(dataset_name: str, destination: Path) -> Path:
+def fetch(dataset_name: DATASET_NAME, destination: Path) -> Path:
     """Downloads a maize dataset.
 
     Args:
@@ -103,6 +105,10 @@ def prepare_data(savedir: Path) -> None:
     data.columns = [col_name.lower() for col_name in data.columns]
     data.to_csv(values_path, sep="\t")
 
+    with open(savedir / "maize_ids.txt", "w", encoding="utf-8") as file:
+        for name in data.index:
+            file.write(f"{name}\n")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -110,5 +116,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     savedir = Path(getattr(args, "savedir"))
+    savedir.mkdir(exist_ok=True)
 
     prepare_data(savedir)

@@ -1,8 +1,13 @@
 import os 
 import numpy as np
 import pandas as pd
+import itertools
 from collections import defaultdict
 from omegaconf import OmegaConf
+import logging
+
+# Defining a logger name for logging
+logger = logging.getLogger('data_utils')
 
 def merge_configs(base_config, config_types):
     """
@@ -31,7 +36,8 @@ def merge_configs(base_config, config_types):
     
     # Printing what was overrided
     override_types_str = ', '.join(str(override_type) for override_type in override_types)
-    print(f'Overriding the default config with configs from {override_types_str}')
+    
+    logger.info(f'Overriding the default config with configs from {override_types_str}')
     
     # Merging the base and user defined config file
     config = OmegaConf.merge(base_config, user_config_dict)
@@ -40,7 +46,7 @@ def merge_configs(base_config, config_types):
     config_section_dict = {x: config[x] for x in config_types if x in config}
     config_section = OmegaConf.create(config_section_dict)
 
-    print(f'\nConfiguration used: \n---\n{OmegaConf.to_yaml(config_section)}---\n')
+    logger.info(f'\n\nConfiguration used:\n{OmegaConf.to_yaml(config_section)}')
     return(config_section)
 
 
@@ -174,7 +180,7 @@ def get_data(headers_path, interim_data_path, categorical_data_names, continuous
 
 # Functions for encoding
 
-def encode_cat(raw_input, na='NA'):
+def encode_cat(sorted_data, na='NA'):
     """
     Encodes categorical data into one-hot encoding
     
@@ -184,14 +190,16 @@ def encode_cat(raw_input, na='NA'):
          data_input: one hot encoded data
     """ 
      
-    matrix = np.array(raw_input)
+    matrix = np.array(sorted_data)
     n_labels = matrix.shape[1]
     n_samples = matrix.shape[0]
     
-    unique_sorted_data = np.unique(raw_input)
-    num_classes = len(unique_sorted_data[~np.isnan(unique_sorted_data)])
+    unique_sorted_data = np.unique(sorted_data)
+    x = np.where(unique_sorted_data == 'nan')
+    unique_sorted_data_nonan = np.delete(unique_sorted_data, x)
+    num_classes = len(unique_sorted_data_nonan)
     uniques = [*range(num_classes), 'nan']
- 
+    
     # make endocding dict
     encodings = defaultdict(dict)
     count = 0
@@ -204,7 +212,7 @@ def encode_cat(raw_input, na='NA'):
         encodings[u] = np.zeros(num_classes)
         encodings[u][count] = 1
         count += 1
-
+    
     # encode the data
     data_input = np.zeros((n_samples,n_labels,num_classes))
     i = 0
@@ -226,7 +234,7 @@ def encode_cat(raw_input, na='NA'):
         
     return data_input
 
-def encode_con(raw_input):
+def encode_con(sorted_data):
     """
     Log transforms and z-normalizes the data
     
@@ -236,22 +244,26 @@ def encode_con(raw_input):
          data_input: numpy array with log transformed and z-score normalized data
          mask_col: a np.array vector of Bolean values that correspond to nonzero sd values 
     """
-
-    matrix = np.array(raw_input)
-    consum = matrix.sum(axis=1)
     
-    data_input = np.log2(matrix + 1) 
+    matrix = np.array(sorted_data)
+    consum = np.nansum(matrix, axis=1)
+    data_input = np.log2(matrix + 1)
     
     # remove 0 variance
     std = np.nanstd(data_input, axis=0)
     mask_col = std != 0
     data_input = data_input[:,mask_col]
-     
+    
     # z-score normalize
     mean = np.nanmean(data_input, axis=0)
     std = np.nanstd(data_input, axis=0)
     data_input -= mean
     data_input /= std
+    
+    # change all nan in input to zero for encoding
+    np_index = np.isnan(data_input)
+    data_input[np_index] = 0
+    
     return data_input, mask_col 
 
 
@@ -266,10 +278,10 @@ def sort_data(data, ids, labels):
     Returns:
          sorted_data: a list of source data sorted by IDs from baseline_ids.txt file
     """
-
+    
     n_labels = len(labels)
     sorted_data = list()
-
+    
     for _ids in ids:
         if _ids in data:
             sorted_data.append(data[_ids])
@@ -307,7 +319,7 @@ def read_ids(path, ids_file_name, ids_colname, ids_has_header=True):
     return ids
 
 
-def read_files(path, data_type, na):
+def read_files(var_type, path, data_type, na):
     """
     Function reads the input file into the dictionary
      
@@ -326,13 +338,22 @@ def read_files(path, data_type, na):
         header = f.readline()
         for line in f:
             line = line.rstrip()
-            tmp = np.array(line.split("\t"))
+            # make sure to enforce 25-char string to make sure no problems with missing
+            # when converting from e.g. NA to nan and it reads automatically as <U2
+            tmp = np.array(line.split("\t"), dtype=np.dtype('U25'))
             vals = tmp[1:]
-            vals[vals == na] = np.nan
-            vals = list(map(float, vals))
-            raw_input[tmp[0]] = vals
+            if var_type == 'categorical':
+                # store indexes of NAs
+                na_index = np.where(vals==na)
+                vals[na_index] = np.nan
+                raw_input[tmp[0]] = vals
+            elif var_type == 'continuous':
+                na_index = np.where(vals==na)
+                vals[na_index] = np.nan
+                vals_fl = list(map(float, vals))
+                raw_input[tmp[0]] = vals_fl
     header = header.split("\t")
-     
+    
     return raw_input, header
 
 def generate_file(var_type, raw_data_path, interim_data_path, headers_path, data_type, ids, na='NA'):
@@ -357,21 +378,22 @@ def generate_file(var_type, raw_data_path, interim_data_path, headers_path, data
         os.makedirs(headers_path)
     
     # Preparing the data
-    raw_input, header = read_files(raw_data_path, data_type, na)
+    raw_input, header = read_files(var_type, raw_data_path, data_type, na)
     sorted_data = sort_data(raw_input, ids, header)
-     
+    
     if var_type == 'categorical':
         data_input = encode_cat(sorted_data, 'nan')
         mask = None
-        
+    
     elif var_type == 'continuous':
         data_input, mask = encode_con(sorted_data)
-        
+    
     header = get_header(header, mask)
     
     np.savetxt(headers_path+data_type+'.txt', header, delimiter=',', fmt='%s')
     np.save(interim_data_path + f"{data_type}.npy", data_input)
-
+    
+    logger.info(f'  Encoded {data_type}')
 
 def get_header(header, mask=None, start=1):
     """
@@ -450,7 +472,7 @@ def make_and_save_best_reconstruct_params(results_df, hyperparams_names, max_par
     # Getting the best number of epochs used in further trainings
     best_epoch = get_best_epoch(results_df)
     
-    print('Starting calculating the best hyperparameter values for further optimization') 
+    logger.info('Starting calculating the best hyperparameter values for further optimization') 
     
     results_df_sorted = get_sort_list(results_df)
     best_hyperpars_vals_dict = get_best_params(results_df_sorted, max_param_combos_to_save, hyperparams_names)
@@ -461,8 +483,8 @@ def make_and_save_best_reconstruct_params(results_df, hyperparams_names, max_par
         OmegaConf.save(OmegaConf.create(dict(best_hyperpars_vals_dict)), f)
 
     #Printing the saved hyper parameter values
-    print(f'Saving the best hyperparameter values in tuning_stability.yaml for further optimization: \n{OmegaConf.to_yaml(dict(best_hyperpars_vals_dict))}\n')
-    print('Please manually review if the hyperparameter values were selected correctly and adjust them in the tuning_stability.yaml file.')
+    logger.info(f'Saving the best hyperparameter values in tuning_stability.yaml for further optimization:\n \n{OmegaConf.to_yaml(dict(best_hyperpars_vals_dict))}\n')
+    logger.warning('Please manually review if the hyperparameter values were selected correctly and adjust them in the tuning_stability.yaml file.')
     
 
 def get_best_stability_paramset(stability_df, hyperparams_names):
@@ -507,7 +529,7 @@ def get_best_4_latent_spaces(results_df_sorted):
 
 def make_and_save_best_stability_params(results_df, hyperparams_names, nepochs):
     
-    print('Starting calculating the best hyperparameter values used in further model trainings') 
+    logger.info('Starting calculating the best hyperparameter values used in further model trainings') 
     
     # Getting best set of hyperparameters
     params_to_save, results_df_sorted = get_best_stability_paramset(results_df, hyperparams_names)
@@ -518,7 +540,7 @@ def make_and_save_best_stability_params(results_df, hyperparams_names, nepochs):
         OmegaConf.save(OmegaConf.create(dict(params_to_save)), f)
         
     # Printing the configuration saved 
-    print(f'Saving best hyperparameter values in training_latent.yaml: \n{OmegaConf.to_yaml(dict(params_to_save))}')
+    logger.info(f'Saving best hyperparameter values in training_latent.yaml: \n\n{OmegaConf.to_yaml(dict(params_to_save))}')
     
     # Getting the latent spaces for training_association script and using them with the best hyperparam set
     best_latent = get_best_4_latent_spaces(results_df_sorted)
@@ -529,5 +551,24 @@ def make_and_save_best_stability_params(results_df, hyperparams_names, nepochs):
         OmegaConf.save(OmegaConf.create(dict(params_to_save)), f)
 
     # Printing the configuration saved 
-    print(f'Saving best hyperparameter values in training_association.yaml: \n{OmegaConf.to_yaml(dict(params_to_save))}')
+    logger.info(f'Saving best hyperparameter values in training_association.yaml: \n \n{OmegaConf.to_yaml(dict(params_to_save))}')
+    logger.warning('Please manually review if the hyperparameter values were selected correctly and adjust them in the training_association.yaml and training_latent.yaml files.')
 
+def read_saved_files(nLatents, repeats, path, version, drug):
+    results, recon_results, groups, mean_bas = initiate_default_dicts(n_empty_dicts=0, n_list_dicts=4)
+    
+    iters = itertools.product(nLatents, range(repeats))
+    for nLatent, repeat in iters:
+        result = np.load(path + f'05_identify_associations/results_{str(nLatent)}_{str(repeat)}_{version}.npy', mmap_mode='r', allow_pickle = True)
+        mean_ba = np.load(path + f'05_identify_associations/mean_bas_{str(nLatent)}_{str(repeat)}_{version}.npy', mmap_mode='r', allow_pickle = True)
+        recon_result = np.load(path + f'05_identify_associations/recon_results_{str(nLatent)}_{str(repeat)}_{version}.npy', mmap_mode='r', allow_pickle = True)
+        recon_result_dict = {i:recon_result[i] for i in range(recon_result.shape[0])}
+        
+        results[nLatent].append(result)
+        recon_results[nLatent].append(recon_result_dict)
+        mean_bas[nLatent].append(mean_ba) 
+    
+    groups = np.load(path + "05_identify_associations/results_groups_" + version + ".npy", mmap_mode='r', allow_pickle = True)
+    groups_dict = {i:groups[i] for i in range(groups.shape[0])}
+    
+    return(results, recon_results, groups_dict, mean_bas)

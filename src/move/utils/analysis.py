@@ -22,7 +22,9 @@ from scipy import stats
 from move.utils.data_utils import initiate_default_dicts
 from move.utils import dataloaders
 from move.models import vae
+import logging
 
+logger = logging.getLogger('analysis')
 
 def get_top10_stability(nHiddens, nLatents, drop_outs, nLayers, repeat, latents, batch_sizes, nBeta):
     '''
@@ -55,7 +57,7 @@ def get_top10_stability(nHiddens, nLatents, drop_outs, nLayers, repeat, latents,
         
         name = str([nHidden] * nl) + "+" + str(nLatent) + ", do: " + str(drop) +", b: " + str(b)
 
-        print(name)
+        logger.info(name)
         top10_changes[name] = [ [] for i in range(npatient) ]
      
         for r in range(repeat):
@@ -75,7 +77,7 @@ def get_top10_stability(nHiddens, nLatents, drop_outs, nLayers, repeat, latents,
                     #summed_max = np.mean(row[old_pos])
                     top10_changes[name][index].append(np.mean(abs(old_sum - row[old_pos])))
                     step.append(np.mean(abs(old_sum - row[old_pos])))
-            print(r)
+            logger.info(r)
             if r != 0:
                 stability_top10[name].append(np.mean(step))
                 stability_top10_df.append({
@@ -553,7 +555,7 @@ def get_feat_importance_on_weights(path, model, train_loader, cat_names, con_nam
     pos = 0
     for s in cat_shapes:
         n = s[1] * s[2]
-        print(n)
+        logger.info(n)
         cat_w_sum_tmp = w_sum_cat[pos:(n + pos)]
         cat_w_sum_tmp = cat_w_sum_tmp.reshape(s[1], s[2])
         sum_d = np.sum(cat_w_sum_tmp, axis=1)
@@ -613,37 +615,37 @@ def overlapping_hits(nLatents, cor_results, repeats, con_names, drug):
         median_p_val: TODO
     '''
     
-    
     sig_hits = defaultdict(dict)
     overlaps_d = defaultdict(list)
     counts = list()
-
+    
     new_list = nLatents[::-1]
-
+    
     median_p_val = defaultdict(dict)
     for l in range(len(new_list)):
         for d in range(cor_results[0][new_list[l]].shape[0]):
             hits_tmp = list()
             p_cors = defaultdict(list)
             for repeat in range(repeats):
-
+                
                 ns = con_names[cor_results[repeat][new_list[l]][d,:] <= 0.05]
-
+                
                 p_cor = cor_results[repeat][new_list[l]][d,:]
                 p_cor = p_cor[p_cor <= 0.05]
                 for i,ns_t in enumerate(ns):
                     p_cors[ns_t].append(p_cor[i])
-
+                
                 hits_tmp.extend(ns)
-
+            
             overlap_tmp = [hits_tmp.count(x) for x in np.unique(hits_tmp)]
             overlap = np.array(np.unique(hits_tmp))[np.array(overlap_tmp) >= 5]
             m_p = []
             for o_t in overlap:
                 m_p.append(np.median(p_cors[o_t]))
-
+            
             sig_hits[d][new_list[l]] = overlap
             median_p_val[d][new_list[l]] = m_p
+    
     return(sig_hits, median_p_val)
 
 def identify_high_supported_hits(sig_hits, drug_h, version, path): 
@@ -682,7 +684,7 @@ def identify_high_supported_hits(sig_hits, drug_h, version, path):
                 all_hits.append(x)
     
     # Save result
-    np.save(path + "results/results_confidence_" + version + ".npy", result)
+    np.save(path + "05_identify_associations/results_confidence_" + version + ".npy", result)
 
     return(all_hits, collected_overlap)
 
@@ -701,7 +703,7 @@ def report_values(path, sig_hits, median_p_val, drug_h, all_hits, collected_over
     '''
     
     
-    results_folder = path + 'results/sig_ci_files'
+    results_folder = path + '05_identify_associations/sig_ci_files'
     isExist = os.path.exists(results_folder)
     if not isExist:
         os.makedirs(results_folder)
@@ -735,7 +737,7 @@ def report_values(path, sig_hits, median_p_val, drug_h, all_hits, collected_over
     for i,al_con in enumerate(con_names):
         sig_drug_names = np.intersect1d(all_hits, al_con)
         df_tmp = p_vals_df.loc[:, sig_drug_names]
-        df_tmp.T.to_csv(path + "results/sig_ci_files/" + con_names[i] + "_p_vals.txt", sep = "\t")
+        df_tmp.T.to_csv(path + "05_identify_associations/sig_ci_files/" + con_names[i] + "_p_vals.txt", sep = "\t")
 
 
 def get_change_in_reconstruction(recon_average, groups, drug, drug_h, con_names, collected_overlap, sig_hits, con_all, version, path, types): 
@@ -766,7 +768,7 @@ def get_change_in_reconstruction(recon_average, groups, drug, drug_h, con_names,
 
     for l in recon_average.keys():
         for d in recon_average[l].keys():
-            print(d)
+            logger.info(d)
             tmp_recon = np.copy(recon_average[l][d])
             gr = groups[d]
             g = [not (np.all(a_s == types[0]) or (np.all(a_s == [0,0]))) for a_s in drug[gr,d,:]]
@@ -806,7 +808,7 @@ def get_change_in_reconstruction(recon_average, groups, drug, drug_h, con_names,
     recon_average_corr_new_all = list()
     recon_average_corr_all_indi_new = dict()
     for d in recon_average_corr_all.keys():
-        print(d)
+        logger.info(d)
         counts_tmp = np.array(counts_average_all[d])
         tmp_l = np.array(recon_average_corr_all[d])[counts_tmp != 0]
         included_names = con_names[counts_tmp != 0]
@@ -822,8 +824,8 @@ def get_change_in_reconstruction(recon_average, groups, drug, drug_h, con_names,
     recon_average_corr_new_all = np.array(recon_average_corr_new_all)
 
      # Save recon results
-    np.save(path + "results/results_confidence_recon_all_" + version + ".npy", recon_average_corr_new_all)
-    np.save(path + "results/results_confidence_recon_all_indi_" + version + ".npy", recon_average_corr_all_indi_new)
+    np.save(path + "05_identify_associations/results_confidence_recon_all_" + version + ".npy", recon_average_corr_new_all)
+    np.save(path + "05_identify_associations/results_confidence_recon_all_indi_" + version + ".npy", recon_average_corr_all_indi_new)
 
     return(recon_average_corr_new_all, recon_average_corr_all_indi_new)
 
@@ -848,7 +850,7 @@ def write_omics_results(path, up_down_list, collected_overlap, recon_average_cor
         for d in collected_overlap:
             n = np.intersect1d(collected_overlap[d], headers_all[i])
 
-            with open(path + f"results/{con_types[i]}_" + d.replace(" ", "_") + ".txt", "w") as o:
+            with open(path + f"05_identify_associations/{con_types[i]}_" + d.replace(" ", "_") + ".txt", "w") as o:
                 o.write("\n".join(n))  
 
             if con_types[i] in up_down_list:
@@ -856,10 +858,10 @@ def write_omics_results(path, up_down_list, collected_overlap, recon_average_cor
                 vals = recon_average_corr_new_all[list(drug_h).index(d),np.where(np.isin(con_names,n))[0]]
                 up = n[vals > 0]
                 down = n[vals < 0]
-                with open(path + f"results/{con_types[i]}_up_" + d.replace(" ", "_") + ".txt", "w") as o:
+                with open(path + f"05_identify_associations/{con_types[i]}_up_" + d.replace(" ", "_") + ".txt", "w") as o:
                     o.write("\n".join(up))
 
-                with open(path + f"results/{con_types[i]}_down_" + d.replace(" ", "_")  + ".txt", "w") as o:
+                with open(path + f"05_identify_associations/{con_types[i]}_down_" + d.replace(" ", "_")  + ".txt", "w") as o:
                     o.write("\n".join(down))
 
                         
@@ -917,7 +919,7 @@ def make_files(collected_overlap, groups, con_all, path, recon_average_corr_all_
             ci_collected.append(ci_all)
         
         ci_collected_df = pd.DataFrame(ci_collected, index = drug_h, columns=sig_names_sort)
-        ci_collected_df.T.to_csv(path + "results/" + con_dataset_names[i] + "_ci_sig_" + version +  ".txt", sep = "\t")
+        ci_collected_df.T.to_csv(path + "05_identify_associations/" + con_dataset_names[i] + "_ci_sig_" + version +  ".txt", sep = "\t")
         
         
 def get_inter_drug_variation(con_names, drug_h, recon_average_corr_all_indi_new, 
@@ -941,7 +943,7 @@ def get_inter_drug_variation(con_names, drug_h, recon_average_corr_all_indi_new,
     '''
     
     # Inter drug variation 
-#     all_db_names = [item for sublist in con_names for item in sublist]
+    # all_db_names = [item for sublist in con_names for item in sublist]
     all_db_names = con_names
     inter_drug_variance = []
     inter_drug_std = []
@@ -950,12 +952,14 @@ def get_inter_drug_variation(con_names, drug_h, recon_average_corr_all_indi_new,
         recon_data_d = recon_average_corr_all_indi_new[f]
         gr = groups[f]
         sig_drug_names = collected_overlap[d]
-        sig_data = recon_data_d[:,np.where(np.isin(all_db_names,sig_drug_names))[0]]
+        #sig_data = recon_data_d[:,np.where(np.isin(all_db_names,sig_drug_names))[0]]   # error in indexing - changed to line below
+        sig_data = recon_data_d[np.where(np.isin(all_db_names,sig_drug_names))[0],:]
+        sig_data = np.transpose(sig_data)
         g = [not (np.all(a_s == types[0]) or (np.all(a_s == [0,0]))) for a_s in drug[gr,f,:]]
         con_tmp = con_all[gr]
         con_tmp = con_tmp[g]
         sig_part_df = pd.DataFrame(sig_data, columns = sig_drug_names)
-        sig_part_df = sig_part_df.T
+        #sig_part_df = sig_part_df.T
         sig_part_df[np.isnan(sig_part_df)] = np.nan
         inter_drug_variance.append(np.nanvar(sig_part_df))
         inter_drug_std.append(np.nanstd(sig_part_df))
@@ -995,7 +999,7 @@ def get_drug_similar_each_omics(con_names, con_dataset_names, all_hits, recon_av
 
         g.fig.suptitle(con_dataset_names_v1[i])
         g.fig.subplots_adjust(top=0.9)
-        plt.savefig(path + "results/" + con_dataset_names[i] + "_heatmap_" + version + "_all.pdf", format = 'pdf', dpi = 800)
+        plt.savefig(path + "05_identify_associations/" + con_dataset_names[i] + "_heatmap_" + version + "_all.pdf", format = 'pdf', dpi = 800)
         i += 1
 
     plt.close('all')

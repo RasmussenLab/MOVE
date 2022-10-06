@@ -6,14 +6,19 @@ from move.training.train import train_model
 from move.utils.data_utils import get_data, merge_configs
 from move.utils.visualization_utils import embedding_plot_discrete, embedding_plot_float, visualize_training, plot_reconstruction_distribs, visualize_embedding, plot_categorical_importance, plot_continuous_importance
 from move.utils.analysis import get_latents, calc_categorical_reconstruction_acc, calc_continuous_reconstruction_acc, get_embedding, get_pearsonr, get_feature_importance_categorical, get_feature_importance_continuous, save_feat_results, get_feat_importance_on_weights 
+from move.utils.logger import get_logger
 
 import numpy as np
 
-@hydra.main(config_path="../conf", config_name="main")
+@hydra.main(config_path="../conf", config_name="main", version_base="1.2")
 def main(base_config: MOVEConfig): 
-    
+    # Making logger for data writing
+    logger = get_logger(logging_path='./logs/',
+                        file_name='04_analyze_latent.log',
+                        script_name=__name__)
+
     # Overriding base_config with the user defined configs.
-    cfg = merge_configs(base_config=base_config, 
+    cfg: MOVEConfig = merge_configs(base_config=base_config, 
                 config_types=['data', 'model', 'training_latent'])
     
     #Getting the variables used in the notebook
@@ -53,9 +58,9 @@ def main(base_config: MOVEConfig):
             raise ValueError(f"{feature} is not in the headers_all list. It could have been it was not among the features of the input dataset or was filtered out during data processing")
     
     # Training the model 
-    print('Beginning training the model.\n')
+    logger.info('Beginning training the model.\n')
     best_model, losses, ce, sse, KLD, train_loader, mask, kld_w, cat_shapes, con_shapes, best_epoch = train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_sizes, nHiddens, nLayers, nLatents, nBeta, nDropout, cuda, kld_steps, batch_steps, nepochs, lrate, seed, test_loader=None, patience=None, early_stopping=False)
-    print('\nFinished training the model.')
+    logger.info('\nFinished training the model.')
     
     # Visualizing the training
     visualize_training(processed_data_path, losses, ce, sse, KLD, epochs)
@@ -65,11 +70,12 @@ def main(base_config: MOVEConfig):
     cat_total_recon = calc_categorical_reconstruction_acc(cat_shapes, cat_class, cat_recon)
     all_values = calc_continuous_reconstruction_acc(con_shapes, con_recon, train_loader)
     
-    # Plotting the reconstruction distributions   
-    plot_reconstruction_distribs(processed_data_path, cat_total_recon, all_values)
+    # Plotting the reconstruction distributions
+    all_names = cfg.data.categorical_names + cfg.data.continuous_names
+    plot_reconstruction_distribs(processed_data_path, cat_total_recon, all_values, all_names)
     
     # Getting the embeddings
-    print('\n Getting the embeddings.')    
+    logger.info('Getting the embeddings.')    
     embedding = get_embedding(processed_data_path, latent)
     
     # Visualizing the embedding of three example features
@@ -80,8 +86,8 @@ def main(base_config: MOVEConfig):
     # Getting pearson correlations of two example features
     for feature in features_to_visualize:
         spear_corr = get_pearsonr(feature, embedding, cat_list, con_list, cat_names, con_names)
-        print(f"Pearson correlation for the 1st embedding dim of {feature}: {round(spear_corr[0][0], 3)}, p-value={round(spear_corr[0][1], 3)}")
-        print(f"Pearson correlation for the 2nd embedding dim of {feature}: {round(spear_corr[1][0], 3)}, p-value={round(spear_corr[1][1], 3)}")
+        logger.info(f"Pearson correlation for the 1st embedding dim of {feature}: {round(spear_corr[0][0], 3)}, p-value={round(spear_corr[0][1], 3)}")
+        logger.info(f"Pearson correlation for the 2nd embedding dim of {feature}: {round(spear_corr[1][0], 3)}, p-value={round(spear_corr[1][1], 3)}")
         
     # Getting features importance measures
     all_diffs, all_diffs_cat_np, sum_diffs_cat_np, sum_diffs_cat_abs_np,\

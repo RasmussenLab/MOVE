@@ -6,9 +6,14 @@ from move.training.train import optimize_stability
 from move.utils.data_utils import get_data, get_list_value, merge_configs, make_and_save_best_stability_params
 from move.utils.visualization_utils import draw_boxplot
 from move.utils.analysis import get_top10_stability, calculate_latent
+from move.utils.logger import get_logger
 
-@hydra.main(config_path="../conf", config_name="main")
+@hydra.main(config_path="../conf", config_name="main", version_base="1.2")
 def main(base_config: MOVEConfig): 
+    # Making logger for data writing
+    logger = get_logger(logging_path='./logs/',
+                        file_name='03_optimize_stability.log',
+                        script_name=__name__)
     
     # Overriding base_config with the user defined configs.
     cfg = merge_configs(base_config=base_config, 
@@ -85,10 +90,10 @@ def main(base_config: MOVEConfig):
                      title_text='Rand index across replicationes compared to first iteration',
                      y_label_text="Rand index",
                      save_fig_name="rand_index_all")
-        print('Visualizing the hyperparameter tuning results\n')
+        logger.info('Visualizing the hyperparameter tuning results\n')
         
     except:
-        print('Could not visualize the results\n')
+        logger.warning('Could not visualize the results\n')
     
     # Getting best set of hyperparameters
     hyperparams_names = ['num_hidden', 'num_latent', 'num_layers', 'dropout', 'beta', 'batch_sizes']

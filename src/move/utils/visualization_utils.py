@@ -151,28 +151,10 @@ def visualize_recon_acc(path, nLayers, nHiddens, nDropout, nBeta, nLatents, reco
     ax3.xaxis.set_label_coords(0.5, -0.03)
     plt.grid(False)
     plt.tick_params(labelcolor='none', top=False, bottom=False, left=False, right=False)
-    plt.show()
     
     # Saving a figure
     plt.savefig(path + f"hyperparameters/all_recon_{data_type}.png")
 
-    
-def plot_graphs():
-    fig = plt.figure()
-    plt.plot(epochs, loss, '-g', label='loss')
-    plt.plot(epochs, ce, '-b', label='CE')
-    plt.plot(epochs, sse, '-r', label='SSE')
-    plt.plot(epochs, KLD, '-y', label='KLD')
-    plt.legend()
-    plt.savefig(path + "/evaluation/loss_" + combi +".png")
-    plt.clf()
-
-    fig = plt.figure()
-    plt.plot(epochs, loss, '-b', label='loss')
-    plt.plot(batchsteps, loss_test, '-r', label='test loss')
-    plt.legend()
-    plt.savefig(path + "/evaluation/test_loss_" + combi +".png")
-    plt.clf()    
     
     
 def draw_boxplot(path, df, title_text, y_label_text, save_fig_name):
@@ -185,7 +167,7 @@ def draw_boxplot(path, df, title_text, y_label_text, save_fig_name):
     plt.ylabel(y_label_text, size=16)
     plt.xlabel('')
     plt.yticks(fontsize=16)
-    plt.savefig(path + f"hyperparameters/{save_fig_name}.png")
+    plt.savefig(path + f"hyperparameters/{save_fig_name}.png", bbox_inches='tight')
     
 
     
@@ -278,13 +260,12 @@ def visualize_training(path, losses, ce, sse, KLD, epochs):
     plt.plot(epochs, sse, '-r', label='SSE')
     plt.plot(epochs, KLD, '-y', label='KLD')
     plt.legend()
-    plt.show()
     plt.savefig(path + "loss_test.png")
     
-def plot_reconstruction_distribs(path, cat_total_recon, all_values):
+def plot_reconstruction_distribs(path, cat_total_recon, all_values, all_names):
     
     # Plot the reconstruction distributions
-    df = pd.DataFrame(cat_total_recon + all_values, index = ['Clinical\n(categorical)', 'Genomics', 'Drug data', 'Clinical\n(continuous)', 'Diet +\n wearables','Proteomics','Targeted\nmetabolomics','Untargeted\nmetabolomics', 'Transcriptomics', 'Metagenomics'])
+    df = pd.DataFrame(cat_total_recon + all_values, index=all_names)
     df_t = df.T
 
     fig = plt.figure(figsize=(25,15))
@@ -295,7 +276,6 @@ def plot_reconstruction_distribs(path, cat_total_recon, all_values):
     ax.yaxis.set_tick_params(labelsize=22)
     fig.subplots_adjust(bottom=0.2)
     plt.savefig(path + "reconstruction_accuracy.png")
-    plt.show()
     plt.close("all")    
     
 def get_feature_data(data_type, feature_of_interest, cat_list,
@@ -395,7 +375,6 @@ def visualize_indi_var(df_indi_var, version, path):
     plt.grid(False)
     plt.savefig(path + "results/drug_individual_variations_" + version + ".pdf", format = 'pdf', dpi = 800)
 
-    plt.show()   
 
 
 def visualize_drug_similarity_across_all(recon_average_corr_new_all, drug_h, version, path):

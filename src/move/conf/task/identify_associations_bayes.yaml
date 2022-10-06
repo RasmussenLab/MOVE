@@ -1,0 +1,34 @@
+defaults:
+  - identify_associations_bayes_schema
+
+batch_size: 10
+
+num_refits: 10
+sig_threshold: 0.05
+
+target_dataset: baseline_drugs
+target_value: 1
+
+model:
+  categorical_weights: ${weights:${data.categorical_inputs}}
+  continuous_weights: ${weights:${data.continuous_inputs}}
+  num_hidden:
+    - 2000
+  num_latent: 150
+  beta: 0.0001
+  dropout: 0.1
+  cuda: false
+
+training_loop:
+  lr: 1e-4
+  num_epochs: 30
+  batch_dilation_steps:
+    - 50
+    - 100
+    - 150
+  kld_warmup_steps:
+    - 15
+    - 20
+    - 25
+  early_stopping: false
+  patience: 0

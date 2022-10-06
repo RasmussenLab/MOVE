@@ -1,0 +1,18 @@
+
+defaults:
+  - base_data
+
+raw_data_path: maize/data/
+interim_data_path: maize/interim_data/
+processed_data_path: maize/results/
+
+sample_names: maize_ids
+
+categorical_inputs:
+  - name: maize_field
+  - name: maize_line
+  - name: maize_variety
+
+continuous_inputs:
+  - name: maize_metadata
+  - name: maize_microbiome

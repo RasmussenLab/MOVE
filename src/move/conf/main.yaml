@@ -2,18 +2,23 @@
 
 defaults:
   - _self_
-  - data: main.yaml
-  - model: vae.yaml
-  - tuning_reconstruction: main.yaml
-  - tuning_stability: main.yaml
-  - training_latent: main.yaml
-  - training_association: main.yaml
+  - data: base_data
+  - model: vae
+  - tuning_reconstruction: main
+  - tuning_stability: main
+  - training_latent: main
+  - training_association: main
+  - task: null
   - experiment: null
+  - override /hydra/job_logging: none
+  - override /hydra/hydra_logging: none
 
 hydra:
   output_subdir: null
   run:
-      dir: ./
+    dir: ./
+  searchpath:
+    - file://config/
 
 name: MOVE
 seed: 123456

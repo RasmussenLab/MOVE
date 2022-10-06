@@ -1,19 +1,24 @@
 __all__ = ["MOVEDataset", "make_dataloader"]
 
+from functools import reduce
+from typing import Optional
+
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, TensorDataset
-from typing import Tuple
+
+from move.core.typing import BoolArray, FloatArray
+
 
 class MOVEDataset(TensorDataset):
     "Characterizes a dataset for PyTorch"
 
     def __init__(
         self,
-        cat_all: torch.Tensor = None,
-        con_all: torch.Tensor = None,
-        cat_shapes: list = None,
-        con_shapes: list = None,
+        cat_all: Optional[torch.Tensor] = None,
+        con_all: Optional[torch.Tensor] = None,
+        cat_shapes: Optional[list[tuple[int, ...]]] = None,
+        con_shapes: Optional[list[int]] = None,
     ) -> None:
         # Check
         num_samples = None if cat_all is None else cat_all.shape[0]
@@ -36,107 +41,77 @@ class MOVEDataset(TensorDataset):
     def __len__(self) -> int:
         return self.num_samples
 
-    def __getitem__(self, idx: int) -> Tuple[torch.Tensor]:
+    def __getitem__(
+        self, idx: int
+    ) -> tuple[Optional[torch.Tensor], Optional[torch.Tensor]]:
         cat_slice = None if self.cat_all is None else self.cat_all[idx]
         con_slice = None if self.con_all is None else self.con_all[idx]
         return cat_slice, con_slice
 
 
-def concat_cat_list(cat_list):
-    cat_shapes = list()
-    first = 0
-
-    for cat_d in cat_list:
-        cat_shapes.append(cat_d.shape)
-        cat_input = cat_d.reshape(cat_d.shape[0], -1)
-
-        if first == 0:
-            cat_all = cat_input
-            del cat_input
-            first = 1
-        else:
-            cat_all = np.concatenate((cat_all, cat_input), axis=1)
-
-    # Make mask for patients with no measurments
-    catsum = cat_all.sum(axis=1)
-    mask = catsum > 5
-    del catsum
+def concat_cat_list(
+    cat_list: list[FloatArray],
+) -> tuple[list[tuple[int, ...]], BoolArray, FloatArray]:
+    cat_shapes = []
+    cat_flat = []
+    for cat in cat_list:
+        cat_shapes.append(cat.shape)
+        cat_flat.append(cat.reshape(cat.shape[0], -1))
+    cat_all = np.concatenate(cat_flat, axis=1)
+    mask = cat_all.sum(axis=1) > 5  # True if row sum is greater than 5
     return cat_shapes, mask, cat_all
 
 
-def concat_con_list(con_list, mask):
-    n_con_shapes = []
-
-    first = 0
-    for con_d in con_list:
-
-        n_con_shapes.append(con_d.shape[1])
-
-        if first == 0:
-            con_all = con_d
-            first = 1
-        else:
-            con_all = np.concatenate((con_all, con_d), axis=1)
-
-    consum = con_all.sum(axis=1)
-    mask &= consum != 0
-    del consum
-    return n_con_shapes, mask, con_all
+def concat_con_list(
+    con_list: list[FloatArray],
+) -> tuple[list[int], BoolArray, FloatArray]:
+    con_shapes = [con.shape[1] for con in con_list]
+    con_all: FloatArray = np.concatenate(con_list, axis=1)
+    mask = con_all.sum(axis=1) != 0  # True if row sum is not zero
+    return con_shapes, mask, con_all
 
 
-def make_dataloader(cat_list=None, con_list=None, batchsize=10, cuda=False):
-    """Create a DataLoader for input of each data type - categorical,
-    continuous and potentially each omcis set (currently proteomics, target
-    metabolomicas, untarget metabolomics and transcriptomics).
+def make_dataloader(
+    cat_list: Optional[list[FloatArray]] = None,
+    con_list: Optional[list[FloatArray]] = None,
+    **kwargs
+) -> tuple[BoolArray, DataLoader]:
+    """Creates a DataLoader that combines categorical and continuous datasets.
 
-    Inputs:
-        cat_list: list of categorical input matrix (N_patients x N_variables x N_max-classes)
-        con_list: list of normalized continuous input matrix (N_patients x N_variables)
-        batchsize: Starting size of minibatches for dataloader
-        cuda: Pagelock memory of dataloader (use when using GPU acceleration)
+    Args:
+        cat_list: list of categorical datasets (# samples x # features
+        x # classes). Defaults to None.
+        con_list: list of continuous datasets (# samples x # features).
+        Defaults to None.
+        **kwargs: Arguments to pass to the DataLoader (e.g., batch size)
 
-    Outputs:
-        DataLoader: An object feeding data to the VAE
+    Raises:
+        ValueError: If both inputs are None
+
+    Returns:
+        Tuple containing (1) mask to remove rows (samples) with all zeros and
+        (2) DataLoader
     """
-
     if cat_list is None and con_list is None:
         raise ValueError("At least one type of data must be in the input")
 
-    # Handle categorical data sets
-    if not (cat_list is None):
-        cat_shapes, mask, cat_all = concat_cat_list(cat_list)
+    cat_shapes, cat_mask, cat_all = [None] * 3
+    if cat_list:
+        cat_shapes, cat_mask, cat_all = concat_cat_list(cat_list)
 
-    # else:
-    mask = [True] * len(con_list[0])
+    con_shapes, con_mask, con_all = [None] * 3
+    if con_list:
+        con_shapes, con_mask, con_all = concat_con_list(con_list)
 
-    # Concetenate con datasetsand make final mask
-    if not (con_list is None):
-        n_con_shapes, mask, con_all = concat_con_list(con_list, mask)
+    mask: BoolArray = reduce(
+        np.logical_and, [mask for mask in [cat_mask, con_mask] if mask is not None]
+    )
+    if cat_all is not None:
+        cat_all = torch.from_numpy(cat_all[mask])
 
-    # Create dataset
-    if not (cat_list is None or con_list is None):
-        cat_all = cat_all[mask]
-        con_all = con_all[mask]
+    if con_all is not None:
+        con_all = torch.from_numpy(con_all[mask])
 
-        cat_all = torch.from_numpy(cat_all)
-        con_all = torch.from_numpy(con_all)
-
-        dataset = MOVEDataset(
-            con_all=con_all,
-            con_shapes=n_con_shapes,
-            cat_all=cat_all,
-            cat_shapes=cat_shapes,
-        )
-    elif not (con_list is None):
-        con_all = con_all[mask]
-        con_all = torch.from_numpy(con_all)
-        dataset = MOVEDataset(con_all=con_all, con_shapes=n_con_shapes)
-    elif not (cat_list is None):
-        cat_all = cat_all[mask]
-        cat_all = torch.from_numpy(cat_all)
-        dataset = MOVEDataset(cat_all=cat_all, cat_shapes=cat_shapes)
-    # Create dataloader
-    dataloader = DataLoader(
-        dataset=dataset, batch_size=batchsize, drop_last=True, shuffle=True
-    )  # Changed num_workers and pin_memory
+    dataset = MOVEDataset(cat_all, con_all, cat_shapes, con_shapes)
+    dataloader = DataLoader(dataset, **kwargs)
     return mask, dataloader

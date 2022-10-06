@@ -1,21 +1,23 @@
 # Import functions
-import os
-import torch
-import numpy as np
 import copy
-import pandas as pd 
-import logging
-
-from torch.utils.data import DataLoader
-
-import umap.umap_ as umap
+import itertools
+import os
 import random
-import itertools 
+import logging
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import torch
+import umap.umap_ as umap
+from torch.utils.data import DataLoader
 
 from move.models import vae
 from move.utils import dataloaders
-from move.utils.model_utils import get_latent, cal_recon, cal_cat_recon, cal_con_recon, get_baseline, change_drug, cal_sig_hits, correction_new, get_start_end_positions 
 from move.utils.data_utils import initiate_default_dicts
+from move.utils.model_utils import (cal_cat_recon, cal_con_recon, cal_recon,
+                                    cal_sig_hits, change_drug, get_baseline,
+                                    get_latent, get_start_end_positions)
 from move.utils.seed import set_global_seed
 
 
@@ -172,7 +174,6 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
     return(likelihood_tests, recon_acc_tests, recon_acc, results_df)
 
 
-
 def optimize_stability(nHiddens, nLatents, nDropout, nBeta, repeat, nepochs, nLayers, batch_sizes, lrate, kldsteps, batchsteps, cuda, path, con_list, cat_list, continuous_weights, categorical_weights, seed):
     
     """
@@ -283,17 +284,9 @@ def train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHidden,
     """
         
     # For data saving results
-    isExist = os.path.exists(path + '05_identify_associations')
-    if not isExist:
-        os.makedirs(path + '05_identify_associations')
-    
-    isExist = os.path.exists(path + '05_identify_associations/sig_overlap/')
-    if not isExist:
-        os.makedirs(path + '05_identify_associations/sig_overlap/')
-    
-    results, recon_results, recon_results_1, mean_bas = initiate_default_dicts(n_empty_dicts=0, n_list_dicts=4)
-    
-    results_df = []
+    output_path = Path(path) / "05_identify_associations"
+    (output_path / "sig_overlap").mkdir(parents=True, exist_ok=True)
+
     start, end = get_start_end_positions(cat_list, categorical_names, data_of_interest)
     iters = itertools.product(nLatents, range(repeats))
     
@@ -320,12 +313,12 @@ def train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHidden,
             recon_diff_corr[r_diff] = recon_diff[r_diff] - np.abs(mean_baseline[groups[r_diff]])
         
         # Saving the files 
-        np.save(path + f'05_identify_associations/results_{str(nLatent)}_{str(repeat)}_{version}', stat)
-        np.save(path + f'05_identify_associations/recon_results_{str(nLatent)}_{str(repeat)}_{version}', np.array(list(recon_diff_corr.values())))
-        np.save(path + f'05_identify_associations/mean_bas_{str(nLatent)}_{str(repeat)}_{version}', mean_baseline)
-        np.save(path + f'05_identify_associations/recon_results_1_{str(nLatent)}_{str(repeat)}_{version}', np.array(list(recon_diff.values())))
-    
-    np.save(path + "05_identify_associations/results_groups_" + version + ".npy", np.array(list(groups.values())))
+        np.save(output_path / f'results_{nLatent}_{repeat}_{version}', stat)
+        np.save(output_path / f'recon_results_{nLatent}_{repeat}_{version}', np.array(list(recon_diff_corr.values())))
+        np.save(output_path / f'mean_bas_{nLatent}_{repeat}_{version}', mean_baseline)
+        np.save(output_path / f'recon_results_1_{nLatent}_{repeat}_{version}', np.array(list(recon_diff.values())))
+   
+    np.save(output_path / f"results_groups_{version}.npy", np.array(list(groups.values())))
     logger.info('\nFinished training the model.')
     
 def train_model(cat_list, con_list, categorical_weights, continuous_weights, batch_size, nHidden, nl, nLatent, b, drop, cuda, kldsteps, batchsteps, nepochs, lrate, seed, test_loader, patience, early_stopping):

@@ -1,10 +1,11 @@
+import argparse
 from collections import namedtuple
-from warnings import warn
 from hashlib import md5
 from pathlib import Path
+from warnings import warn
 
+import pandas as pd
 import requests
-import numpy as np
 
 FileInfo = namedtuple("FileInfo", ["url", "expected_checksum", "expected_size"])
 FILES = {
@@ -13,6 +14,12 @@ FILES = {
         "d0f61c7dd3d8ffc866efc3/Datasets/otu_table_all_80.csv",
         "3e741373d53e98947b484a528e0238ae",
         7897316,
+    ),
+    "maize_microbiome_names": FileInfo(
+        "https://github.com/jorgemf/DeepLatentMicrobiome/raw/91e384b7115978bb3c"
+        "d0f61c7dd3d8ffc866efc3/Datasets/tax_table_all_80_cleanNames.csv",
+        "b4c57c6f34b1afa3e4a81ef742e931d6",
+        67346,
     ),
     "maize_metadata": FileInfo(
         "https://github.com/jorgemf/DeepLatentMicrobiome/raw/91e384b7115978bb3c"
@@ -23,15 +30,18 @@ FILES = {
 }
 
 
-def fetch(dataset_name: str, destination: Path):
+def fetch(dataset_name: str, destination: Path) -> Path:
     """Downloads a maize dataset.
 
-    Parameters
-    ----------
-    dataset_name: {'maize_microbiome', 'maize_metadata'}
-        Name of the dataset to download
-    destination: Path
-        Where to save the data as
+    Args:
+        dataset_name:
+            Name of the dataset to download: `maize_microbiome`,
+            `maize_metadata`, or `maize_microbiome_names`
+        destination:
+            Where to save the data as
+
+    Returns:
+        Path to downloaded data.
     """
     if dataset_name not in FILES:
         raise KeyError(
@@ -63,26 +73,42 @@ def fetch(dataset_name: str, destination: Path):
 
     return destination
 
-def scale(x: np.array):
-    """Performs standard scaling.
-    
-    Parameters
-    ----------
-    x : array-like
-    """
-    return (x - np.mean(x, axis=0, keepdims=True)) / np.std(x, axis=0, keepdims=True)
 
-def rclr(x: np.array, axis: int = 0):
-    """Performs robust centered log-ratio (rclr) transformation.
+def prepare_data(savedir: Path) -> None:
+    """Downloads the maize datasets and formats them for MOVE.
     
-    Parameters
-    ----------
-    x : array-like
-        Array containing compositional data
-    axis : int
-        Axis along which the geometric mean is computed. Default is 0 (per
-        sample/column).
+    Args:
+        savedir: directory to save the data in
     """
-    logx = np.ma.log(x).filled(np.nan)
-    gmean = np.nanmean(logx, axis=axis, keepdims=True)
-    return logx - gmean
+
+    # Process OTUs
+    values_path = fetch("maize_microbiome", savedir / "maize_microbiome.tsv")
+    values = pd.read_csv(values_path, sep="\t", index_col=0).T.sort_index()
+    values.to_csv(values_path, sep="\t")
+
+    # Process metadata (split into separate files)
+    values_path = fetch("maize_metadata", savedir / "maize_metadata.tsv")
+    values = pd.read_csv(values_path, sep="\t", index_col=0).sort_index()
+    values.index.name = None
+
+    col_names = ["Field", "INBREDS", "Maize_Line"]
+    var_names = ["field", "variety", "line"]
+
+    for col_name, var_name in zip(col_names, var_names):
+        category = values[col_name]
+        category.name = var_name
+        category.to_frame().to_csv(savedir / f"maize_{var_name}.tsv", sep="\t")
+
+    data = values[["age", "Temperature", "Precipitation3Days"]]
+    data.columns = [col_name.lower() for col_name in data.columns]
+    data.to_csv(values_path, sep="\t")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("savedir", type=str)
+    args = parser.parse_args()
+
+    savedir = Path(getattr(args, "savedir"))
+
+    prepare_data(savedir)

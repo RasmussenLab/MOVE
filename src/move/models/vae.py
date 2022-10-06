@@ -1,12 +1,13 @@
 __all__ = ["VAE"]
 
+from typing import Optional
+import numpy as np
 import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader
-from typing import List
-import numpy as np
 import logging
 
+from move.core.typing import FloatArray
 
 logger = logging.getLogger('vae.py')
 
@@ -33,11 +34,11 @@ class VAE(nn.Module):
 
     def __init__(
         self,
-        categorical_shapes: List[tuple] = None,
-        continuous_shapes: List[tuple] = None,
-        categorical_weights: List[int] = None,
-        continuous_weights: List[int] = None,
-        num_hidden: List[int] = [200, 200],
+        categorical_shapes: Optional[list[tuple]] = None,
+        continuous_shapes: Optional[list[tuple]] = None,
+        categorical_weights: Optional[list[int]] = None,
+        continuous_weights: Optional[list[int]] = None,
+        num_hidden: list[int] = [200, 200],
         num_latent: int = 20,
         beta: float = 0.01,
         dropout: float = 0.2,
@@ -385,6 +386,43 @@ class VAE(nn.Module):
         
         return cat_out_class, cat_target
 
+
+    def _validate_batch(self, batch: tuple[torch.Tensor, torch.Tensor]) -> torch.Tensor:
+        cat, con = batch
+        if self.num_categorical is None:
+            return con
+        elif self.num_continuous is None:
+            return cat
+        return torch.cat(batch, dim=1)
+
+
+    @torch.no_grad()
+    def reconstruct(
+        self, dataloader: DataLoader
+    ) -> tuple[list[FloatArray], FloatArray]:
+        """Generates a reconstruction of the data contained in the DataLoader.
+
+        Args:
+            dataloader: A DataLoader with categorical or continuous data
+
+        Returns:
+            A list of categorical reconstructions and the continuous
+            reconstruction
+        """
+        self.eval()
+        cat_recons = [[] for _ in range(len(self.categorical_shapes))]
+        con_recons = []
+        for batch in dataloader:
+            batch = self._validate_batch(batch)
+            cat_recon, con_recon, *_ = self(batch)
+            for i, cat in enumerate(cat_recon):
+                cat_recons[i].append(torch.argmax(cat, dim=1))
+            con_recons.append(con_recon)
+        cat_recons = [torch.cat(cats, dim=0).numpy() for cats in cat_recons]
+        con_recons = torch.cat(con_recons, dim=0).numpy()
+        return cat_recons, con_recons
+
+
     @torch.no_grad()
     def latent(self, dataloader: DataLoader, kld_weight: float):
         self.eval()
@@ -468,4 +506,10 @@ class VAE(nn.Module):
             con_recon,
             test_loss,
             test_likelihood,
+        )
+
+    def __repr__(self) -> str:
+        return (
+            f"VAE ({self.input_size} ⇄ {' ⇄ '.join(map(str, self.num_hidden))}"
+            f" ⇄ {self.num_latent})"
         )

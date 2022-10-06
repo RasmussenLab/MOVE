@@ -1,4 +1,5 @@
 import os
+from typing import List, Tuple
 import torch
 import numpy as np
 
@@ -367,7 +368,9 @@ def correction_new(results):
     return new_results
 
 
-def get_start_end_positions(cat_list, categorical_names, data_of_interest):
+def get_start_end_positions(
+    cat_list: List[np.ndarray], categorical_names: List[str], data_of_interest: str
+) -> Tuple[int, int]:
     """
     Gets start and end indexes where features of a data type of interest are in the input dataset
     
@@ -379,36 +382,7 @@ def get_start_end_positions(cat_list, categorical_names, data_of_interest):
         start: int corresponding to the index where features of data type of interest starts in input dataset
         end: int corresponding to the index where features of data type of interest ends in input dataset
     """
-  
-    n_cat = 0
-    cat_shapes = list()
-    cat_all = []
-    first = 0
-    for i in range(len(categorical_names)):
-        cat_d = cat_list[i]
-     
-        cat_shapes.append(cat_d.shape)
-        cat_input = cat_d.reshape(cat_d.shape[0], -1)
-     
-     
-        if first == 0:
-            cat_all = cat_input
-            del cat_input
-            first = 1
-     
-            if data_of_interest == categorical_names[i]:
-                start = 0
-                end = cat_all.shape[-1]
-          
-        else: 
-            cat_all = np.concatenate((cat_all, cat_input), axis=1)
-        
-            if data_of_interest == categorical_names[i]:
-                start = cat_all.shape[-1] - cat_input.shape[-1]
-                end = cat_all.shape[-1]
-     
-    # Make mask for patients with no measurments
-    catsum = cat_all.sum(axis=1)
-    mask = catsum > 5
-    del catsum
-    return start, end
+    i = categorical_names.index(data_of_interest)
+    # assuming every item in cat_list has 3 dimensions
+    shapes = [0] + [int.__mul__(*data.shape[1:]) for data in cat_list]
+    return tuple(np.cumsum(shapes)[i:i+2])

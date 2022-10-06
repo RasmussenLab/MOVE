@@ -281,13 +281,13 @@ def identify_associations(config: MOVEConfig):
         logger.info("Writing results")
         results = pd.DataFrame(sig_ids, columns=["feature_a_id", "feature_b_id"])
         results.sort_values("feature_a_id", inplace=True)
-        a_df = pd.DataFrame(
-            dict(feature_a_name=cat_names[target_dataset_idx])
-        ).reset_index()
+        a_df = pd.DataFrame(dict(feature_a_name=cat_names[target_dataset_idx]))
         a_df.index.name = "feature_a_id"
+        a_df.reset_index(inplace=True)
         con_names = reduce(list.__add__, con_names)
-        b_df = pd.DataFrame(dict(feature_b_name=con_names)).reset_index()
+        b_df = pd.DataFrame(dict(feature_b_name=con_names))
         b_df.index.name = "feature_b_id"
+        b_df.reset_index(inplace=True)
         results = results.merge(a_df, on="feature_a_id").merge(b_df, on="feature_b_id")
         results["feature_b_dataset"] = pd.cut(
             results["feature_b_id"],

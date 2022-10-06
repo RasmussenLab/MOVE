@@ -1,126 +1,156 @@
-## Pipeline
+# Tutorial
 
-The pipeline consists of 5 steps (notebooks 01-05)
+## Random Small
 
-* The default hyperparameter values can be overridden by user-defined parameters stored in .yaml files in the working directory.
-* Important: notebooks 2 and 3 return selected hyperparameter values into tuning_stability.yaml, training_latent.yaml and training_association.yaml overwriting it. 
+We have provided a tutorial. In this first tutorial, we inspect datasets 
+reporting whether 500 fictitious individuals have taken one of 20 imaginary
+drugs. We have included a pair of pretend omics datasets, with measurements
+for each sample (individual). All these measurements were generated randomly,
+but we have added 200 associations between different pairs of drugs and omics
+features. Let us find them with MOVE!
 
-#### Notebook 1 
+## Workspace structure
 
-* Takes hyperparameter values from data.yaml
-* Processes raw input data into the .npy files ready to be taken by further steps of the pipeline
-* Categorical data files are converted to one hot format, where nan values are set to zeros.
-* Continuous data is log(x+1) transformed, then z-normalized. Features having all nan values are removed, and all other nan values are set to zeros.
-* The feature names are saved in separate files.
-* It is an example of data pre-processing. If needed, we recommend applying user-defined processing.
-
-#### Notebook 2 
-
-* Takes hyperparameter values from data.yaml, model.yaml and tuning_reconstruction.yaml
-* Performs hyperparameter tuning for reconstruction for the hyperparameters of the number of hidden layers, number of nodes in hidden layers, latent size, probability of dropout after each nonlinearity, beta value (KLD weight coefficient).
-* Selects the hyperparameter values that are among hyperparameter combinations having the highest reconstruction accuracy on the test set for further hyperparameter tuning
-* Rounded mean number of best epochs of all the training is selected for all model training in other notebooks 
-* Best hyperparameters are saved in tuning_stability.yaml file (it overwrites them!)
-* We highly recommend reviewing the selected hyperparameter values and adjusting them if needed.
-
-#### Notebook 3
-
-* Takes hyperparameter values from data.yaml, model.yaml and tuning_stability.yaml
-* Performs hyperparameter tuning for stability for the hyperparameters selected by notebook 2.
-* Selects the hyperparameter set that shows the highest stability.
-* Selects 4 latent sizes for the association analysis in notebook 5. 
-* Saves the best hyperparameter values in training_latent.yaml and training_association.yaml (it overwrites them!)
-* We highly recommend reviewing the selected hyperparameter values and adjusting them if needed (including by incorporating information from the results of notebook 2).
-
-#### Notebook 4
-* Takes hyperparameter values from data.yaml, model.yaml and training_latent.yaml
-* Trains the model and explores its predictions: visualizes the reconstruction accuracy on the test set, visualizes how data points are distributed in the latent space, calculates Pearson correlations and measures feature importance.
-
-#### Notebook 5
-
-* Takes hyperparameter values from data.yaml, model. yaml and training_association.yaml
-* Extracts drug (or selected categorical) data associations to all continuous datasets
+First, we take a look at how to organize our data and configuration:
 
 
-## Hyperparameters
-
-data.yaml:
 ```
-na_value (str):  the string that corresponds to the NA value in the raw data files
-raw_data_path (str): a pathway to the folder where raw data is located 
-interim_data_path (str): a pathway to the folder where processed raw data will be saved (in .npy format)
-processed_data_path (str): a pathway to the folder where the results will be saved 
-headers_path (str): pathway where the headers for interim_data will be saved
-version (str): name of the subfolder in processed_data_path where the results will be saved
-ids_file_name (str): the name of the file that has data IDs (with the file suffix, e.g. baseline_ids.txt)
-ids_has_header (boolean): if ids_file_name has header 
-ids_colname (str): the name of the column where ids are stored (0 if ids_file_name has no header)
-categorical_inputs (list): the list of names and weights of categorical type to use in the pipeline. 
-  - name (str): name of file (the pipeline reads the raw_data_path + name + '.tsv')
-    weight (int): weight of input type used in the pipeline
-continuous_inputs (list): the list of names and weights of continuous type to use in the pipeline.
-  - name: name of file (the pipeline reads the raw_data_path + name + '.tsv')
-    weight: weight of input type used in the pipeline
-data_of_interest (str): name of the data type whose effects on other data are analyzed by the pipeline  
-data_features_to_visualize_notebook4 (list(str)): features to visualize in notebook 4  
-write_omics_results_notebook5 (list(str)): data types to save results in notebook 5 
+tutorial/
+│
+├── data/
+│   ├── changes.small.txt              <- Ground-truth associations (200 links)
+│   ├── random.small.drugs.tsv         <- Drug dataset (20 drugs)
+│   ├── random.small.ids.tsv           <- Sample IDs (500 samples)
+│   ├── random.small.proteomics.tsv    <- Proteomics dataset (200 proteins)
+│   └── random.small.metagenomics.tsv  <- Metagenomics dataset (1000 taxa)
+│
+└── config/                            <- Stores user configuration files
+    ├── data/
+    │   └── random_small.yaml          <- Configuration to read in the necessary
+    │                                     data files.
+    └── task/                          <- Configuration to identify associations
+        │                                 using the t-test or Bayesian approach
+        ├── random_small__id_assoc_bayes.yaml
+        └── random_small__id_assoc_ttest.yaml
 ```
 
-model.yaml:
-```
-seed (int): seed number
-cuda (boolean): if using GPU for training the model
-lrate (float): learning rate for model
-num_epochs (int): number of epochs to train the model
-patience (int): number of epochs without validation improvement before termination run
-kld_steps (list(int)): epochs when KLD weight is increased
-batch_steps (list(int)): epochs when batch size is increased
+### The data folder
+
+All "raw" data files should be placed inside the same directory. These files
+are TSVs (tab-separated value tables) containing discrete values (e.g., for
+binary or categorical datasets) or continuous values.
+
+Additionally, make sure each sample has an assigned ID and provide an ID table
+containing a list of all valid IDs (must appear in every dataset).
+
+### The `config` folder
+
+User-defined configuration must be stored in a `config` folder. This folder
+can contain a `data` and `task` folder to store the configuration for a
+specific dataset or task.
+
+Let us take a look at the configuration for our dataset. It is a YAML file,
+specifying: a default layout\*, the directories to look for raw data and store
+intermediary and final output files, and the list of categorical and continuous
+datasets we have.
+
+```yaml
+# DO NOT EDIT
+
+defaults:
+  - base_data
+
+# FEEL FREE TO EDIT BELOW
+
+raw_data_path: data/              # where raw data is stored
+interim_data_path: interim_data/  # where intermediate files will be stored
+processed_data_path: results/     # where result files will be placed
+
+categorical_inputs:  # a list of categorical datasets and their weights
+  - name: random.small.drugs
+
+continuous_inputs:   # a list of continuous-valued datasets and their weights
+  - name: random.small.proteomics
+  - name: random.small.metagenomics
 ```
 
-tuning_reconstruction.yaml
-```
-num_hidden (list(int)): number of hidden nodes in hidden layers
-num_latent (list(int)): dimension of latent space
-num_layers (list(int)): number of hidden layers
-dropout (list(float)): the probability of dropout after each nonlinearity
-beta (list(float)): KLD weight coefficient
-batch_sizes (list(int)): size of batches during training
-repeats (int): times to repeat the training with each hyperparameter configuration
-max_param_combos_to_save (int): maximum number of hyperparameter combinations to save for hyperparameter tuning for stability
+<span style="font-size: 0.8em">\* We do not recommend changing `defaults`
+unless you are sure of what you are doing.</span>
+
+Similarly, the `task` folder contains YAML files to configure the tasks of
+MOVE. In this tutorial, we provided two examples for running the method to
+identify associations using our t-test and Bayesian approach.
+
+For example, for the t-test approach (`random_small__id_assoc_ttest.yaml`), we
+define the following values: batch size, number of refits, name of dataset to
+perturb, target perturb value, configuration for VAE model, and configuration
+for training loop.
+
+```yaml
+
+defaults:
+  - identify_associations_ttest
+
+batch_size: 10  # number of samples per batch in training loop
+
+num_refits: 10  # number of times to refit (retrain) model
+
+target_dataset: random.small.drugs  # dataset to perturb
+target_value: 1                     # value to change to
+save_refits: True                   # whether to save refits to interim folder
+
+model:         # model configuration
+  num_hidden:  # list of units in each hidden layer of the VAE encoder/decoder
+    - 1000
+
+training_loop:    # training loop configuration
+  lr: 1e-4        # learning rate
+  num_epochs: 40  # number of epochs
+
 ```
 
-tuning_stability.yaml
-```
-num_hidden (list(int)): number of hidden nodes in hidden layers
-num_latent (list(int)): dimension of latent space
-num_layers (list(int)): number of hidden layers
-dropout (list(float)): the probability of dropout after each nonlinearity
-beta (list(float)): KLD weight coefficient
-batch_sizes (list(int)): size of batches during training
-repeats (int):  times to repeat the training with each hyperparameter configuration
-tuned_num_epochs (int): number of epochs to train the model (received by script or notebook 02)
+Note that the `random_small__id_assoc_bayes.yaml` looks pretty similar, but
+declares a different `defaults`. This tells MOVE which algorithm to use!
+
+## Running MOVE
+
+### Encoding data
+
+Make sure you are on the parent directory of the `config` folder (in this
+example, it is the `tutorial` folder), and proceed to run:
+
+```bash
+>>> cd tutorial
+>>> move-dl data=random_small task=encode_data
 ```
 
-training_latent.yaml
-```
-num_hidden (int): number of hidden nodes in hidden layers
-num_latent (int): dimension of latent space
-num_layers (int): number of hidden layers
-dropout (float): the probability of dropout after each nonlinearity
-beta (float): KLD weight coefficient
-batch_sizes (int): the size of batches during training
-repeats (int):  times to repeat the training with each hyperparameter configuration
-tuned_num_epochs (int): number of epochs to train the model (received in script 2)
+:arrow_up: This command will encode the datasets. The `random.small.drugs`
+dataset (defined in `config/data/random_small.yaml`) will be one-hot encoded,
+whereas the other two omics datasets will be standardized.
+
+### Identifying associations
+
+Next step is to find associations between the drugs taken by each individual
+and the omics features. Run:
+
+```bash
+>>> move-dl data=random_small task=random_small__id_assoc_ttest
 ```
 
-training_association.yaml
+:arrow_up: This command will create a `results_sig_assoc.tsv` file, listing
+each pair of associated features and the corresponding median p-value for such
+association. There should be ~120 associations found.
+
+:warning: Note that the value after `task=` matches the name of our
+configuration file. We can create multiple configuration files (for example,
+changing hyperparameters like learning rate) and call them by their name here.
+
+If you want to run, the Bayesian approach instead. Run:
+
+```bash
+>>> move-dl data=random_small task=random_small__id_assoc_bayes
 ```
-num_hidden int): number of hidden nodes in hidden layers
-num_latent (list(int)): dimension of latent space
-num_layers int): number of hidden layers
-dropout (float): the probability of dropout after each nonlinearity
-beta (float): KLD weight coefficient
-batch_sizes (int): the size of batches during training
-repeats (int):  times to repeat the training with each hyperparameter configuration
-tuned_num_epochs (int): number of epochs to train the model (received in script 2)
-```
+Again, it should generate similar results with over 100 associations known.
+
+Take a look at the `changes.small.txt` file and compare your results against
+it. Did MOVE find any false positives?

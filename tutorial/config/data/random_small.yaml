@@ -1,17 +1,17 @@
+# DO NOT EDIT DEFAULTS
 
 defaults:
   - base_data
 
-raw_data_path: data
-interim_data_path: interim_data
-processed_data_path: results
+# FEEL FREE TO EDIT BELOW
 
-categorical_inputs:
+raw_data_path: data/              # where raw data is stored
+interim_data_path: interim_data/  # where intermediate files will be stored
+processed_data_path: results/     # where result files will be placed
+
+categorical_inputs:  # a list of categorical datasets
   - name: random.small.drugs
-    weight: 1
 
-continuous_inputs:
+continuous_inputs:   # a list of continuous datasets
   - name: random.small.proteomics
-    weight: 1
   - name: random.small.metagenomics
-    weight: 1

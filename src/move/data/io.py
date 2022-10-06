@@ -17,7 +17,7 @@ import pandas as pd
 from omegaconf import DictConfig, OmegaConf
 
 from move import conf
-from move.core.typing import BoolArray, PathLike
+from move.core.typing import BoolArray, FloatArray, PathLike
 
 if TYPE_CHECKING:
     from move.conf.schema import MOVEConfig
@@ -42,7 +42,7 @@ def read_config(filepath: Optional[Union[str, Path]] = None) -> DictConfig:
         return base_config
 
 
-def read_cat(filepath: PathLike) -> np.ndarray:
+def read_cat(filepath: PathLike) -> FloatArray:
     """Reads categorical data in a NumPy file.
 
     Args:
@@ -51,12 +51,10 @@ def read_cat(filepath: PathLike) -> np.ndarray:
     Returns:
         The dataset
     """
-    data = np.load(filepath)
-    data = data.astype(np.float32)
-    return data
+    return np.load(filepath).astype(np.float32)
 
 
-def read_con(filepath: PathLike) -> tuple[np.ndarray, np.ndarray]:
+def read_con(filepath: PathLike) -> tuple[FloatArray, BoolArray]:
     """Reads continuous data in a NumPy file and filters out columns (features)
     whose sum is zero.
 
@@ -66,10 +64,9 @@ def read_con(filepath: PathLike) -> tuple[np.ndarray, np.ndarray]:
     Returns:
         The dataset and a mask of excluded features
     """
-    data = np.load(filepath)
-    data = data.astype(np.float32)
+    data = np.load(filepath).astype(np.float32)
     data[np.isnan(data)] = 0
-    mask_col = data.sum(axis=0) != 0
+    mask_col = np.abs(data).sum(axis=0) != 0
     data = data[:, mask_col]
     return data, mask_col
 
@@ -93,7 +90,7 @@ def read_header(filepath: PathLike, mask: Optional[BoolArray] = None) -> list[st
 
 def read_data(
     config: "MOVEConfig",
-) -> tuple[list[np.ndarray], list[list[str]], list[np.ndarray], list[list[str]]]:
+) -> tuple[list[FloatArray], list[list[str]], list[FloatArray], list[list[str]]]:
     """Reads the pre-processed categorical and continuous data.
 
     Args:

@@ -18,6 +18,7 @@ def encode_data(config: DataConfig):
         config: data configuration
     """
     logger = get_logger(__name__)
+    logger.info("Beginning task: encode data")
 
     # Getting the variables used in the notebook
     raw_data_path = Path(config.raw_data_path)

@@ -57,7 +57,7 @@ def identify_associations(config: MOVEConfig):
     logger = get_logger(__name__)
     task_config = cast(IdentifyAssociationsConfig, config.task)
     task_type = _get_task_type(task_config)
-    logger.info(f"Beginning Task: identify associations ({task_type})")
+    logger.info(f"Beginning task: identify associations ({task_type})")
     _validate_task_config(task_config, task_type)
 
     interim_path = Path(config.data.interim_data_path)

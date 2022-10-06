@@ -20,7 +20,6 @@ def encode_data(config: DataConfig):
     logger = get_logger(__name__)
     logger.info("Beginning task: encode data")
 
-    # Getting the variables used in the notebook
     raw_data_path = Path(config.raw_data_path)
     raw_data_path.mkdir(exist_ok=True)
     interim_data_path = Path(config.interim_data_path)
@@ -32,7 +31,7 @@ def encode_data(config: DataConfig):
         names, values = io.read_tsv(raw_data_path / f"{dataset_name}.tsv")
         values, mapping = preprocessing.one_hot_encode(values)
         mappings[dataset_name] = mapping
-        io.dump_feature_names(interim_data_path / f"{dataset_name}.txt", names)
+        io.dump_names(interim_data_path / f"{dataset_name}.txt", names)
         np.save(interim_data_path / f"{dataset_name}.npy", values)
     io.dump_mappings(interim_data_path / "mappings.json", mappings)
 
@@ -42,5 +41,5 @@ def encode_data(config: DataConfig):
         values, mask_1d = preprocessing.scale(values)
         names = names[mask_1d]
         logger.debug(f"Columns with zero variance: {np.sum(~mask_1d)}")
-        io.dump_feature_names(interim_data_path / f"{dataset_name}.txt", names)
+        io.dump_names(interim_data_path / f"{dataset_name}.txt", names)
         np.save(interim_data_path / f"{dataset_name}.npy", values)

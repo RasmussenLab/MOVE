@@ -69,7 +69,11 @@ def identify_associations(config: MOVEConfig):
 
     # Read original data and create perturbed datasets
     logger.info(f"Perturbing dataset: '{task_config.target_dataset}'")
-    cat_list, cat_names, con_list, con_names = io.read_data(config)
+    cat_list, cat_names, con_list, con_names = io.load_preprocessed_data(
+        interim_path,
+        config.data.categorical_names,
+        config.data.continuous_names,
+    )
 
     mappings = io.load_mappings(interim_path / "mappings.json")
     target_mapping = mappings[task_config.target_dataset]
@@ -297,4 +301,4 @@ def identify_associations(config: MOVEConfig):
         )
         for col, colname in zip(extra_cols, extra_colnames):
             results[colname] = col
-        results.to_csv(output_path / "results_sig_assoc.tsv", sep="\t")
+        results.to_csv(output_path / "results_sig_assoc.tsv", sep="\t", index=False)

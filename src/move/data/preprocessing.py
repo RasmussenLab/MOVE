@@ -71,7 +71,7 @@ def scale(x: np.ndarray) -> tuple[FloatArray, BoolArray]:
 
     Returns:
         Tuple containing (1) scaled output and (2) a 1D mask marking columns
-        (i.e., features) with zero variance
+        (i.e., features) without zero variance
     """
     logx = np.log2(x + 1)
     mask_1d = ~np.isclose(np.nanstd(logx, axis=0), 0.0)

@@ -1,9 +1,10 @@
 __all__ = [
-    "dump_feature_names",
+    "dump_names",
     "dump_mappings",
     "load_mappings",
+    "load_preprocessed_data",
     "read_config",
-    "read_sample_names",
+    "read_names",
     "read_tsv",
 ]
 
@@ -18,9 +19,6 @@ from omegaconf import DictConfig, OmegaConf
 
 from move import conf
 from move.core.typing import BoolArray, FloatArray, PathLike
-
-if TYPE_CHECKING:
-    from move.conf.schema import MOVEConfig
 
 
 def read_config(filepath: Optional[Union[str, Path]] = None) -> DictConfig:
@@ -42,27 +40,28 @@ def read_config(filepath: Optional[Union[str, Path]] = None) -> DictConfig:
         return base_config
 
 
-def read_cat(filepath: PathLike) -> FloatArray:
-    """Reads categorical data in a NumPy file.
+def load_categorical_dataset(filepath: PathLike) -> FloatArray:
+    """Loads categorical data in a NumPy file.
 
     Args:
         filepath: Path to NumPy file containing a categorical dataset
 
     Returns:
-        The dataset
+        NumPy array containing categorical data
     """
     return np.load(filepath).astype(np.float32)
 
 
-def read_con(filepath: PathLike) -> tuple[FloatArray, BoolArray]:
-    """Reads continuous data in a NumPy file and filters out columns (features)
-    whose sum is zero.
+def load_continuous_dataset(filepath: PathLike) -> tuple[FloatArray, BoolArray]:
+    """Loads continuous data from a NumPy file and filters out columns
+    (features) whose sum is zero. Additionally, encodes NaN values as zeros.
 
     Args:
         filepath: Path to NumPy file containing a continuous dataset
 
     Returns:
-        The dataset and a mask of excluded features
+        Tuple containing (1) the NumPy dataset and (2) a mask marking columns
+        (i.e., features) that were not filtered out
     """
     data = np.load(filepath).astype(np.float32)
     data[np.isnan(data)] = 0
@@ -71,57 +70,42 @@ def read_con(filepath: PathLike) -> tuple[FloatArray, BoolArray]:
     return data, mask_col
 
 
-def read_header(filepath: PathLike, mask: Optional[BoolArray] = None) -> list[str]:
-    """Reads features names from the headers
-
-    Args:
-        filepath: Path to file
-        mask: Mask to exclude names from header
-
-    Returns:
-        list of strings of elements in the header
-    """
-    header = pd.read_csv(filepath, sep="\t", header=None)
-    header = header.iloc[:, 0].astype("str")
-    if mask is not None:
-        header = header[mask]
-    return header.to_list()
-
-
-def read_data(
-    config: "MOVEConfig",
+def load_preprocessed_data(
+    path: Path,
+    categorical_dataset_names: list[str],
+    continuous_dataset_names: list[str],
 ) -> tuple[list[FloatArray], list[list[str]], list[FloatArray], list[list[str]]]:
-    """Reads the pre-processed categorical and continuous data.
+    """Loads the pre-processed categorical and continuous data.
 
     Args:
-        config: Hydra configuration
+        path: Where the data is saved
+        categorical_dataset_names: List of names of the categorical datasets
+        continuous_dataset_names: List of names of the continuous datasets
 
     Returns:
-        Returns two pairs of list containing the pre-processed data and its
-        headers
+        Returns two pairs of list containing (1, 3) the pre-processed data and
+        (2, 4) the lists of names of each feature
     """
-    interim_path = Path(config.data.interim_data_path)
 
-    categorical_data, categorical_headers = [], []
-    for input_config in config.data.categorical_inputs:
-        name = input_config.name
-        data = read_cat(interim_path / f"{name}.npy")
+    categorical_data, categorical_var_names = [], []
+    for dataset_name in categorical_dataset_names:
+        data = load_categorical_dataset(path / f"{dataset_name}.npy")
         categorical_data.append(data)
-        header = read_header(interim_path / f"{name}.txt")
-        categorical_headers.append(header)
+        var_names = read_names(path / f"{dataset_name}.txt")
+        categorical_var_names.append(var_names)
 
-    continuous_data, continuous_headers = [], []
-    for input_config in config.data.continuous_inputs:
-        name = input_config.name
-        data, mask = read_con(interim_path / f"{name}.npy")
+    continuous_data, continuous_var_names = [], []
+    for dataset_name in continuous_dataset_names:
+        data, keep = load_continuous_dataset(path / f"{dataset_name}.npy")
         continuous_data.append(data)
-        header = read_header(interim_path / f"{name}.txt", mask)
-        continuous_headers.append(header)
+        var_names = read_names(path / f"{dataset_name}.txt")
+        var_names = [name for i, name in enumerate(var_names) if keep[i]]
+        continuous_var_names.append(var_names)
 
-    return categorical_data, categorical_headers, continuous_data, continuous_headers
+    return categorical_data, categorical_var_names, continuous_data, continuous_var_names
 
 
-def read_sample_names(path: PathLike) -> list[str]:
+def read_names(path: PathLike) -> list[str]:
     """Reads sample names from a text file. The text file should have one line
     per sample name.
 
@@ -160,6 +144,6 @@ def dump_mappings(path: PathLike, mappings: dict[str, dict[str, int]]) -> None:
         json.dump(mappings, file, indent=4, ensure_ascii=False)
 
 
-def dump_feature_names(path: PathLike, names: np.ndarray) -> None:
+def dump_names(path: PathLike, names: np.ndarray) -> None:
     with open(path, "w", encoding="utf-8") as file:
         file.writelines([f"{name}\n" for name in names])

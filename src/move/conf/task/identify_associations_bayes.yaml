@@ -10,8 +10,8 @@ target_dataset: baseline_drugs
 target_value: 1
 
 model:
-  categorical_weights: ${data.categorical_weights}
-  continuous_weights: ${data.continuous_weights}
+  categorical_weights: ${weights:${data.categorical_inputs}}
+  continuous_weights: ${weights:${data.continuous_inputs}}
   num_hidden:
     - 2000
   num_latent: 150

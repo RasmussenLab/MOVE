@@ -23,30 +23,31 @@ def get_fully_qualname(sth: Any) -> str:
 @dataclass
 class InputConfig:
     name: str
-    weight: float = 1.0
+    weight: int = 1
 
 
 @dataclass
 class DataConfig:
-    user_conf: str
-    na_value: str
-    raw_data_path: str
-    interim_data_path: str
-    processed_data_path: str
-    headers_path: str
-    version: str
-    ids_file_name: str
-    ids_has_header: bool
-    ids_colname: str
-    categorical_inputs: list[InputConfig]
-    continuous_inputs: list[InputConfig]
-    data_of_interest: str
-    categorical_names: list[str]
-    continuous_names: list[str]
-    categorical_weights: list[float]
-    continuous_weights: list[float]
-    data_features_to_visualize_notebook4: list[str]
-    write_omics_results_notebook5: list[str]
+    user_conf: str = MISSING
+    na_value: str = MISSING
+    raw_data_path: str = MISSING
+    interim_data_path: str = MISSING
+    processed_data_path: str = MISSING
+    headers_path: str = MISSING
+    version: str = MISSING
+    ids_file_name: str = MISSING
+    ids_has_header: bool = MISSING
+    ids_colname: str = MISSING
+    sample_names: str = MISSING
+    categorical_inputs: list[InputConfig] = MISSING
+    continuous_inputs: list[InputConfig] = MISSING
+    data_of_interest: str = MISSING
+    categorical_names: list[str] = MISSING
+    continuous_names: list[str] = MISSING
+    categorical_weights: list[int] = MISSING
+    continuous_weights: list[int] = MISSING
+    data_features_to_visualize_notebook4: list[str] = MISSING
+    write_omics_results_notebook5: list[str] = MISSING
 
 
 @dataclass
@@ -230,9 +231,9 @@ class MOVEConfig:
     name: str = MISSING
 
 
-def extract_weights(configs: list[InputConfig]) -> list[float]:
+def extract_weights(configs: list[InputConfig]) -> list[int]:
     """Extracts the weights from a list of input configs."""
-    return [item.weight for item in configs]
+    return [1 if not hasattr(item, "weight") else item.weight for item in configs]
 
 
 def extract_names(configs: list[InputConfig]) -> list[str]:

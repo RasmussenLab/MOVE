@@ -18,7 +18,7 @@ import pandas as pd
 from omegaconf import DictConfig, OmegaConf
 
 from move import conf
-from move.core.typing import BoolArray, FloatArray, PathLike
+from move.core.typing import BoolArray, FloatArray, ObjectArray, PathLike
 
 
 def read_config(filepath: Optional[Union[str, Path]] = None) -> DictConfig:
@@ -102,7 +102,12 @@ def load_preprocessed_data(
         var_names = [name for i, name in enumerate(var_names) if keep[i]]
         continuous_var_names.append(var_names)
 
-    return categorical_data, categorical_var_names, continuous_data, continuous_var_names
+    return (
+        categorical_data,
+        categorical_var_names,
+        continuous_data,
+        continuous_var_names,
+    )
 
 
 def read_names(path: PathLike) -> list[str]:
@@ -119,18 +124,24 @@ def read_names(path: PathLike) -> list[str]:
         return [i.strip() for i in file.readlines()]
 
 
-def read_tsv(path: PathLike) -> tuple[np.ndarray, np.ndarray]:
+def read_tsv(
+    path: PathLike, sample_names: Optional[list[str]] = None
+) -> tuple[ObjectArray, np.ndarray]:
     """Read a dataset from a TSV file. The TSV is expected to have an index
     column (0th index).
 
     Args:
         path: Path to TSV
+        index: List of sample names used to sort/filter samples
 
     Returns:
         Tuple containing (1) feature names and (2) 2D matrix (samples x
         features)
     """
-    data = pd.read_csv(path, index_col=0, sep="\t").sort_index()
+    data = pd.read_csv(path, index_col=0, sep="\t")
+    if sample_names is not None:
+        data.index = data.index.astype(str, False)
+        data = data.loc[sample_names]
     return data.columns.values, data.values
 
 

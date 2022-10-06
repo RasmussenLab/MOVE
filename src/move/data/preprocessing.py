@@ -7,7 +7,7 @@ import pandas as pd
 from numpy.typing import ArrayLike
 from sklearn.preprocessing import scale as standardize
 
-from move.core.typing import BoolArray, IntArray, FloatArray
+from move.core.typing import BoolArray, FloatArray, IntArray
 
 
 def _category_name(value: Any) -> str:

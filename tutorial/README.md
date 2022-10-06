@@ -40,8 +40,8 @@ All "raw" data files should be placed inside the same directory. These files
 are TSVs (tab-separated value tables) containing discrete values (e.g., for
 binary or categorical datasets) or continuous values.
 
-Additionally, make sure each sample has an assigned ID and provide an ID table
-containing a list of all valid IDs (must appear in every dataset).
+Additionally, make sure each sample has an assigned ID and we provide an ID
+table containing a list of all valid IDs (must appear in every dataset).
 
 ### The `config` folder
 
@@ -65,6 +65,9 @@ defaults:
 raw_data_path: data/              # where raw data is stored
 interim_data_path: interim_data/  # where intermediate files will be stored
 processed_data_path: results/     # where result files will be placed
+
+sample_names: random.small.ids  # names/IDs of each sample, must appear in the
+                                # other datasets
 
 categorical_inputs:  # a list of categorical datasets and their weights
   - name: random.small.drugs

@@ -98,12 +98,12 @@ class TrainingAssociationConfig:
 
 @dataclass
 class MOVEConfig:
-    data: DataConfig
-    model: VAEConfig
-    tune_reconstruction: TuningReconstructionConfig
-    tune_stability: TuningStabilityConfig
-    train_latent: TrainingLatentConfig
-    train_association: TrainingAssociationConfig
+    data_cfg: DataConfig
+    model_cfg: VAEConfig
+    reconstruction_cfg: TuningReconstructionConfig
+    stability_cfg: TuningStabilityConfig
+    latent_cfg: TrainingLatentConfig
+    association_cfg: TrainingAssociationConfig
     name: str
 
 

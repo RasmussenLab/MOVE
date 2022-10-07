@@ -2,19 +2,21 @@
 
 defaults:
   - _self_
-  - data: main.yaml
-  - model: vae.yaml
-  - tuning_reconstruction: main.yaml
-  - tuning_stability: main.yaml
-  - training_latent: main.yaml
-  - training_association: main.yaml
-  - experiment: null
-  - override /hydra/job_logging: none #disabling hydra logging and using custom logging instead
-  - override /hydra/hydra_logging: none
+  - data_cfg: main.yaml
+  - model_cfg: vae.yaml
+  - reconstruction_cfg: main.yaml
+  - stability_cfg: main.yaml
+  - latent_cfg: main.yaml
+  - association_cfg: main.yaml
+#  - experiment: null
+#  - override /hydra/job_logging: none #disabling hydra logging and using custom logging instead
+#  - override /hydra/hydra_logging: none
 hydra:
-  output_subdir: null
-  run:
-      dir: ./
+  output_subdir: ./tmp7/
+#   runtime:
+#       output_dir: skrr
+#   run:
+#       dir: ./
 
 name: MOVE
 seed: 123456

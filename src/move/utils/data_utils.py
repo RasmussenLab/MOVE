@@ -5,11 +5,55 @@ import itertools
 from collections import defaultdict
 from omegaconf import OmegaConf
 import logging
+import sys
+from hydra import initialize, compose, initialize_config_dir
+from hydra.core.config_store import ConfigStore
+from move.conf.schema import MOVEConfig
 
 # Defining a logger name for logging
 logger = logging.getLogger('data_utils')
 
-def merge_configs(base_config, config_types):
+# def merge_configs(base_config, config_types):
+#     """
+#     Merges base_config with user defined configuration
+
+#     inputs:
+#         base_config: YAML configuration
+#         config_types: list of ints of names of user defined configuration types 
+#     returns:
+#         config_section: YAML configuration of base_config overrided by user defined configs and filtered for config_types classes
+#     """
+#     user_config_dict = dict()
+#     override_types = []
+
+#     # Getting the user defined configs 
+#     for config_type in config_types:
+#         exist = os.path.isfile(config_type + '.yaml')
+#         if exist:    
+#             override_types.append(config_type + '.yaml')
+#             # Getting name of user config file and loading it 
+#             user_config_name = base_config[config_type]['user_config']
+#             user_config = OmegaConf.load(user_config_name)
+
+#             # Making dict with the same key as in configuration file
+#             user_config_dict[config_type] = user_config
+
+#     # Printing what was overrided
+#     override_types_str = ', '.join(str(override_type) for override_type in override_types)
+
+#     logger.info(f'Overriding the default config with configs from {override_types_str}')
+
+#     # Merging the base and user defined config file
+#     config = OmegaConf.merge(base_config, user_config_dict)
+
+#     # Getting a subsection of data used for printing 
+#     config_section_dict = {x: config[x] for x in config_types if x in config}
+#     config_section = OmegaConf.create(config_section_dict)
+
+#     logger.info(f'\n\nConfiguration used:\n{OmegaConf.to_yaml(config_section)}')
+#     return(config_section)
+
+def merge_configs_jup(config_path, cfgs_save, **kwargs):
     """
     Merges base_config with user defined configuration
     
@@ -19,35 +63,113 @@ def merge_configs(base_config, config_types):
     returns:
         config_section: YAML configuration of base_config overrided by user defined configs and filtered for config_types classes
     """
+    
     user_config_dict = dict()
     override_types = []
     
-    # Getting the user defined configs 
-    for config_type in config_types:
-        exist = os.path.isfile(config_type + '.yaml')
-        if exist:    
-            override_types.append(config_type + '.yaml')
-            # Getting name of user config file and loading it 
-            user_config_name = base_config[config_type]['user_config']
-            user_config = OmegaConf.load(user_config_name)
-
-            # Making dict with the same key as in configuration file
-            user_config_dict[config_type] = user_config
+    with initialize(version_base="1.2", config_path=config_path):
+        base_config = compose(config_name="main") 
     
+    for cfg_type, cfg_file in kwargs.items():
+        if (cfgs_save is None) or (cfg_file not in cfgs_save):
+            user_config = OmegaConf.load(cfg_file)
+            user_config_dict[cfg_type] = user_config
+            override_types.append(cfg_type)
+        
     # Printing what was overrided
     override_types_str = ', '.join(str(override_type) for override_type in override_types)
-    
-    logger.info(f'Overriding the default config with configs from {override_types_str}')
-    
+
     # Merging the base and user defined config file
     config = OmegaConf.merge(base_config, user_config_dict)
-    
+
     # Getting a subsection of data used for printing 
-    config_section_dict = {x: config[x] for x in config_types if x in config}
+    config_section_dict = {x: config[x] for x in override_types if x in config}
     config_section = OmegaConf.create(config_section_dict)
 
-    logger.info(f'\n\nConfiguration used:\n{OmegaConf.to_yaml(config_section)}')
     return(config_section)
+
+
+def store_schema() -> None:
+    cs = ConfigStore.instance()
+    cs.store(name="base_config_cs", node=MOVEConfig)
+
+    
+def merge_configs(cfgs_save, **kwargs):
+    """
+    Merges base_config with user defined configuration
+    
+    inputs:
+        base_config: YAML configuration
+        config_types: list of ints of names of user defined configuration types 
+    returns:
+        config_section: YAML configuration of base_config overrided by user defined configs and filtered for config_types classes
+    """
+    
+    user_config_dict = dict()
+    override_types = []
+    
+    # Initializing base config
+    with initialize(version_base="1.2", config_path="../conf"):
+        base_config = compose(config_name="main", return_hydra_config=True)
+        
+    # Removing configs of .yaml files (keeping only command line configs)
+    hydra_args = remove_from_argv(**kwargs)
+    
+    for cfg_type, cfg_file in kwargs.items():
+        if (cfgs_save is None) or (cfg_file not in cfgs_save):
+            user_config = OmegaConf.load(cfg_file)
+            user_config_dict[cfg_type] = user_config
+            override_types.append(cfg_type)
+        
+    # Printing what was overrided
+    override_types_str = ', '.join(str(override_type) for override_type in override_types)
+#     logger.info(f'Overriding the default config with configs from {override_types_str}')
+    
+    # Merging the base and user defined config file
+    merged_config = OmegaConf.merge(base_config, user_config_dict)
+    with open('./temp_config.yaml', "w") as f:
+        OmegaConf.save(OmegaConf.create(dict(merged_config)), f)
+    
+
+    ### Doing a second initialization and composing to be able to override with command line parameters after merging with parameters in .yaml files (command line parameters > .yaml parameters > default parameters)       
+    saved_cfg_dir = os.path.abspath('./')
+    store_schema() 
+    cs = ConfigStore.instance()
+    cs.store(
+        name="reload_conf",
+        node={
+            "defaults": [
+                "base_config_cs",
+                'temp_config'
+                        ]
+            }
+            )
+    
+
+    with initialize_config_dir(version_base="1.2", config_dir=saved_cfg_dir):
+        config = compose(config_name="temp_config", overrides=hydra_args, return_hydra_config=True) 
+    
+    # Removing temporal configuration
+    os.remove('./temp_config.yaml')     
+    
+    # Getting a subsection of data used for printing 
+    config_section_dict = {x: config[x] for x in override_types if x in config}
+    config_section = OmegaConf.create(config_section_dict)
+    
+    return(config_section)
+
+def remove_from_argv(**kwargs):
+    '''
+    Removing arguments used by click framework, keeping only the ones used by hydra.
+    Strategy: if data file args are passed to the framework, they correspond to not NONE value, 
+    it is multiplied by 2, since key ar vals are provided in sys.argv (e.g --data_config data.yaml).
+    Finally, additionally removing one arg that corresponds to module name (e.g. encode-data)
+    '''
+    args_list = list(kwargs.values()) # Add removing specifically them
+    n_args_rm = 2 * sum(x is not None for x in args_list) + 1
+
+    hydra_args = sys.argv[n_args_rm + 1:]
+    return(hydra_args)
 
 
 # Functions for loading data
@@ -467,7 +589,9 @@ def get_best_params(results_df_sorted, n_combos_opt, hyperpars_names):
     hyperpars_vals_dict = dict(hyperpars_vals_dict)
     return(hyperpars_vals_dict)
 
-def make_and_save_best_reconstruct_params(results_df, hyperparams_names, max_param_combos_to_save):
+def make_and_save_best_reconstruct_params(results_df, hyperparams_names, max_param_combos_to_save, cfgs_save):
+    
+    stability_cfg = cfgs_save
     
     # Getting the best number of epochs used in further trainings
     best_epoch = get_best_epoch(results_df)
@@ -479,12 +603,12 @@ def make_and_save_best_reconstruct_params(results_df, hyperparams_names, max_par
     best_hyperpars_vals_dict['tuned_num_epochs'] = best_epoch
     
     # Saving the best hyperparameter values (it will overwrite the file if it already exists)
-    with open('tuning_stability.yaml', "w") as f:
+    with open(stability_cfg, "w") as f:
         OmegaConf.save(OmegaConf.create(dict(best_hyperpars_vals_dict)), f)
 
     #Printing the saved hyper parameter values
-    logger.info(f'Saving the best hyperparameter values in tuning_stability.yaml for further optimization:\n \n{OmegaConf.to_yaml(dict(best_hyperpars_vals_dict))}\n')
-    logger.warning('Please manually review if the hyperparameter values were selected correctly and adjust them in the tuning_stability.yaml file.')
+    logger.info(f'Saving the best hyperparameter values in {stability_cfg} for further optimization:\n \n{OmegaConf.to_yaml(dict(best_hyperpars_vals_dict))}\n')
+    logger.warning(f'Please manually review if the hyperparameter values were selected correctly and adjust them in the {stability_cfg} file.')
     
 
 def get_best_stability_paramset(stability_df, hyperparams_names):
@@ -527,32 +651,34 @@ def get_best_4_latent_spaces(results_df_sorted):
         best_latent.append(max(best_latent) + half_diff_from_zero)
     return(best_latent)
 
-def make_and_save_best_stability_params(results_df, hyperparams_names, nepochs):
+def make_and_save_best_stability_params(results_df, hyperparams_names, nepochs, cfgs_save):
     
     logger.info('Starting calculating the best hyperparameter values used in further model trainings') 
+    
+    latent_cfg, association_cfg = cfgs_save
     
     # Getting best set of hyperparameters
     params_to_save, results_df_sorted = get_best_stability_paramset(results_df, hyperparams_names)
     params_to_save['tuned_num_epochs'] = nepochs
 
     # Saving best set of hyperparameters    
-    with open('training_latent.yaml', "w") as f:
+    with open(latent_cfg, "w") as f:
         OmegaConf.save(OmegaConf.create(dict(params_to_save)), f)
         
     # Printing the configuration saved 
-    logger.info(f'Saving best hyperparameter values in training_latent.yaml: \n\n{OmegaConf.to_yaml(dict(params_to_save))}')
+    logger.info(f'Saving best hyperparameter values in {latent_cfg}: \n\n{OmegaConf.to_yaml(dict(params_to_save))}')
     
     # Getting the latent spaces for training_association script and using them with the best hyperparam set
     best_latent = get_best_4_latent_spaces(results_df_sorted)
     params_to_save['num_latent'] = list(best_latent)
     
     # Saving best set of hyperparameters for training_association script
-    with open('training_association.yaml', "w") as f:
+    with open(association_cfg, "w") as f:
         OmegaConf.save(OmegaConf.create(dict(params_to_save)), f)
 
     # Printing the configuration saved 
-    logger.info(f'Saving best hyperparameter values in training_association.yaml: \n \n{OmegaConf.to_yaml(dict(params_to_save))}')
-    logger.warning('Please manually review if the hyperparameter values were selected correctly and adjust them in the training_association.yaml and training_latent.yaml files.')
+    logger.info(f'Saving best hyperparameter values in {association_cfg}: \n \n{OmegaConf.to_yaml(dict(params_to_save))}')
+    logger.warning(f'Please manually review if the hyperparameter values were selected correctly and adjust them in the {association_cfg} and {latent_cfg} files.')
 def read_saved_files(nLatents, repeats, path, version, drug):
     results, recon_results, groups, mean_bas = initiate_default_dicts(n_empty_dicts=0, n_list_dicts=4)
     

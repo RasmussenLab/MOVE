@@ -40,10 +40,10 @@ continuous_inputs:
 
 data_of_interest: baseline_drugs
   
-categorical_names: ${names:${data.categorical_inputs}}
-continuous_names: ${names:${data.continuous_inputs}}
-categorical_weights: ${weights:${data.categorical_inputs}}
-continuous_weights: ${weights:${data.continuous_inputs}}
+categorical_names: ${names:${data_cfg.categorical_inputs}}
+continuous_names: ${names:${data_cfg.continuous_inputs}}
+categorical_weights: ${weights:${data_cfg.categorical_inputs}}
+continuous_weights: ${weights:${data_cfg.continuous_inputs}}
 
 data_features_to_visualize_notebook4:
   - drug_1

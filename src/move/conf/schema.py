@@ -1,6 +1,7 @@
 __all__ = [
     "MOVEConfig",
     "EncodeDataConfig",
+    "AnalyzeLatentsConfig",
     "IdentifyAssociationsConfig",
     "IdentifyAssociationsBayesConfig",
     "IdentifyAssociationsTTestConfig",
@@ -166,6 +167,13 @@ class EncodeDataConfig(TaskConfig):
     batch_size = None
     model = None
     training_loop = None
+
+
+@dataclass
+class AnalyzeLatentsConfig(TaskConfig):
+    """Configure the "analyze latents" task."""
+
+    ...
 
 
 @dataclass

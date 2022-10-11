@@ -1,7 +1,7 @@
 __all__ = [
     "MOVEConfig",
     "EncodeDataConfig",
-    "AnalyzeLatentsConfig",
+    "AnalyzeLatentConfig",
     "IdentifyAssociationsConfig",
     "IdentifyAssociationsBayesConfig",
     "IdentifyAssociationsTTestConfig",
@@ -170,7 +170,7 @@ class EncodeDataConfig(TaskConfig):
 
 
 @dataclass
-class AnalyzeLatentsConfig(TaskConfig):
+class AnalyzeLatentConfig(TaskConfig):
     """Configure the "analyze latents" task."""
 
     ...
@@ -256,6 +256,11 @@ cs.store(
     group="task",
     name="encode_data",
     node=EncodeDataConfig,
+)
+cs.store(
+    group="task",
+    name="analyze_latent_schema",
+    node=AnalyzeLatentConfig,
 )
 cs.store(
     group="task",

@@ -5,6 +5,7 @@ from omegaconf import OmegaConf
 
 import move.tasks
 from move.conf.schema import (
+    AnalyzeLatentConfig,
     EncodeDataConfig,
     IdentifyAssociationsConfig,
     MOVEConfig,
@@ -27,6 +28,8 @@ def main(config: MOVEConfig) -> None:
         logger.info("No task specified.")
     elif task_type is EncodeDataConfig:
         move.tasks.encode_data(config.data)
+    elif task_type is AnalyzeLatentConfig:
+        move.tasks.analyze_latent(config)
     elif issubclass(task_type, IdentifyAssociationsConfig):
         move.tasks.identify_associations(config)
     else:

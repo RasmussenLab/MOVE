@@ -18,6 +18,9 @@ def plot_loss_curves(
     Args:
         losses: Tuple containing lists of loss values
         labels: Tuple containing names of each loss line
+
+    Returns:
+        Figure
     """
     num_epochs = len(losses[0])
     epochs = np.arange(num_epochs)

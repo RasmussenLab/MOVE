@@ -5,6 +5,7 @@ from typing import cast
 
 import hydra
 import numpy as np
+import pandas as pd
 import torch
 
 import move.visualization as viz
@@ -60,9 +61,14 @@ def analyze_latent(config: MOVEConfig):
             model=model,
             train_dataloader=train_dataloader,
         )
+        losses = output[:-1]
         torch.save(model.state_dict(), model_path)
         logger.debug("Generating plot: loss curves")
-        fig = viz.plot_loss_curves(output[:-1])
-        fig.savefig(str(output_path / "loss_curve.png"), bbox_inches="tight")
-
+        loss_fig = viz.plot_loss_curves(losses)
+        loss_fig.savefig(str(output_path / "loss_curve.png"), bbox_inches="tight")
+        loss_df = pd.DataFrame(dict(zip(viz.LOSS_LABELS, losses)))
+        loss_df.index.name = "epoch"
+        loss_df.to_csv("loss_curve.tsv", sep="\t")
     model.eval()
+
+    

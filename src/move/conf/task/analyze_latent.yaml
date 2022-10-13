@@ -3,6 +3,11 @@ defaults:
 
 batch_size: 10
 
+reducer:
+  _target_: sklearn.manifold.TSNE
+  n_components: 2
+  init: pca
+
 model:
   categorical_weights: ${weights:${data.categorical_inputs}}
   continuous_weights: ${weights:${data.continuous_inputs}}

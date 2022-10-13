@@ -171,9 +171,14 @@ class EncodeDataConfig(TaskConfig):
 
 @dataclass
 class AnalyzeLatentConfig(TaskConfig):
-    """Configure the "analyze latents" task."""
+    """Configure the "analyze latents" task.
 
-    ...
+    Attributes:
+        feature_names:
+            Names of features to visualize."""
+
+    feature_names: list[str] = field(default_factory=list)
+    reducer: dict[str, Any] = MISSING
 
 
 @dataclass

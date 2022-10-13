@@ -7,8 +7,11 @@ import hydra
 import numpy as np
 import pandas as pd
 import torch
+from sklearn.base import TransformerMixin
+from torch.utils.data import SequentialSampler
 
 import move.visualization as viz
+from move.core.typing import FloatArray
 from move.conf.schema import AnalyzeLatentConfig, MOVEConfig
 from move.core.logging import get_logger
 from move.data import io
@@ -17,18 +20,59 @@ from move.models.vae import VAE
 from move.training.training_loop import TrainingLoopOutput
 
 
-def analyze_latent(config: MOVEConfig):
+def find_feature_values(
+    feature_name: str,
+    feature_names_lists: list[list[str]],
+    feature_values: list[FloatArray],
+) -> tuple[int, FloatArray]:
+    """Looks for the feature in the list of datasets and returns its values.
+
+    Args:
+        feature_name: Lookup key
+        feature_names_lists: List of lists with feature names for each dataset
+        feature_values: List of data arrays, each representing a dataset
+
+    Raises:
+        KeyError: If feature does not exist in any dataset
+
+    Returns:
+        Tuple containing (1) index of dataset containing feature and (2)
+        values corresponding to the feature
+    """
+    dataset_index, feature_index = [None] * 2
+    for dataset_index, feature_names in enumerate(feature_names_lists):
+        try:
+            feature_index = feature_names.index(feature_name)
+        except ValueError:
+            continue
+        break
+    if dataset_index is not None and feature_index is not None:
+        return (
+            dataset_index,
+            np.take(feature_values[dataset_index], feature_index, axis=1)
+        )
+    raise KeyError(f"Feature '{feature_name}' not in any dataset.")
+
+
+def _validate_task_config(task_config: AnalyzeLatentConfig) -> None:
+    if "_target_" not in task_config.reducer:
+        raise ValueError("Reducer class not specified properly.")
+
+
+def analyze_latent(config: MOVEConfig) -> None:
     """Trains one model to inspect its latent space."""
 
     logger = get_logger(__name__)
     logger.info("Beginning task: analyze latent space")
     task_config = cast(AnalyzeLatentConfig, config.task)
+    _validate_task_config(task_config)
 
+    interim_path = Path(config.data.interim_data_path)
     output_path = Path(config.data.processed_data_path) / "latent_space"
     output_path.mkdir(exist_ok=True, parents=True)
 
-    cat_list, _, con_list, _ = io.load_preprocessed_data(
-        Path(config.data.interim_data_path),
+    cat_list, cat_names, con_list, con_names = io.load_preprocessed_data(
+        interim_path,
         config.data.categorical_names,
         config.data.continuous_names,
     )
@@ -63,6 +107,7 @@ def analyze_latent(config: MOVEConfig):
         )
         losses = output[:-1]
         torch.save(model.state_dict(), model_path)
+        logger.info("Generating visualizations")
         logger.debug("Generating plot: loss curves")
         loss_fig = viz.plot_loss_curves(losses)
         loss_fig.savefig(str(output_path / "loss_curve.png"), bbox_inches="tight")
@@ -71,4 +116,42 @@ def analyze_latent(config: MOVEConfig):
         loss_df.to_csv("loss_curve.tsv", sep="\t")
     model.eval()
 
-    
+    test_mask, test_dataloader = make_dataloader(
+        cat_list,
+        con_list,
+        shuffle=False,
+        batch_size=len(cast(SequentialSampler, train_dataloader.sampler)),
+    )
+    latent_space = model.project(test_dataloader)
+    reducer: TransformerMixin = hydra.utils.instantiate(task_config.reducer)
+    embedding = reducer.fit_transform(latent_space)
+
+    mappings = io.load_mappings(interim_path / "mappings.json")
+    for feature_name in task_config.feature_names:
+        logger.debug(f"Generating plot: latent space + '{feature_name}'")
+        is_categorical = False
+        try:
+            dataset_index, feature_values = find_feature_values(feature_name, cat_names, cat_list)
+            is_categorical = True
+        except KeyError:
+            dataset_index, feature_values = find_feature_values(feature_name, con_names, con_list)
+
+        if is_categorical:
+            # Convert one-hot encoding to category codes
+            is_nan = feature_values.sum(axis=1) == 0
+            feature_values = np.argmax(feature_values, axis=1)[test_mask]
+
+            dataset_name = config.data.categorical_names[dataset_index]
+            fig = viz.plot_latent_space_with_cat(
+                embedding,
+                feature_name,
+                feature_values,
+                mappings[dataset_name],
+                is_nan,
+            )
+        else:
+            feature_values = feature_values[test_mask]
+            fig = viz.plot_latent_space_with_con(embedding, feature_name, feature_values)
+
+        fig_path = (output_path / f"latent_space_{feature_name}.png").as_posix()
+        fig.savefig(fig_path, bbox_inches="tight")

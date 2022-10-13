@@ -9,7 +9,7 @@ import matplotlib.style
 import matplotlib.pyplot as plt
 
 from move.core.typing import BoolArray, FloatArray
-from move.visualization.style import style_settings
+from move.visualization.style import color_cycle, style_settings
 
 
 def plot_latent_space_with_cat(
@@ -17,7 +17,9 @@ def plot_latent_space_with_cat(
     feature_name: str,
     feature_values: FloatArray,
     feature_mapping: dict[str, int],
-    is_nan_mask: BoolArray
+    is_nan: BoolArray,
+    style: str = "ggplot",
+    colormap: str = "Dark2",
 ) -> matplotlib.figure.Figure:
     """Plots a 2D latent space together with a legend mapping the latent
     space to the values of a discrete feature.
@@ -31,8 +33,12 @@ def plot_latent_space_with_cat(
             Values of categorical feature
         feature_mapping:
             Mapping of codes to categories for the categorical feature
-        is_nan_mask:
+        is_nan:
             Array of bool values indicating which feature values are NaNs
+        style:
+            Name of style to apply to the plot
+        colormap:
+            Name of qualitative colormap to use for each category
 
     Raises:
         ValueError: If latent space does not have at least two dimensions.
@@ -42,16 +48,17 @@ def plot_latent_space_with_cat(
     """
     if latent_space.ndim < 2:
         raise ValueError("Expected at least two dimensions in latent space.")
-    with style_settings("ggplot"):
+    with style_settings(style), color_cycle(colormap):
         fig, ax = plt.subplots()
         codes = np.unique(feature_values)
         for code in codes:
             category = feature_mapping[str(code)]
-            is_category = (feature_values == code) & ~is_nan_mask
-            dims = latent_space[is_category, [0, 1]].T
+            is_category = (feature_values == code) & ~is_nan
+            dims = np.take(latent_space.compress(is_category, axis=0), [0, 1], axis=1).T
             ax.scatter(*dims, label=category)
-        dims = latent_space[is_nan_mask, [0, 1]].T
+        dims = np.take(latent_space.compress(is_nan, axis=0), [0, 1], axis=1).T
         ax.scatter(*dims, label="NaN")
+        ax.set(xlabel="dim 0", ylabel="dim 1")
         legend = ax.legend()
         legend.set_title(feature_name)
     return fig
@@ -61,6 +68,8 @@ def plot_latent_space_with_con(
     latent_space: FloatArray,
     feature_name: str,
     feature_values: FloatArray,
+    style: str = "ggplot",
+    colormap: str = "RdYlBu",
 ) -> matplotlib.figure.Figure:
     """Plots a 2D latent space together with a colorbar mapping the latent
     space to the values of a continuous feature.
@@ -69,6 +78,8 @@ def plot_latent_space_with_con(
         latent_space: Embedding, a ND array with at least two dimensions.
         feature_name: Name of continuous feature
         feature_values: Values of continuous feature
+        style: Name of style to apply to the plot
+        colormap: Name of colormap to use for the colorbar
 
     Raises:
         ValueError: If latent space does not have at least two dimensions.
@@ -78,10 +89,10 @@ def plot_latent_space_with_con(
     """
     if latent_space.ndim < 2:
         raise ValueError("Expected at least two dimensions in latent space.")
-    with style_settings("ggplot"):
+    with style_settings(style):
         fig, ax = plt.subplots()
         dims = latent_space[:, 0], latent_space[:, 1]
-        pts = ax.scatter(*dims, c=feature_values)
+        pts = ax.scatter(*dims, c=feature_values, cmap=colormap)
         cbar = fig.colorbar(pts, ax=ax)
         cbar.ax.set(ylabel=feature_name)
         ax.set(xlabel="dim 0", ylabel="dim 1")

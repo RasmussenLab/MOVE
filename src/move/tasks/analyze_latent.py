@@ -8,7 +8,6 @@ import numpy as np
 import pandas as pd
 import torch
 from sklearn.base import TransformerMixin
-from torch.utils.data import SequentialSampler
 
 import move.visualization as viz
 from move.analysis.metrics import calculate_accuracy, calculate_cosine_similarity
@@ -80,21 +79,19 @@ def analyze_latent(config: MOVEConfig) -> None:
         config.data.categorical_names,
         config.data.continuous_names,
     )
-    train_mask, train_dataloader = make_dataloader(
+    test_mask, test_dataloader = make_dataloader(
         cat_list,
         con_list,
-        shuffle=True,
-        batch_size=task_config.batch_size,
-        drop_last=True,
+        shuffle=False,
+        batch_size=len(sample_names),
     )
-    train_dataset = cast(MOVEDataset, train_dataloader.dataset)
-    logger.debug(f"Masked training samples: {np.sum(~train_mask)}/{train_mask.size}")
+    test_dataset = cast(MOVEDataset, test_dataloader.dataset)
 
     assert task_config.model is not None
     model: VAE = hydra.utils.instantiate(
         task_config.model,
-        continuous_shapes=train_dataset.con_shapes,
-        categorical_shapes=train_dataset.cat_shapes,
+        continuous_shapes=test_dataset.con_shapes,
+        categorical_shapes=test_dataset.cat_shapes,
     )
     logger.debug(f"Model: {model}")
 
@@ -104,6 +101,14 @@ def analyze_latent(config: MOVEConfig) -> None:
         model.load_state_dict(torch.load(model_path))
     else:
         logger.debug("Training model")
+        train_mask, train_dataloader = make_dataloader(
+            cat_list,
+            con_list,
+            shuffle=True,
+            batch_size=task_config.batch_size,
+            drop_last=True,
+        )
+        logger.debug(f"Masked training samples: {np.sum(~train_mask)}/{train_mask.size}")
         output: TrainingLoopOutput = hydra.utils.call(
             task_config.training_loop,
             model=model,
@@ -121,12 +126,6 @@ def analyze_latent(config: MOVEConfig) -> None:
         fig_df.to_csv("loss_curve.tsv", sep="\t")
     model.eval()
 
-    test_mask, test_dataloader = make_dataloader(
-        cat_list,
-        con_list,
-        shuffle=False,
-        batch_size=len(cast(SequentialSampler, train_dataloader.sampler)),
-    )
     logger.info("Projecting into latent space")
     latent_space = model.project(test_dataloader)
     reducer: TransformerMixin = hydra.utils.instantiate(task_config.reducer)
@@ -165,13 +164,14 @@ def analyze_latent(config: MOVEConfig) -> None:
     logger.info("Reconstructing")
     cat_recons, con_recons = model.reconstruct(test_dataloader)
     con_recons = np.split(con_recons, model.continuous_shapes[:-1], axis=1)
+    logger.info("Computing reconstruction metrics")
     scores = []
     labels = config.data.categorical_names + config.data.continuous_names
     for cat, cat_recon in zip(cat_list, cat_recons):
-        accuracy = calculate_accuracy(cat, cat_recon)
+        accuracy = calculate_accuracy(cat[test_mask, :], cat_recon)
         scores.append(accuracy)
     for con, con_recon in zip(con_list, con_recons):
-        cosine_sim = calculate_cosine_similarity(con, con_recon)
+        cosine_sim = calculate_cosine_similarity(con[test_mask, :], con_recon)
         scores.append(cosine_sim)
 
     logger.debug("Generating plot: reconstruction metrics")

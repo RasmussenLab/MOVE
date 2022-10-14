@@ -32,7 +32,7 @@ def calculate_accuracy(
     num_features = np.ma.count(y_true, axis=1)
     scores = np.ma.compressed(np.sum(y_true == y_pred, axis=1)) / num_features
 
-    return scores 
+    return scores
 
 
 def calculate_cosine_similarity(
@@ -74,4 +74,4 @@ def norm(x: np.ma.MaskedArray, axis: int = 1) -> FloatArray:
     Returns:
         1D array with the specified axis removed.
     """
-    return np.ma.compressed(np.sqrt(np.sum(x ** 2, axis=axis)))
+    return np.ma.compressed(np.sqrt(np.sum(x**2, axis=axis)))

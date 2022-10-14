@@ -1,7 +1,4 @@
-__all__ = [
-    "plot_latent_space_with_cat",
-    "plot_latent_space_with_con"
-]
+__all__ = ["plot_latent_space_with_cat", "plot_latent_space_with_con"]
 
 import numpy as np
 import matplotlib.figure

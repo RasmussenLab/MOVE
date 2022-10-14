@@ -29,7 +29,7 @@ def plot_metrics_boxplot(
         Figure
     """
     with style_settings(style), color_cycle(colormap):
-        labelcolor  = matplotlib.rcParams["axes.labelcolor"]
+        labelcolor = matplotlib.rcParams["axes.labelcolor"]
         fig, ax = plt.subplots()
         comps = ax.boxplot(
             scores[::-1],
@@ -51,4 +51,3 @@ def plot_metrics_boxplot(
             box.update(dict(facecolor=prop["color"], edgecolor=labelcolor))
         ax.set(xlim=(-0.05, 1.05), xlabel="Score", ylabel="Dataset")
     return fig
-

@@ -1,48 +1,74 @@
 __all__ = ["calculate_accuracy", "calculate_cosine_similarity"]
 
 import numpy as np
-from sklearn.metrics import accuracy_score
-from sklearn.metrics.pairwise import cosine_similarity
 
-from move.core.typing import IntArray, FloatArray
+from move.core.typing import FloatArray
 
 
-def calculate_accuracy(original_input: IntArray, reconstruction: IntArray) -> float:
-    """Computes accuracy.
+def calculate_accuracy(
+    original_input: FloatArray, reconstruction: FloatArray
+) -> FloatArray:
+    """Computes accuracy per sample.
 
     Args:
-        original_input: Original labels (one-hot encoded as a 3D array)
-        reconstruction: Reconstructed labels (2D array)
+        original_input: Original labels (one-hot encoded as a 3D array).
+        reconstruction: Reconstructed labels (2D array).
 
     Returns:
-        Fraction of correctly reconstructed samples
+        Array of accuracy scores.
     """
     if original_input.ndim != 3:
         raise ValueError("Expected original input to have three dimensions.")
     if reconstruction.ndim != 2:
         raise ValueError("Expected reconstruction to have two dimensions.")
-    not_nan_ids = np.flatnonzero(original_input.sum(axis=2) > 0)
+    if original_input[:, :, 0].shape != reconstruction.shape:
+        raise ValueError("Original input and reconstruction shapes do not match.")
+
+    is_nan = original_input.sum(axis=2) == 0
     original_input = np.argmax(original_input, axis=2)  # 3D => 2D
-    y_true = np.take(original_input, not_nan_ids)
-    y_pred = np.take(reconstruction, not_nan_ids)
-    return accuracy_score(y_true, y_pred)
+    y_true = np.ma.masked_array(original_input, mask=is_nan)
+    y_pred = np.ma.masked_array(reconstruction, mask=is_nan)
+
+    num_features = np.ma.count(y_true, axis=1)
+    scores = np.ma.compressed(np.sum(y_true == y_pred, axis=1)) / num_features
+
+    return scores 
 
 
 def calculate_cosine_similarity(
     original_input: FloatArray, reconstruction: FloatArray
-) -> float:
-    """Computes cosine similarity.
+) -> FloatArray:
+    """Computes cosine similarity per sample.
 
     Args:
-        original_input: Original values (2D array)
-        reconstruction: Reconstructed values (2D array)
+        original_input: Original values (2D array).
+        reconstruction: Reconstructed values (2D array).
 
     Returns:
-        Similarity between original and reconstructed values
+        Array of similarities.
     """
     if any((original_input.ndim != 2, reconstruction.ndim != 2)):
         raise ValueError("Expected both inputs to have two dimensions.")
-    not_nan_ids = np.flatnonzero(original_input != 0)
-    x = np.expand_dims(np.take(original_input, not_nan_ids), axis=0)
-    y = np.expand_dims(np.take(reconstruction, not_nan_ids), axis=0)
-    return cosine_similarity(x, y).item()
+    if original_input.shape != reconstruction.shape:
+        raise ValueError("Original input and reconstruction shapes do not match.")
+
+    is_nan = original_input == 0
+    x = np.ma.masked_array(original_input, mask=is_nan)
+    y = np.ma.masked_array(reconstruction, mask=is_nan)
+
+    scores = np.ma.compressed(np.sum(x * y, axis=1)) / (norm(x) * norm(y))
+
+    return scores
+
+
+def norm(x: np.ma.MaskedArray, axis: int = 1) -> FloatArray:
+    """Returns Euclidean norm.
+
+    Args:
+        x: 2D array
+        axis: Axis along which to the operation is performed. Defaults to 1.
+
+    Returns:
+        1D array with the specified axis removed.
+    """
+    return np.ma.compressed(np.sqrt(np.sum(x ** 2, axis=axis)))

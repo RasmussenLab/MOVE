@@ -49,7 +49,7 @@ def find_feature_values(
     if dataset_index is not None and feature_index is not None:
         return (
             dataset_index,
-            np.take(feature_values[dataset_index], feature_index, axis=1)
+            np.take(feature_values[dataset_index], feature_index, axis=1),
         )
     raise KeyError(f"Feature '{feature_name}' not in any dataset.")
 
@@ -86,6 +86,7 @@ def analyze_latent(config: MOVEConfig) -> None:
         batch_size=len(sample_names),
     )
     test_dataset = cast(MOVEDataset, test_dataloader.dataset)
+    sample_names = np.compress(test_mask, sample_names)
 
     assert task_config.model is not None
     model: VAE = hydra.utils.instantiate(
@@ -108,7 +109,9 @@ def analyze_latent(config: MOVEConfig) -> None:
             batch_size=task_config.batch_size,
             drop_last=True,
         )
-        logger.debug(f"Masked training samples: {np.sum(~train_mask)}/{train_mask.size}")
+        logger.debug(
+            f"Masked training samples: {np.sum(~train_mask)}/{train_mask.size}"
+        )
         output: TrainingLoopOutput = hydra.utils.call(
             task_config.training_loop,
             model=model,
@@ -123,7 +126,7 @@ def analyze_latent(config: MOVEConfig) -> None:
         fig.savefig(fig_path, bbox_inches="tight")
         fig_df = pd.DataFrame(dict(zip(viz.LOSS_LABELS, losses)))
         fig_df.index.name = "epoch"
-        fig_df.to_csv("loss_curve.tsv", sep="\t")
+        fig_df.to_csv(output_path / "loss_curve.tsv", sep="\t")
     model.eval()
 
     logger.info("Projecting into latent space")
@@ -132,14 +135,23 @@ def analyze_latent(config: MOVEConfig) -> None:
     embedding = reducer.fit_transform(latent_space)
 
     mappings = io.load_mappings(interim_path / "mappings.json")
+    fig_df = pd.DataFrame(
+        np.take(embedding, [0, 1], axis=1),
+        columns=["dim0", "dim1"],
+        index=pd.Index(sample_names, name="sample_name"),
+    )
     for feature_name in task_config.feature_names:
         logger.debug(f"Generating plot: latent space + '{feature_name}'")
         is_categorical = False
         try:
-            dataset_index, feature_values = find_feature_values(feature_name, cat_names, cat_list)
+            dataset_index, feature_values = find_feature_values(
+                feature_name, cat_names, cat_list
+            )
             is_categorical = True
         except KeyError:
-            dataset_index, feature_values = find_feature_values(feature_name, con_names, con_list)
+            dataset_index, feature_values = find_feature_values(
+                feature_name, con_names, con_list
+            )
 
         if is_categorical:
             # Convert one-hot encoding to category codes
@@ -154,12 +166,18 @@ def analyze_latent(config: MOVEConfig) -> None:
                 mappings[dataset_name],
                 is_nan,
             )
+            fig_df[feature_name] = np.where(is_nan, np.nan, feature_values)
         else:
             feature_values = feature_values[test_mask]
-            fig = viz.plot_latent_space_with_con(embedding, feature_name, feature_values)
+            fig = viz.plot_latent_space_with_con(
+                embedding, feature_name, feature_values
+            )
+            fig_df[feature_name] = np.where(feature_values == 0, np.nan, feature_values)
 
         fig_path = str(output_path / f"latent_space_{feature_name}.png")
         fig.savefig(fig_path, bbox_inches="tight")
+
+    fig_df.to_csv(output_path / "latent_space.tsv", sep="\t")
 
     logger.info("Reconstructing")
     cat_recons, con_recons = model.reconstruct(test_dataloader)
@@ -178,3 +196,7 @@ def analyze_latent(config: MOVEConfig) -> None:
     fig = viz.plot_metrics_boxplot(scores, labels)
     fig_path = str(output_path / "reconstruction_metrics.png")
     fig.savefig(fig_path, bbox_inches="tight")
+    fig_df = pd.DataFrame(
+        dict(zip(labels, scores)), index=pd.Index(sample_names, name="sample_name")
+    )
+    fig_df.to_csv(output_path / "reconstruction_metrics.tsv", sep="\t")

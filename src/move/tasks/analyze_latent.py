@@ -11,9 +11,10 @@ from sklearn.base import TransformerMixin
 from torch.utils.data import SequentialSampler
 
 import move.visualization as viz
+from move.analysis.metrics import calculate_accuracy, calculate_cosine_similarity
+from move.core.logging import get_logger
 from move.core.typing import FloatArray
 from move.conf.schema import AnalyzeLatentConfig, MOVEConfig
-from move.core.logging import get_logger
 from move.data import io
 from move.data.dataloaders import MOVEDataset, make_dataloader
 from move.models.vae import VAE
@@ -67,10 +68,13 @@ def analyze_latent(config: MOVEConfig) -> None:
     task_config = cast(AnalyzeLatentConfig, config.task)
     _validate_task_config(task_config)
 
+    raw_data_path = Path(config.data.raw_data_path)
     interim_path = Path(config.data.interim_data_path)
     output_path = Path(config.data.processed_data_path) / "latent_space"
     output_path.mkdir(exist_ok=True, parents=True)
 
+    logger.debug("Reading data")
+    sample_names = io.read_names(raw_data_path / f"{config.data.sample_names}.txt")
     cat_list, cat_names, con_list, con_names = io.load_preprocessed_data(
         interim_path,
         config.data.categorical_names,
@@ -109,11 +113,12 @@ def analyze_latent(config: MOVEConfig) -> None:
         torch.save(model.state_dict(), model_path)
         logger.info("Generating visualizations")
         logger.debug("Generating plot: loss curves")
-        loss_fig = viz.plot_loss_curves(losses)
-        loss_fig.savefig(str(output_path / "loss_curve.png"), bbox_inches="tight")
-        loss_df = pd.DataFrame(dict(zip(viz.LOSS_LABELS, losses)))
-        loss_df.index.name = "epoch"
-        loss_df.to_csv("loss_curve.tsv", sep="\t")
+        fig = viz.plot_loss_curves(losses)
+        fig_path = str(output_path / "loss_curve.png")
+        fig.savefig(fig_path, bbox_inches="tight")
+        fig_df = pd.DataFrame(dict(zip(viz.LOSS_LABELS, losses)))
+        fig_df.index.name = "epoch"
+        fig_df.to_csv("loss_curve.tsv", sep="\t")
     model.eval()
 
     test_mask, test_dataloader = make_dataloader(
@@ -122,6 +127,7 @@ def analyze_latent(config: MOVEConfig) -> None:
         shuffle=False,
         batch_size=len(cast(SequentialSampler, train_dataloader.sampler)),
     )
+    logger.info("Projecting into latent space")
     latent_space = model.project(test_dataloader)
     reducer: TransformerMixin = hydra.utils.instantiate(task_config.reducer)
     embedding = reducer.fit_transform(latent_space)
@@ -153,5 +159,22 @@ def analyze_latent(config: MOVEConfig) -> None:
             feature_values = feature_values[test_mask]
             fig = viz.plot_latent_space_with_con(embedding, feature_name, feature_values)
 
-        fig_path = (output_path / f"latent_space_{feature_name}.png").as_posix()
+        fig_path = str(output_path / f"latent_space_{feature_name}.png")
         fig.savefig(fig_path, bbox_inches="tight")
+
+    logger.info("Reconstructing")
+    cat_recons, con_recons = model.reconstruct(test_dataloader)
+    con_recons = np.split(con_recons, model.continuous_shapes[:-1], axis=1)
+    scores = []
+    labels = config.data.categorical_names + config.data.continuous_names
+    for cat, cat_recon in zip(cat_list, cat_recons):
+        accuracy = calculate_accuracy(cat, cat_recon)
+        scores.append(accuracy)
+    for con, con_recon in zip(con_list, con_recons):
+        cosine_sim = calculate_cosine_similarity(con, con_recon)
+        scores.append(cosine_sim)
+
+    logger.debug("Generating plot: reconstruction metrics")
+    fig = viz.plot_metrics_boxplot(scores, labels)
+    fig_path = str(output_path / "reconstruction_metrics.png")
+    fig.savefig(fig_path, bbox_inches="tight")

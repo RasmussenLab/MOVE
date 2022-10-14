@@ -1,5 +1,7 @@
 __all__ = ["plot_metrics_boxplot"]
 
+from collections.abc import Sequence
+
 import matplotlib
 import matplotlib.figure
 import matplotlib.pyplot as plt
@@ -9,12 +11,12 @@ from move.visualization.style import color_cycle, style_settings
 
 
 def plot_metrics_boxplot(
-    scores: list[FloatArray],
-    labels: list[str],
+    scores: Sequence[FloatArray],
+    labels: Sequence[str],
     style: str = "ggplot",
     colormap: str = "Dark2",
 ) -> matplotlib.figure.Figure:
-    """Plots a box plot, showing the distribution of metrics per dataset. Each
+    """Plot a box plot, showing the distribution of metrics per dataset. Each
     score corresponds (for example) to a sample.
 
     Args:

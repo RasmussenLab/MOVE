@@ -25,10 +25,10 @@ def find_feature_values(
     feature_names_lists: list[list[str]],
     feature_values: list[FloatArray],
 ) -> tuple[int, FloatArray]:
-    """Looks for the feature in the list of datasets and returns its values.
+    """Look for the feature in the list of datasets and returns its values.
 
     Args:
-        feature_name: Lookup key
+        feature_name: Look-up key
         feature_names_lists: List of lists with feature names for each dataset
         feature_values: List of data arrays, each representing a dataset
 
@@ -60,7 +60,7 @@ def _validate_task_config(task_config: AnalyzeLatentConfig) -> None:
 
 
 def analyze_latent(config: MOVEConfig) -> None:
-    """Trains one model to inspect its latent space."""
+    """Train one model to inspect its latent space projections."""
 
     logger = get_logger(__name__)
     logger.info("Beginning task: analyze latent space")

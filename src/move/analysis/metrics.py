@@ -8,7 +8,7 @@ from move.core.typing import FloatArray
 def calculate_accuracy(
     original_input: FloatArray, reconstruction: FloatArray
 ) -> FloatArray:
-    """Computes accuracy per sample.
+    """Compute accuracy per sample.
 
     Args:
         original_input: Original labels (one-hot encoded as a 3D array).
@@ -38,7 +38,7 @@ def calculate_accuracy(
 def calculate_cosine_similarity(
     original_input: FloatArray, reconstruction: FloatArray
 ) -> FloatArray:
-    """Computes cosine similarity per sample.
+    """Compute cosine similarity per sample.
 
     Args:
         original_input: Original values (2D array).
@@ -56,16 +56,19 @@ def calculate_cosine_similarity(
     x = np.ma.masked_array(original_input, mask=is_nan)
     y = np.ma.masked_array(reconstruction, mask=is_nan)
 
+    # Equivalent to `np.diag(sklearn.metrics.pairwise.cosine_similarity(x, y))`
+    # But can handle masked arrays
     scores = np.ma.compressed(np.sum(x * y, axis=1)) / (norm(x) * norm(y))
 
     return scores
 
 
 def norm(x: np.ma.MaskedArray, axis: int = 1) -> FloatArray:
-    """Returns Euclidean norm.
+    """Return Euclidean norm. This function is equivalent to `np.linalg.norm`,
+    but it can handle masked arrays.
 
     Args:
-        x: 2D array
+        x: 2D masked array
         axis: Axis along which to the operation is performed. Defaults to 1.
 
     Returns:

@@ -21,7 +21,7 @@ def plot_latent_space_with_cat(
     style: str = "ggplot",
     colormap: str = "Dark2",
 ) -> matplotlib.figure.Figure:
-    """Plots a 2D latent space together with a legend mapping the latent
+    """Plot a 2D latent space together with a legend mapping the latent
     space to the values of a discrete feature.
 
     Args:
@@ -71,7 +71,7 @@ def plot_latent_space_with_con(
     style: str = "ggplot",
     colormap: str = "RdYlBu",
 ) -> matplotlib.figure.Figure:
-    """Plots a 2D latent space together with a colorbar mapping the latent
+    """Plot a 2D latent space together with a colorbar mapping the latent
     space to the values of a continuous feature.
 
     Args:

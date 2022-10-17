@@ -1,6 +1,6 @@
 __all__ = ["one_hot_encode", "one_hot_encode_single", "scale"]
 
-from typing import Any
+from typing import Any, Optional
 
 import numpy as np
 import pandas as pd
@@ -47,7 +47,7 @@ def one_hot_encode(x_: ArrayLike) -> tuple[IntArray, dict[str, int]]:
     return encoded_x, mapping
 
 
-def one_hot_encode_single(mapping: dict[str, int], value: str) -> IntArray:
+def one_hot_encode_single(mapping: dict[str, int], value: Optional[str]) -> IntArray:
     """One-hot encode a single value given an existing mapping.
 
     Args:
@@ -57,9 +57,10 @@ def one_hot_encode_single(mapping: dict[str, int], value: str) -> IntArray:
     Returns:
         2D array
     """
-    code = mapping[str(value)]
     encoded_value = np.zeros((1, len(mapping)))
-    encoded_value[0, code] = 1
+    if not pd.isna(value):
+        code = mapping[str(value)]
+        encoded_value[0, code] = 1
     return encoded_value
 
 

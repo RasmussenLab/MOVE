@@ -1,7 +1,7 @@
 __all__ = ["analyze_latent"]
 
 from pathlib import Path
-from typing import cast
+from typing import Sized, cast
 
 import hydra
 import numpy as np
@@ -16,6 +16,8 @@ from move.core.typing import FloatArray
 from move.conf.schema import AnalyzeLatentConfig, MOVEConfig
 from move.data import io
 from move.data.dataloaders import MOVEDataset, make_dataloader
+from move.data.perturbations import perturb_data
+from move.data.preprocessing import one_hot_encode_single
 from move.models.vae import VAE
 from move.training.training_loop import TrainingLoopOutput
 
@@ -200,3 +202,23 @@ def analyze_latent(config: MOVEConfig) -> None:
         dict(zip(labels, scores)), index=pd.Index(sample_names, name="sample_name")
     )
     fig_df.to_csv(output_path / "reconstruction_metrics.tsv", sep="\t")
+
+    logger.info("Computing feature importance")
+    for i, dataset_name in enumerate(config.data.categorical_names):
+        logger.debug(f"Generating plot: feature importance '{dataset_name}'")
+        na_value = one_hot_encode_single(mappings[dataset_name], None)
+        dataloaders = perturb_data(
+            test_dataloader, config.data.categorical_names, dataset_name, na_value
+        )
+        num_samples = len(cast(Sized, test_dataloader.sampler))
+        num_features = len(dataloaders)
+        z = model.project(test_dataloader)
+        diffs = np.empty((num_samples, num_features))
+        for j, dataloader in enumerate(dataloaders):
+            z_perturb = model.project(dataloader)
+            diffs[:, j] = np.sum(z_perturb - z, axis=1)
+        fig = viz.plot_categorical_feature_importance(
+            diffs, cat_list[i], cat_names[i], mappings[dataset_name]
+        )
+        fig_path = str(output_path / f"feat_importance_{dataset_name}.png")
+        fig.savefig(fig_path, bbox_inches="tight")

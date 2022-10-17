@@ -1,3 +1,5 @@
+__all__ = ["plot_categorical_feature_importance"]
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -12,8 +14,8 @@ def plot_categorical_feature_importance(
     feature_values: FloatArray,
     feature_names: list[str],
     feature_mapping: dict[str, int],
-    style: str,
-    colormap: str,
+    style: str = "ggplot",
+    colormap: str = "Dark2",
 ):
     if feature_values.ndim != 3:
         raise ValueError("Expected feature values to have three dimensions.")

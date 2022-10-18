@@ -1,12 +1,22 @@
-__all__ = ["color_cycle", "style_settings"]
+__all__ = [
+    "DEFAULT_DIVERGING_PALETTE",
+    "DEFAULT_QUALITATIVE_PALETTE",
+    "DEFAULT_PLOT_STYLE",
+    "color_cycle",
+    "style_settings",
+]
 
-from typing import cast, ContextManager
+from typing import ContextManager, cast
 
 import matplotlib
 import matplotlib.style
 from cycler import cycler
 from matplotlib.cm import ColormapRegistry
 from matplotlib.colors import ListedColormap
+
+DEFAULT_DIVERGING_PALETTE = "RdYlBu"
+DEFAULT_QUALITATIVE_PALETTE = "Dark2"
+DEFAULT_PLOT_STYLE = "ggplot"
 
 
 def color_cycle(colormap: str) -> ContextManager:

@@ -7,14 +7,19 @@ import matplotlib.figure
 import matplotlib.pyplot as plt
 
 from move.core.typing import FloatArray
-from move.visualization.style import color_cycle, style_settings
+from move.visualization.style import (
+    DEFAULT_QUALITATIVE_PALETTE,
+    DEFAULT_PLOT_STYLE,
+    color_cycle,
+    style_settings,
+)
 
 
 def plot_metrics_boxplot(
     scores: Sequence[FloatArray],
     labels: Sequence[str],
-    style: str = "ggplot",
-    colormap: str = "Dark2",
+    style: str = DEFAULT_PLOT_STYLE,
+    colormap: str = DEFAULT_QUALITATIVE_PALETTE,
 ) -> matplotlib.figure.Figure:
     """Plot a box plot, showing the distribution of metrics per dataset. Each
     score corresponds (for example) to a sample.

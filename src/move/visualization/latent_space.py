@@ -1,12 +1,18 @@
 __all__ = ["plot_latent_space_with_cat", "plot_latent_space_with_con"]
 
-import numpy as np
 import matplotlib.figure
-import matplotlib.style
 import matplotlib.pyplot as plt
+import matplotlib.style
+import numpy as np
 
 from move.core.typing import BoolArray, FloatArray
-from move.visualization.style import color_cycle, style_settings
+from move.visualization.style import (
+    DEFAULT_DIVERGING_PALETTE,
+    DEFAULT_QUALITATIVE_PALETTE,
+    DEFAULT_PLOT_STYLE,
+    color_cycle,
+    style_settings,
+)
 
 
 def plot_latent_space_with_cat(
@@ -15,8 +21,8 @@ def plot_latent_space_with_cat(
     feature_values: FloatArray,
     feature_mapping: dict[str, int],
     is_nan: BoolArray,
-    style: str = "ggplot",
-    colormap: str = "Dark2",
+    style: str = DEFAULT_PLOT_STYLE,
+    colormap: str = DEFAULT_QUALITATIVE_PALETTE,
 ) -> matplotlib.figure.Figure:
     """Plot a 2D latent space together with a legend mapping the latent
     space to the values of a discrete feature.
@@ -65,8 +71,8 @@ def plot_latent_space_with_con(
     latent_space: FloatArray,
     feature_name: str,
     feature_values: FloatArray,
-    style: str = "ggplot",
-    colormap: str = "RdYlBu",
+    style: str = DEFAULT_PLOT_STYLE,
+    colormap: str = DEFAULT_DIVERGING_PALETTE,
 ) -> matplotlib.figure.Figure:
     """Plot a 2D latent space together with a colorbar mapping the latent
     space to the values of a continuous feature.

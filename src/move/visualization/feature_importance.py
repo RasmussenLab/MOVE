@@ -10,7 +10,13 @@ from matplotlib.cm import ScalarMappable
 from matplotlib.colors import TwoSlopeNorm
 
 from move.core.typing import FloatArray
-from move.visualization.style import color_cycle, style_settings
+from move.visualization.style import (
+    DEFAULT_DIVERGING_PALETTE,
+    DEFAULT_QUALITATIVE_PALETTE,
+    DEFAULT_PLOT_STYLE,
+    color_cycle,
+    style_settings,
+)
 
 
 def plot_categorical_feature_importance(
@@ -18,8 +24,8 @@ def plot_categorical_feature_importance(
     feature_values: FloatArray,
     feature_names: list[str],
     feature_mapping: dict[str, int],
-    style: str = "ggplot",
-    colormap: str = "Dark2",
+    style: str = DEFAULT_PLOT_STYLE,
+    colormap: str = DEFAULT_QUALITATIVE_PALETTE,
 ) -> matplotlib.figure.Figure:
     """Plot a beeswarm displaying the top ten categorical features, based on
     their impact on the latent space when perturbed.
@@ -98,8 +104,8 @@ def plot_continuous_feature_importance(
     diffs: FloatArray,
     feature_values: FloatArray,
     feature_names: list[str],
-    style: str = "ggplot",
-    colormap: str = "Dark2",
+    style: str = DEFAULT_PLOT_STYLE,
+    colormap: str = DEFAULT_DIVERGING_PALETTE,
 ) -> matplotlib.figure.Figure:
     """Plot a beeswarm displaying the top ten continuous features, based on
     their impact on the latent space when perturbed.

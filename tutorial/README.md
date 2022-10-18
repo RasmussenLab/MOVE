@@ -9,7 +9,7 @@ for each sample (individual). All these measurements were generated randomly,
 but we have added 200 associations between different pairs of drugs and omics
 features. Let us find them with MOVE!
 
-## Workspace structure
+### Workspace structure
 
 First, we take a look at how to organize our data and configuration:
 
@@ -28,13 +28,15 @@ tutorial/
     ├── data/
     │   └── random_small.yaml          <- Configuration to read in the necessary
     │                                     data files.
-    └── task/                          <- Configuration to identify associations
+    └── task/                          <- Configuration for tasks: such as
+        |                                 latent space or identify associations
         │                                 using the t-test or Bayesian approach
         ├── random_small__id_assoc_bayes.yaml
-        └── random_small__id_assoc_ttest.yaml
+        ├── random_small__id_assoc_ttest.yaml
+        └── random_small__latent.yaml
 ```
 
-### The data folder
+#### The data folder
 
 All "raw" data files should be placed inside the same directory. These files
 are TSVs (tab-separated value tables) containing discrete values (e.g., for
@@ -43,7 +45,7 @@ binary or categorical datasets) or continuous values.
 Additionally, make sure each sample has an assigned ID and we provide an ID
 table containing a list of all valid IDs (must appear in every dataset).
 
-### The `config` folder
+#### The `config` folder
 
 User-defined configuration must be stored in a `config` folder. This folder
 can contain a `data` and `task` folder to store the configuration for a
@@ -82,7 +84,8 @@ unless you are sure of what you are doing.</span>
 
 Similarly, the `task` folder contains YAML files to configure the tasks of
 MOVE. In this tutorial, we provided two examples for running the method to
-identify associations using our t-test and Bayesian approach.
+identify associations using our t-test and Bayesian approach, and an example to
+perform latent space analysis.
 
 For example, for the t-test approach (`random_small__id_assoc_ttest.yaml`), we
 define the following values: batch size, number of refits, name of dataset to
@@ -115,9 +118,9 @@ training_loop:    # training loop configuration
 Note that the `random_small__id_assoc_bayes.yaml` looks pretty similar, but
 declares a different `defaults`. This tells MOVE which algorithm to use!
 
-## Running MOVE
+### Running MOVE
 
-### Encoding data
+#### Encoding data
 
 Make sure you are on the parent directory of the `config` folder (in this
 example, it is the `tutorial` folder), and proceed to run:
@@ -131,7 +134,32 @@ example, it is the `tutorial` folder), and proceed to run:
 dataset (defined in `config/data/random_small.yaml`) will be one-hot encoded,
 whereas the other two omics datasets will be standardized.
 
-### Identifying associations
+#### Analyzing the latent space
+
+Next, we will train a variational autoencoder and analyze how good it is at
+reconstructing our input data and generating an informative latent space. Run:
+
+```bash
+>>> move-dl data=random_small task=random_small__latent
+```
+
+:arrow_up: This command will create four types of plot:
+
+- Loss curve shows the overall loss, KLD term, binary cross-entropy term, and
+sum of squared errors term over number of training epochs.
+- Reconstructions metrics boxplot shows a score (accuracy or cosine similarity
+for categorical and continuous datasets, respectively) per reconstructed
+dataset.
+- Latent space scatterplot shows a reduced representation of the latent space.
+To generate this visualization, the latent space is reduced to two dimensions 
+using TSNE (or another user-defined algorithm, e.g., UMAP).
+- Feature importance swarmplot displays the impact perturbing a feature has on
+the latent space.
+
+Additionally, TSV files corresponding to each plot will be generated. These can
+be used, for example, to re-create the plots manually.
+
+#### Identifying associations
 
 Next step is to find associations between the drugs taken by each individual
 and the omics features. Run:

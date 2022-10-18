@@ -4,6 +4,7 @@ import matplotlib.figure
 import matplotlib.pyplot as plt
 import matplotlib.style
 import numpy as np
+from matplotlib.colors import TwoSlopeNorm
 
 from move.core.typing import BoolArray, FloatArray
 from move.visualization.style import (
@@ -92,10 +93,11 @@ def plot_latent_space_with_con(
     """
     if latent_space.ndim < 2:
         raise ValueError("Expected at least two dimensions in latent space.")
+    norm = TwoSlopeNorm(0.0, min(feature_values), max(feature_values))
     with style_settings(style):
         fig, ax = plt.subplots()
         dims = latent_space[:, 0], latent_space[:, 1]
-        pts = ax.scatter(*dims, c=feature_values, cmap=colormap)
+        pts = ax.scatter(*dims, c=feature_values, cmap=colormap, norm=norm)
         cbar = fig.colorbar(pts, ax=ax)
         cbar.ax.set(ylabel=feature_name)
         ax.set(xlabel="dim 0", ylabel="dim 1")

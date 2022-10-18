@@ -163,7 +163,7 @@ def plot_continuous_feature_importance(
     # using the two-slope norm. We then assign one color to each category
     # using the scalar mappable.
     vmin, vmax = data["value"].min(), data["value"].max()
-    norm = TwoSlopeNorm(0, vmin, vmax)
+    norm = TwoSlopeNorm(0.0, vmin, vmax)
     sm = ScalarMappable(norm, colormap)
     data["category"] = np.ma.compressed(norm(data["value"]) * 25).astype(int)
     palette = np.empty((25, 4))  # 25 colors x 4 channels

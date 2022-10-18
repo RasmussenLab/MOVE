@@ -2,14 +2,13 @@ __all__ = ["identify_associations"]
 
 from functools import reduce
 from pathlib import Path
-from typing import Literal, cast
+from typing import Literal, Sized, cast
 
 import hydra
 import numpy as np
 import pandas as pd
 import torch
 from omegaconf import OmegaConf
-from torch.utils.data import SequentialSampler
 
 from move.conf.schema import (
     IdentifyAssociationsBayesConfig,
@@ -21,7 +20,7 @@ from move.core.logging import get_logger
 from move.core.typing import IntArray, FloatArray
 from move.data import io
 from move.data.dataloaders import MOVEDataset, make_dataloader
-from move.data.perturbations import perturb_data
+from move.data.perturbations import perturb_categorical_data
 from move.data.preprocessing import one_hot_encode_single
 from move.models.vae import VAE
 
@@ -90,20 +89,22 @@ def identify_associations(config: MOVEConfig):
         drop_last=True,
     )
     logger.debug(f"Masked training samples: {np.sum(~train_mask)}/{train_mask.size}")
+    num_samples = len(cast(Sized, train_dataloader.sampler))  # N
 
     con_shapes = [con.shape[1] for con in con_list]
-    dataloaders = perturb_data(
-        cat_list,
-        con_list,
+    _, baseline_dataloader = make_dataloader(
+        cat_list, con_list, shuffle=False, batch_size=num_samples
+    )
+    dataloaders = perturb_categorical_data(
+        baseline_dataloader,
         config.data.categorical_names,
         task_config.target_dataset,
         target_value,
     )
+    dataloaders.append(baseline_dataloader)
 
-    baseline_dataloader = dataloaders[-1]
     baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
     num_perturbed = len(dataloaders) - 1  # P
-    num_samples = len(cast(SequentialSampler, baseline_dataloader.sampler))  # N
     num_continuous = sum(con_shapes)  # C
     logger.debug(f"# perturbed features: {num_perturbed}")
     logger.debug(f"# continuous features: {num_continuous}")

@@ -395,6 +395,27 @@ class VAE(nn.Module):
             return cat
         return torch.cat(batch, dim=1)
 
+    @torch.no_grad()
+    def project(
+        self, dataloader: DataLoader
+    ) -> FloatArray:
+        """Generates an embedding of the data contained in the DataLoader.
+
+        Args:
+            dataloader: A DataLoader with categorical or continuous data
+
+        Returns:
+            Embedding
+        """
+        self.eval()
+        embedding = []
+        for batch in dataloader:
+            batch = self._validate_batch(batch)
+            *_, mu, _ = self(batch)
+            embedding.append(mu)
+        embedding = torch.cat(embedding, dim=0).numpy()
+        return embedding
+
 
     @torch.no_grad()
     def reconstruct(

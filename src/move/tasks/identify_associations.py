@@ -20,7 +20,7 @@ from move.core.logging import get_logger
 from move.core.typing import IntArray, FloatArray
 from move.data import io
 from move.data.dataloaders import MOVEDataset, make_dataloader
-from move.data.perturbations import perturb_data
+from move.data.perturbations import perturb_categorical_data
 from move.data.preprocessing import one_hot_encode_single
 from move.models.vae import VAE
 
@@ -95,7 +95,7 @@ def identify_associations(config: MOVEConfig):
     _, baseline_dataloader = make_dataloader(
         cat_list, con_list, shuffle=False, batch_size=num_samples
     )
-    dataloaders = perturb_data(
+    dataloaders = perturb_categorical_data(
         baseline_dataloader,
         config.data.categorical_names,
         task_config.target_dataset,

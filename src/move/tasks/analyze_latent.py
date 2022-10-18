@@ -1,5 +1,6 @@
 __all__ = ["analyze_latent"]
 
+import enum
 from pathlib import Path
 from typing import Sized, cast
 
@@ -16,7 +17,7 @@ from move.core.typing import FloatArray
 from move.conf.schema import AnalyzeLatentConfig, MOVEConfig
 from move.data import io
 from move.data.dataloaders import MOVEDataset, make_dataloader
-from move.data.perturbations import perturb_data
+from move.data.perturbations import perturb_categorical_data, perturb_continuous_data
 from move.data.preprocessing import one_hot_encode_single
 from move.models.vae import VAE
 from move.training.training_loop import TrainingLoopOutput
@@ -89,6 +90,7 @@ def analyze_latent(config: MOVEConfig) -> None:
     )
     test_dataset = cast(MOVEDataset, test_dataloader.dataset)
     sample_names = np.compress(test_mask, sample_names)
+    df_index = pd.Index(sample_names, name="sample")
 
     assert task_config.model is not None
     model: VAE = hydra.utils.instantiate(
@@ -140,7 +142,7 @@ def analyze_latent(config: MOVEConfig) -> None:
     fig_df = pd.DataFrame(
         np.take(embedding, [0, 1], axis=1),
         columns=["dim0", "dim1"],
-        index=pd.Index(sample_names, name="sample_name"),
+        index=df_index,
     )
     for feature_name in task_config.feature_names:
         logger.debug(f"Generating plot: latent space + '{feature_name}'")
@@ -198,19 +200,17 @@ def analyze_latent(config: MOVEConfig) -> None:
     fig = viz.plot_metrics_boxplot(scores, labels)
     fig_path = str(output_path / "reconstruction_metrics.png")
     fig.savefig(fig_path, bbox_inches="tight")
-    fig_df = pd.DataFrame(
-        dict(zip(labels, scores)), index=pd.Index(sample_names, name="sample_name")
-    )
+    fig_df = pd.DataFrame(dict(zip(labels, scores)), index=df_index)
     fig_df.to_csv(output_path / "reconstruction_metrics.tsv", sep="\t")
 
     logger.info("Computing feature importance")
+    num_samples = len(cast(Sized, test_dataloader.sampler))
     for i, dataset_name in enumerate(config.data.categorical_names):
         logger.debug(f"Generating plot: feature importance '{dataset_name}'")
         na_value = one_hot_encode_single(mappings[dataset_name], None)
-        dataloaders = perturb_data(
+        dataloaders = perturb_categorical_data(
             test_dataloader, config.data.categorical_names, dataset_name, na_value
         )
-        num_samples = len(cast(Sized, test_dataloader.sampler))
         num_features = len(dataloaders)
         z = model.project(test_dataloader)
         diffs = np.empty((num_samples, num_features))
@@ -218,7 +218,28 @@ def analyze_latent(config: MOVEConfig) -> None:
             z_perturb = model.project(dataloader)
             diffs[:, j] = np.sum(z_perturb - z, axis=1)
         fig = viz.plot_categorical_feature_importance(
-            diffs, cat_list[i], cat_names[i], mappings[dataset_name]
+            diffs, cat_list[i][test_mask, :], cat_names[i], mappings[dataset_name]
         )
         fig_path = str(output_path / f"feat_importance_{dataset_name}.png")
         fig.savefig(fig_path, bbox_inches="tight")
+        fig_df = pd.DataFrame(diffs, columns=cat_names[i], index=df_index)
+        fig_df.to_csv(output_path / f"feat_importance_{dataset_name}.tsv", sep="\t")
+
+    for i, dataset_name in enumerate(config.data.continuous_names):
+        logger.debug(f"Generating plot: feature importance '{dataset_name}'")
+        dataloaders = perturb_continuous_data(
+            test_dataloader, config.data.continuous_names, dataset_name, 0.0
+        )
+        num_features = len(dataloaders)
+        z = model.project(test_dataloader)
+        diffs = np.empty((num_samples, num_features))
+        for j, dataloader in enumerate(dataloaders):
+            z_perturb = model.project(dataloader)
+            diffs[:, j] = np.sum(z_perturb - z, axis=1)
+        fig = viz.plot_continuous_feature_importance(
+            diffs, con_list[i][test_mask, :], con_names[i]
+        )
+        fig_path = str(output_path / f"feat_importance_{dataset_name}.png")
+        fig.savefig(fig_path, bbox_inches="tight")
+        fig_df = pd.DataFrame(diffs, columns=con_names[i], index=df_index)
+        fig_df.to_csv(output_path / f"feat_importance_{dataset_name}.tsv", sep="\t")

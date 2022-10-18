@@ -1,6 +1,7 @@
 __all__ = [
     "color_cycle",
     "plot_categorical_feature_importance",
+    "plot_continuous_feature_importance",
     "plot_latent_space_with_cat",
     "plot_latent_space_with_con",
     "plot_loss_curves",
@@ -12,6 +13,7 @@ __all__ = [
 
 from move.visualization.feature_importance import (
     plot_categorical_feature_importance,
+    plot_continuous_feature_importance,
 )
 from move.visualization.latent_space import (
     plot_latent_space_with_cat,

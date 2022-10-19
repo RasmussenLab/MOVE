@@ -19,6 +19,14 @@ hydra:
     dir: ./
   searchpath:
     - file://config/
+  sweep:
+    dir: ./
+    subdir: ./
+  job:
+    config:
+      override_dirname:
+        exclude_keys:
+          - experiment
 
 name: MOVE
 seed: 123456

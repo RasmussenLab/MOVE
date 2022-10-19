@@ -1,0 +1,12 @@
+# @package _global_
+
+defaults:
+  - override /data: random_small
+  - override /task: tune_model
+
+hydra:
+  mode: MULTIRUN
+  sweeper:
+    params:
+      task.batch_size: 10, 50
+      task.model.num_hidden: "[500],[1000]"

@@ -81,14 +81,13 @@ def identify_associations(config: MOVEConfig):
         f"Target value: {task_config.target_value} => {target_value.astype(int)[0]}"
     )
 
-    train_mask, train_dataloader = make_dataloader(
+    train_dataloader = make_dataloader(
         cat_list,
         con_list,
         shuffle=True,
         batch_size=task_config.batch_size,
         drop_last=True,
     )
-    logger.debug(f"Masked training samples: {np.sum(~train_mask)}/{train_mask.size}")
     num_samples = len(cast(Sized, train_dataloader.sampler))  # N
 
     con_shapes = [con.shape[1] for con in con_list]

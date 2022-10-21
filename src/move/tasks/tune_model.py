@@ -1,6 +1,7 @@
 __all__ = ["tune_model"]
 
 from pathlib import Path
+from random import shuffle
 from typing import Any, cast
 
 import hydra
@@ -14,9 +15,9 @@ from move.analysis.metrics import (
     calculate_accuracy,
     calculate_cosine_similarity,
 )
-from move.core.typing import FloatArray
+from move.core.typing import BoolArray, FloatArray
 from move.data import io
-from move.data.dataloaders import MOVEDataset, make_dataloader
+from move.data.dataloaders import MOVEDataset, make_dataloader, split_samples
 from move.conf.schema import MOVEConfig, TuneModelConfig
 from move.core.logging import get_logger
 from move.models.vae import VAE
@@ -43,33 +44,48 @@ def tune_model(config: MOVEConfig) -> float:
     logger.info(f"Job name: {hydra_config.job.override_dirname}")
     task_config = cast(TuneModelConfig, config.task)
 
-    raw_data_path = Path(config.data.raw_data_path)
     interim_path = Path(config.data.interim_data_path)
     output_path = Path(config.data.processed_data_path) / "tune_model"
     output_path.mkdir(exist_ok=True, parents=True)
 
     logger.debug("Reading data")
 
-    sample_names = io.read_names(raw_data_path / f"{config.data.sample_names}.txt")
-    cat_list, cat_names, con_list, con_names = io.load_preprocessed_data(
+    cat_list, _, con_list, _ = io.load_preprocessed_data(
         interim_path,
         config.data.categorical_names,
         config.data.continuous_names,
     )
+
+    split_path = interim_path / "split_mask.npy"
+    if split_path.exists():
+        split_mask: BoolArray = np.load(split_path)
+    else:
+        num_samples = cat_list[0].shape[0] if cat_list else con_list[0].shape[0]
+        split_mask = split_samples(num_samples, 0.9)
+        np.save(split_path, split_mask)
+
     train_dataloader = make_dataloader(
         cat_list,
         con_list,
+        split_mask,
         shuffle=True,
         batch_size=task_config.batch_size,
         drop_last=True,
     )
-    test_dataset = cast(MOVEDataset, train_dataloader.dataset)
+    test_dataloader = make_dataloader(
+        cat_list,
+        con_list,
+        ~split_mask,
+        shuffle=False,
+        batch_size=task_config.batch_size,
+    )
+    train_dataset = cast(MOVEDataset, train_dataloader.dataset)
 
     assert task_config.model is not None
     model: VAE = hydra.utils.instantiate(
         task_config.model,
-        continuous_shapes=test_dataset.con_shapes,
-        categorical_shapes=test_dataset.cat_shapes,
+        continuous_shapes=train_dataset.con_shapes,
+        categorical_shapes=train_dataset.cat_shapes,
     )
     logger.debug(f"Model: {model}")
 
@@ -84,8 +100,8 @@ def tune_model(config: MOVEConfig) -> float:
     logger.info("Computing reconstruction metrics")
     label = [hp.split("=") for hp in hydra_config.job.override_dirname.split(",")]
     records = []
-    zip_ = zip([train_dataloader], ["train", "test"])
-    for dataloader, split_name in zip_:
+    named_dataloaders = zip(["train", "test"], [train_dataloader, test_dataloader])
+    for split_name, dataloader in named_dataloaders:
         cat_recons, con_recons = model.reconstruct(dataloader)
         con_recons = np.split(con_recons, model.continuous_shapes[:-1], axis=1)
         for cat, cat_recon, dataset_name in zip(

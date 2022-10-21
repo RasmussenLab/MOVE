@@ -1,14 +1,12 @@
-__all__ = ["MOVEDataset", "make_dataloader"]
+__all__ = ["MOVEDataset", "make_dataset", "make_dataloader", "split_samples"]
 
-from functools import reduce
-from typing import Any, Optional
+from typing import Optional
 
 import numpy as np
 import torch
-from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, TensorDataset
 
-from move.core.typing import FloatArray, IntArray
+from move.core.typing import BoolArray, FloatArray
 
 
 class MOVEDataset(TensorDataset):
@@ -75,6 +73,7 @@ def concat_con_list(
 def make_dataset(
     cat_list: Optional[list[FloatArray]] = None,
     con_list: Optional[list[FloatArray]] = None,
+    mask: Optional[BoolArray] = None,
 ) -> MOVEDataset:
     """Creates a dataset that combines categorical and continuous datasets.
 
@@ -85,6 +84,8 @@ def make_dataset(
         con_list:
             List of continuous datasets (`num_samples` x `num_features`).
             Defaults to None.
+        mask:
+            Boolean array to mask samples. Defaults to None.
 
     Raises:
         ValueError: If both inputs are None
@@ -105,9 +106,13 @@ def make_dataset(
 
     if cat_all is not None:
         cat_all = torch.from_numpy(cat_all)
+        if mask is not None:
+            cat_all = cat_all[mask]
 
     if con_all is not None:
         con_all = torch.from_numpy(con_all)
+        if mask is not None:
+            con_all = con_all[mask]
 
     return MOVEDataset(cat_all, con_all, cat_shapes, con_shapes)
 
@@ -115,6 +120,7 @@ def make_dataset(
 def make_dataloader(
     cat_list: Optional[list[FloatArray]] = None,
     con_list: Optional[list[FloatArray]] = None,
+    mask: Optional[BoolArray] = None,
     **kwargs
 ) -> DataLoader:
     """Creates a DataLoader that combines categorical and continuous datasets.
@@ -126,6 +132,8 @@ def make_dataloader(
         con_list:
             List of continuous datasets (`num_samples` x `num_features`).
             Defaults to None.
+        mask:
+            Boolean array to mask samples. Defaults to None.
         **kwargs:
             Arguments to pass to the DataLoader (e.g., batch size)
 
@@ -135,5 +143,27 @@ def make_dataloader(
     Returns:
         DataLoader
     """
-    dataset = make_dataset(cat_list, con_list)
+    dataset = make_dataset(cat_list, con_list, mask)
     return DataLoader(dataset, **kwargs)
+
+
+def split_samples(
+    num_samples: int,
+    train_frac: float,
+) -> BoolArray:
+    """Generate mask to randomly split samples into training and test sets.
+
+    Args:
+        num_samples: Number of samples to split.
+        train_frac: Fraction of samples corresponding to training set.
+
+    Returns:
+        Boolean array to mask test samples.
+    """
+    sample_ids = np.arange(num_samples)
+    train_size = int(train_frac * num_samples)
+
+    rng = np.random.default_rng()
+    train_ids = rng.permutation(sample_ids)[:train_size]
+
+    return np.isin(sample_ids, train_ids)

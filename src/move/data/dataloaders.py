@@ -1,13 +1,14 @@
 __all__ = ["MOVEDataset", "make_dataloader"]
 
 from functools import reduce
-from typing import Optional
+from typing import Any, Optional
 
 import numpy as np
 import torch
+from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader, TensorDataset
 
-from move.core.typing import BoolArray, FloatArray
+from move.core.typing import FloatArray, IntArray
 
 
 class MOVEDataset(TensorDataset):
@@ -71,25 +72,25 @@ def concat_con_list(
     return con_shapes, con_all
 
 
-def make_dataloader(
+def make_dataset(
     cat_list: Optional[list[FloatArray]] = None,
     con_list: Optional[list[FloatArray]] = None,
-    **kwargs
-) -> DataLoader:
-    """Creates a DataLoader that combines categorical and continuous datasets.
+) -> MOVEDataset:
+    """Creates a dataset that combines categorical and continuous datasets.
 
     Args:
-        cat_list: list of categorical datasets (`num_samples` x `num_features`
-        x `num_categories`). Defaults to None.
-        con_list: list of continuous datasets (`num_samples` x `num_features`).
-        Defaults to None.
-        **kwargs: Arguments to pass to the DataLoader (e.g., batch size)
+        cat_list:
+            List of categorical datasets (`num_samples` x `num_features`
+            x `num_categories`). Defaults to None.
+        con_list:
+            List of continuous datasets (`num_samples` x `num_features`).
+            Defaults to None.
 
     Raises:
         ValueError: If both inputs are None
 
     Returns:
-        DataLoader
+        MOVEDataset
     """
     if cat_list is None and con_list is None:
         raise ValueError("At least one type of data must be in the input")
@@ -108,6 +109,31 @@ def make_dataloader(
     if con_all is not None:
         con_all = torch.from_numpy(con_all)
 
-    dataset = MOVEDataset(cat_all, con_all, cat_shapes, con_shapes)
-    dataloader = DataLoader(dataset, **kwargs)
-    return dataloader
+    return MOVEDataset(cat_all, con_all, cat_shapes, con_shapes)
+
+
+def make_dataloader(
+    cat_list: Optional[list[FloatArray]] = None,
+    con_list: Optional[list[FloatArray]] = None,
+    **kwargs
+) -> DataLoader:
+    """Creates a DataLoader that combines categorical and continuous datasets.
+
+    Args:
+        cat_list:
+            List of categorical datasets (`num_samples` x `num_features`
+            x `num_categories`). Defaults to None.
+        con_list:
+            List of continuous datasets (`num_samples` x `num_features`).
+            Defaults to None.
+        **kwargs:
+            Arguments to pass to the DataLoader (e.g., batch size)
+
+    Raises:
+        ValueError: If both inputs are None
+
+    Returns:
+        DataLoader
+    """
+    dataset = make_dataset(cat_list, con_list)
+    return DataLoader(dataset, **kwargs)

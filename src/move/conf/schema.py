@@ -85,57 +85,6 @@ class VAEConfig(ModelConfig):
 
 
 @dataclass
-class TuningReconstructionConfig:
-    user_config: str
-    num_hidden: list[int]
-    num_latent: list[int]
-    num_layers: list[int]
-    beta: list[float]
-    dropout: list[float]
-    batch_sizes: list[int]
-    repeats: int
-    max_param_combos_to_save: int
-
-
-@dataclass
-class TuningStabilityConfig:
-    user_config: str
-    num_hidden: list[int]
-    num_latent: list[int]
-    num_layers: list[int]
-    beta: list[float]
-    dropout: list[float]
-    batch_sizes: list[int]
-    repeat: int
-    tuned_num_epochs: int
-
-
-@dataclass
-class TrainingLatentConfig:
-    user_config: str
-    num_hidden: int
-    num_latent: int
-    num_layers: int
-    dropout: float
-    beta: float
-    batch_sizes: int
-    tuned_num_epochs: int
-
-
-@dataclass
-class TrainingAssociationConfig:
-    user_config: str
-    num_hidden: int
-    num_latent: list[int]
-    num_layers: int
-    dropout: float
-    beta: float
-    batch_sizes: int
-    repeats: int
-    tuned_num_epochs: int
-
-
-@dataclass
 class TrainingLoopConfig:
     _target_: str = get_fully_qualname(training_loop)
     num_epochs: int = MISSING

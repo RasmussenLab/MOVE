@@ -171,7 +171,6 @@ class MOVEConfig:
     defaults: list[Any] = field(default_factory=lambda: [dict(data="base_data")])
     data: DataConfig = MISSING
     task: TaskConfig = MISSING
-    name: str = MISSING
 
 
 def extract_weights(configs: list[InputConfig]) -> list[int]:

@@ -23,5 +23,4 @@ hydra:
         exclude_keys:
           - experiment
 
-name: MOVE
 seed: 123456

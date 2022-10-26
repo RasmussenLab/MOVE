@@ -232,9 +232,7 @@ def analyze_latent(config: MOVEConfig) -> None:
         for j, dataloader in enumerate(dataloaders):
             z_perturb = model.project(dataloader)
             diffs[:, j] = np.sum(z_perturb - z, axis=1)
-        fig = viz.plot_continuous_feature_importance(
-            diffs, con_list[i], con_names[i]
-        )
+        fig = viz.plot_continuous_feature_importance(diffs, con_list[i], con_names[i])
         fig_path = str(output_path / f"feat_importance_{dataset_name}.png")
         fig.savefig(fig_path, bbox_inches="tight")
         fig_df = pd.DataFrame(diffs, columns=con_names[i], index=df_index)

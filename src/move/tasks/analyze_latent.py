@@ -82,14 +82,13 @@ def analyze_latent(config: MOVEConfig) -> None:
         config.data.categorical_names,
         config.data.continuous_names,
     )
-    test_mask, test_dataloader = make_dataloader(
+    test_dataloader = make_dataloader(
         cat_list,
         con_list,
         shuffle=False,
         batch_size=len(sample_names),
     )
     test_dataset = cast(MOVEDataset, test_dataloader.dataset)
-    sample_names = np.compress(test_mask, sample_names)
     df_index = pd.Index(sample_names, name="sample")
 
     assert task_config.model is not None
@@ -106,15 +105,12 @@ def analyze_latent(config: MOVEConfig) -> None:
         model.load_state_dict(torch.load(model_path))
     else:
         logger.debug("Training model")
-        train_mask, train_dataloader = make_dataloader(
+        train_dataloader = make_dataloader(
             cat_list,
             con_list,
             shuffle=True,
             batch_size=task_config.batch_size,
             drop_last=True,
-        )
-        logger.debug(
-            f"Masked training samples: {np.sum(~train_mask)}/{train_mask.size}"
         )
         output: TrainingLoopOutput = hydra.utils.call(
             task_config.training_loop,
@@ -160,7 +156,7 @@ def analyze_latent(config: MOVEConfig) -> None:
         if is_categorical:
             # Convert one-hot encoding to category codes
             is_nan = feature_values.sum(axis=1) == 0
-            feature_values = np.argmax(feature_values, axis=1)[test_mask]
+            feature_values = np.argmax(feature_values, axis=1)
 
             dataset_name = config.data.categorical_names[dataset_index]
             fig = viz.plot_latent_space_with_cat(
@@ -172,7 +168,7 @@ def analyze_latent(config: MOVEConfig) -> None:
             )
             fig_df[feature_name] = np.where(is_nan, np.nan, feature_values)
         else:
-            feature_values = feature_values[test_mask]
+            feature_values = feature_values
             fig = viz.plot_latent_space_with_con(
                 embedding, feature_name, feature_values
             )
@@ -190,10 +186,10 @@ def analyze_latent(config: MOVEConfig) -> None:
     scores = []
     labels = config.data.categorical_names + config.data.continuous_names
     for cat, cat_recon in zip(cat_list, cat_recons):
-        accuracy = calculate_accuracy(cat[test_mask, :], cat_recon)
+        accuracy = calculate_accuracy(cat, cat_recon)
         scores.append(accuracy)
     for con, con_recon in zip(con_list, con_recons):
-        cosine_sim = calculate_cosine_similarity(con[test_mask, :], con_recon)
+        cosine_sim = calculate_cosine_similarity(con, con_recon)
         scores.append(cosine_sim)
 
     logger.debug("Generating plot: reconstruction metrics")
@@ -218,7 +214,7 @@ def analyze_latent(config: MOVEConfig) -> None:
             z_perturb = model.project(dataloader)
             diffs[:, j] = np.sum(z_perturb - z, axis=1)
         fig = viz.plot_categorical_feature_importance(
-            diffs, cat_list[i][test_mask, :], cat_names[i], mappings[dataset_name]
+            diffs, cat_list[i], cat_names[i], mappings[dataset_name]
         )
         fig_path = str(output_path / f"feat_importance_{dataset_name}.png")
         fig.savefig(fig_path, bbox_inches="tight")
@@ -236,9 +232,7 @@ def analyze_latent(config: MOVEConfig) -> None:
         for j, dataloader in enumerate(dataloaders):
             z_perturb = model.project(dataloader)
             diffs[:, j] = np.sum(z_perturb - z, axis=1)
-        fig = viz.plot_continuous_feature_importance(
-            diffs, con_list[i][test_mask, :], con_names[i]
-        )
+        fig = viz.plot_continuous_feature_importance(diffs, con_list[i], con_names[i])
         fig_path = str(output_path / f"feat_importance_{dataset_name}.png")
         fig.savefig(fig_path, bbox_inches="tight")
         fig_df = pd.DataFrame(diffs, columns=con_names[i], index=df_index)

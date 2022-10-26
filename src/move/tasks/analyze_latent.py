@@ -181,7 +181,7 @@ def analyze_latent(config: MOVEConfig) -> None:
 
     logger.info("Reconstructing")
     cat_recons, con_recons = model.reconstruct(test_dataloader)
-    con_recons = np.split(con_recons, model.continuous_shapes[:-1], axis=1)
+    con_recons = np.split(con_recons, np.cumsum(model.continuous_shapes[:-1]), axis=1)
     logger.info("Computing reconstruction metrics")
     scores = []
     labels = config.data.categorical_names + config.data.continuous_names

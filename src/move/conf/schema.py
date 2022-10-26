@@ -2,6 +2,7 @@ __all__ = [
     "MOVEConfig",
     "EncodeDataConfig",
     "AnalyzeLatentConfig",
+    "TuneModelConfig",
     "IdentifyAssociationsConfig",
     "IdentifyAssociationsBayesConfig",
     "IdentifyAssociationsTTestConfig",
@@ -170,6 +171,12 @@ class EncodeDataConfig(TaskConfig):
 
 
 @dataclass
+class TuneModelConfig(TaskConfig):
+    """Configure the "tune model" task."""
+    ...
+
+
+@dataclass
 class AnalyzeLatentConfig(TaskConfig):
     """Configure the "analyze latents" task.
 
@@ -261,6 +268,11 @@ cs.store(
     group="task",
     name="encode_data",
     node=EncodeDataConfig,
+)
+cs.store(
+    group="task",
+    name="tune_model_schema",
+    node=TuneModelConfig,
 )
 cs.store(
     group="task",

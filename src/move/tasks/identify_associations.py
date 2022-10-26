@@ -17,7 +17,7 @@ from move.conf.schema import (
     MOVEConfig,
 )
 from move.core.logging import get_logger
-from move.core.typing import IntArray, FloatArray
+from move.core.typing import FloatArray, IntArray
 from move.data import io
 from move.data.dataloaders import MOVEDataset, make_dataloader
 from move.data.perturbations import perturb_categorical_data

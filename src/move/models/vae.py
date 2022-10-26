@@ -1,11 +1,12 @@
 __all__ = ["VAE"]
 
+import logging
 from typing import Optional
+
 import numpy as np
 import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader
-import logging
 
 from move.core.typing import FloatArray
 

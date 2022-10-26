@@ -9,10 +9,10 @@ __all__ = [
 ]
 
 from dataclasses import dataclass, field
+from typing import Any, Optional
 
 from hydra.core.config_store import ConfigStore
-from omegaconf import OmegaConf, MISSING
-from typing import Any, Optional
+from omegaconf import MISSING, OmegaConf
 
 from move.models.vae import VAE
 from move.training.training_loop import training_loop

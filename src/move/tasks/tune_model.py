@@ -15,11 +15,11 @@ from move.analysis.metrics import (
     calculate_accuracy,
     calculate_cosine_similarity,
 )
+from move.conf.schema import MOVEConfig, TuneModelConfig
+from move.core.logging import get_logger
 from move.core.typing import BoolArray, FloatArray
 from move.data import io
 from move.data.dataloaders import MOVEDataset, make_dataloader, split_samples
-from move.conf.schema import MOVEConfig, TuneModelConfig
-from move.core.logging import get_logger
 from move.models.vae import VAE
 
 

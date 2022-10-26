@@ -37,6 +37,11 @@ def tune_model(config: MOVEConfig) -> float:
     if hydra_config.mode != RunMode.MULTIRUN:
         raise ValueError("This task must run in multirun mode.")
 
+    # Delete sweep run config
+    sweep_config_path = Path(hydra_config.sweep.dir).joinpath("multirun.yaml")
+    if sweep_config_path.exists():
+        sweep_config_path.unlink()
+
     job_num = hydra_config.job.num + 1
 
     logger = get_logger(__name__)

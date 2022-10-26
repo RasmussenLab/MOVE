@@ -38,5 +38,6 @@ def main(config: MOVEConfig) -> None:
     else:
         raise ValueError("Unsupported type of task.")
 
+
 if __name__ == "__main__":
     main()

@@ -100,6 +100,7 @@ class EncodeDataConfig(TaskConfig):
 @dataclass
 class TuneModelConfig(TaskConfig):
     """Configure the "tune model" task."""
+
     ...
 
 
@@ -123,7 +124,7 @@ class IdentifyAssociationsConfig(TaskConfig):
         target_dataset:
             Name of categorical dataset to perturb.
         target_value:
-            The value to change to. It should be a category name. 
+            The value to change to. It should be a category name.
         num_refits:
             Number of times to refit the model.
         sig_threshold:

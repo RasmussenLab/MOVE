@@ -72,13 +72,6 @@ def tune_model(config: MOVEConfig) -> float:
         batch_size=task_config.batch_size,
         drop_last=True,
     )
-    test_dataloader = make_dataloader(
-        cat_list,
-        con_list,
-        ~split_mask,
-        shuffle=False,
-        batch_size=task_config.batch_size,
-    )
     train_dataset = cast(MOVEDataset, train_dataloader.dataset)
 
     assert task_config.model is not None
@@ -95,19 +88,27 @@ def tune_model(config: MOVEConfig) -> float:
         model=model,
         train_dataloader=train_dataloader,
     )
+    model.eval()
 
     logger.info("Reconstructing")
     logger.info("Computing reconstruction metrics")
     label = [hp.split("=") for hp in hydra_config.job.override_dirname.split(",")]
     records = []
-    named_dataloaders = zip(["train", "test"], [train_dataloader, test_dataloader])
-    for split_name, dataloader in named_dataloaders:
+    splits = zip(["train", "test"], [split_mask, ~split_mask])
+    for split_name, mask in splits:
+        dataloader = make_dataloader(
+            cat_list,
+            con_list,
+            mask,
+            shuffle=False,
+            batch_size=np.count_nonzero(mask)
+        )
         cat_recons, con_recons = model.reconstruct(dataloader)
         con_recons = np.split(con_recons, model.continuous_shapes[:-1], axis=1)
         for cat, cat_recon, dataset_name in zip(
             cat_list, cat_recons, config.data.categorical_names
         ):
-            accuracy = calculate_accuracy(cat, cat_recon)
+            accuracy = calculate_accuracy(cat[mask], cat_recon)
             record = _get_record(
                 accuracy,
                 job_num=job_num,
@@ -120,7 +121,7 @@ def tune_model(config: MOVEConfig) -> float:
         for con, con_recon, dataset_name in zip(
             con_list, con_recons, config.data.continuous_names
         ):
-            cosine_sim = calculate_cosine_similarity(con, con_recon)
+            cosine_sim = calculate_cosine_similarity(con[mask], con_recon)
             record = _get_record(
                 cosine_sim,
                 job_num=job_num,
@@ -130,6 +131,8 @@ def tune_model(config: MOVEConfig) -> float:
                 split=split_name,
             )
             records.append(record)
+
+    logger.info("Writing results")
     df_path = output_path / "reconstruction_stats.tsv"
     header = not df_path.exists()
     df = pd.DataFrame.from_records(records)

@@ -59,18 +59,6 @@ class ModelConfig:
 
 
 @dataclass
-class VAEConfigDeprecated(ModelConfig):
-    user_conf: str = MISSING
-    seed: int = MISSING
-    cuda: bool = MISSING
-    lrate: float = MISSING
-    num_epochs: int = MISSING
-    patience: int = MISSING
-    kld_steps: list[int] = MISSING
-    batch_steps: list[int] = MISSING
-
-
-@dataclass
 class VAEConfig(ModelConfig):
     """Configuration for the VAE module."""
 

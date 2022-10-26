@@ -3,7 +3,6 @@
 defaults:
   - _self_
   - data: base_data
-  - model: vae
   - task: null
   - experiment: null
   - override /hydra/job_logging: none

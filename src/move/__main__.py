@@ -4,6 +4,7 @@ import hydra
 from omegaconf import OmegaConf
 
 import move.tasks
+from move import HYDRA_VERSION_BASE
 from move.conf.schema import (
     AnalyzeLatentConfig,
     EncodeDataConfig,
@@ -14,7 +15,11 @@ from move.conf.schema import (
 from move.core.logging import get_logger
 
 
-@hydra.main(config_path="conf", config_name="main")
+@hydra.main(
+    config_path="conf",
+    config_name="main",
+    version_base=HYDRA_VERSION_BASE,
+)
 def main(config: MOVEConfig) -> None:
     """Run MOVE.
 
@@ -37,6 +42,7 @@ def main(config: MOVEConfig) -> None:
         move.tasks.identify_associations(config)
     else:
         raise ValueError("Unsupported type of task.")
+
 
 if __name__ == "__main__":
     main()

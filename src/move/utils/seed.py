@@ -9,6 +9,12 @@ import os
 
 
 def set_global_seed(seed: Optional[int]) -> None:
+    """
+    Sets global seed
+
+    Args:
+        seed (Optional[int]): integer for seed
+    """    
     if seed is None:
         return
     random.seed(seed) #

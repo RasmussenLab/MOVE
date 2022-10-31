@@ -8,8 +8,22 @@ import seaborn as sns
 import matplotlib
 
 from move.utils import plot_importance
+from move.utils.analysis import get_feature_data
 
 def visualize_likelihood(path, nLayers, nHiddens, nDropout, nBeta, nLatents, likelihood_tests):
+    """
+    Make a plot that visualizes mean likelihoods' on the test set.
+
+    Args:
+        path (str):  a string that defines a path to the directory where the results will be saved
+        nLayers (list[int]): list of number of layers used in hyperparameter tuning for visualization   
+        nHiddens (list): list of number of nodes in hidden layers used in hyperparameter tuning for visualization
+        nDropout (list): list of Dropout probablities used in hyperparameter tuning for visualization
+        nBeta (list): list of Beta values used in hyperparameter tuning for visualization
+        nLatents (list): list of latent space sizes used in hyperparameter tuning for visualization
+        likelihood_tests (DefaultDict): A DefaultDict with likelihood results received during hyperarameter tuning for reconstruction
+    """    
+
     # Figure for test error/likelihood
     
     # Define styles for the plot
@@ -90,6 +104,19 @@ def visualize_likelihood(path, nLayers, nHiddens, nDropout, nBeta, nLatents, lik
 
     
 def visualize_recon_acc(path, nLayers, nHiddens, nDropout, nBeta, nLatents, recon_acc, data_type):
+    """
+    Make a boxplot that visualizes reconstruction accuracies 
+
+    Args:
+        path (str):  a string that defines a path to the directory where the results will be saved
+        nLayers (list[int]): list of number of layers used in hyperparameter tuning for visualization   
+        nHiddens (list): list of number of nodes in hidden layers used in hyperparameter tuning for visualization
+        nDropout (list): list of Dropout probablities used in hyperparameter tuning for visualization
+        nBeta (list): list of Beta values used in hyperparameter tuning for visualization
+        nLatents (list): list of latent space sizes used in hyperparameter tuning for visualization
+        recon_acc (Defaultdict): A DefaultDict with reconstruction accuracy results received during hyperarameter tuning.
+        data_type (str): the name of selected data type (train or test) to save results
+    """    
     # Plot results for train reconstructions
     n_rows = len(nLayers)
     n_cols = len(nHiddens)
@@ -158,7 +185,16 @@ def visualize_recon_acc(path, nLayers, nHiddens, nDropout, nBeta, nLatents, reco
     
     
 def draw_boxplot(path, df, title_text, y_label_text, save_fig_name):
-    
+    """
+    Draw a boxplot to visualize the results of hyperparameter tuning for stability
+
+    Args:
+        path (str): a string that defines a path to the directory where the results will be saved
+        df (pd.DataFrame): df with hyperparameter tuning for stability results 
+        title_text (str): the text to write on the title for the visualization
+        y_label_text (str): the text to write on the title for the visualization
+        save_fig_name (str): the filename to save the results
+    """    
     df = pd.DataFrame(df)
     fig = plt.figure(figsize=(18,14))
     ax = sns.boxplot(data=df, palette = sns.color_palette('colorblind', df.shape[1]))
@@ -172,7 +208,18 @@ def draw_boxplot(path, df, title_text, y_label_text, save_fig_name):
 
     
 
-def embedding_plot_discrete(embedding, _type, name, file, palette=None):
+def embedding_plot_discrete(embedding, _type, name, filename, palette=None):
+    """
+    Visualize 2 dimension representation of latent space of trained model, where data points are colored by the selected categorical feature
+
+    Args:
+        embedding (np.array): 2 dimension representation of latent space of trained model
+        _type (np.array): data of selected feature
+        name (str): feature name
+        filename (str): file name to save the results
+        palette (seaborn.palettes._ColorPalette, optional): Color palette for a plot. Defaults to None.
+    """
+
     fig = plt.figure(figsize=(12,8))
     if palette == None:
         palette = sns.color_palette('colorblind', len(np.unique(_type)))
@@ -196,11 +243,20 @@ def embedding_plot_discrete(embedding, _type, name, file, palette=None):
     ax.spines['left'].set_visible(True)
     ax.spines['bottom'].set_visible(True)
 
-    plt.savefig(file)
+    plt.savefig(filename)
 
     
     
 def embedding_plot_float(embedding, type, name, file):
+    """
+    Visualize 2 dimension representation of latent space of trained model, where data points are colored by the selected continuous feature
+
+    Args:
+        embedding (np.array): 2 dimension representation of latent space of trained model
+        type (np.array): data of selected feature
+        name (str): feature name
+        filename (str): file name to save the results
+    """    
     fig, ax = plt.subplots(figsize=(12,8))
     points = ax.scatter(x=embedding[:,0], y=embedding[:,1], c=type, s=40, cmap="Spectral_r",
                        edgecolor = 'black', linewidth=0.1)
@@ -219,10 +275,20 @@ def embedding_plot_float(embedding, type, name, file):
     ax.spines['left'].set_visible(True)
     ax.spines['bottom'].set_visible(True)
 
-    plt.savefig(file)
+    plt.savefig(filename)
 
 
 def subtitle_legend(ax, legend_format):
+    """
+    Make a legend for a plot
+
+    Args:
+        ax (matplotlib.axes._subplots.AxesSubplot): matplotlib object where to add subtytle object
+        legend_format (dict): the format of how the legend will be organized 
+
+    Returns:
+        matplotlib.legend.Legend: 
+    """    
     new_handles = []
    
     handles, labels = ax.get_legend_handles_labels()
@@ -249,10 +315,20 @@ def subtitle_legend(ax, legend_format):
         for handle in draw_area.get_children():
             if handle.get_label() in legend_format:
                 draw_area.set_visible(False)
-   
     return legend
 
 def visualize_training(path, losses, ce, sse, KLD, epochs):
+    """
+    Visualize the training of the model
+
+    Args:
+        path (str): a string that defines a path to the directory where the results will be saved
+        losses (list): list of losses on train set during the training
+        ce (list): list of Binary cross-entropy losses on categorical data of train set during the training
+        sse (list): list of sum of squared estimate of errors on continuous data of train set during the training
+        KLD (list): list of KLD losses on train set during the training
+        epochs (list): list of the range of epochs used in the training
+    """    
     # Plot traing error
     fig = plt.figure()
     plt.plot(epochs, losses, '-g', label='loss')
@@ -263,7 +339,15 @@ def visualize_training(path, losses, ce, sse, KLD, epochs):
     plt.savefig(path + "loss_test.png")
     
 def plot_reconstruction_distribs(path, cat_total_recon, all_values, all_names):
-    
+    """
+    _summary_
+
+    Args:
+        path (str): a string that defines a path to the directory where the results will be saved
+        cat_total_recon (list[float]): list of floats (from 0 to 1), which corresponds to the fraction of how many samples were correctly reconstructed
+        all_values (list[float]): list of floats (from 0 to 1) that corresponds to the cosine similarity between input data and reconstructed data
+        all_names (list): list of names of the data classes used
+    """    
     # Plot the reconstruction distributions
     df = pd.DataFrame(cat_total_recon + all_values, index=all_names)
     df_t = df.T
@@ -277,28 +361,61 @@ def plot_reconstruction_distribs(path, cat_total_recon, all_values, all_names):
     fig.subplots_adjust(bottom=0.2)
     plt.savefig(path + "reconstruction_accuracy.png")
     plt.close("all")    
+
+# def get_feature_data(data_type, feature_of_interest, cat_list,
+#                      con_list, cat_names, con_names):
+#     """
+#     Get data of selected feature (if the feature is categorical, the categories are converted to be encoded as integers)
+
+#     Args:
+#         data_type (str): the feature data type (categorical or continuous) 
+#         feature_of_interest (str): the name of feature you want to visualize
+#         cat_list (list): list of np.arrays for data of categorical data type
+#         con_list (list): list of np.arrays for data of continuous data type
+#         cat_names (list): np.array of strings of feature names of categorical data
+#         con_names (list): np.array of strings of feature names of continuous data
+
+#     Returns:
+#         (tuple): a tuple containing:
+#             feature_data (np.array): np.array of feature data
+#             headers: list of headers (either cat_names or con_names)
+#     Raises:
+#         ValueError: Wrong data type was selected (not categorical or continuous)
+#     """    
+
+#     if data_type=='categorical':
+#         cat_list_integer = [np.argmax(cat, axis=-1) for cat in cat_list]
+#         np_data_ints = np.concatenate(cat_list_integer, axis=-1)
+#         headers = cat_names
+#     elif data_type=='continuous':
+#         np_data_ints = np.concatenate(con_list, axis=-1)
+#         headers = con_names
+#     else:
+#         raise ValueError("Wrong data type was selected")
     
-def get_feature_data(data_type, feature_of_interest, cat_list,
-                     con_list, cat_names, con_names):
+#     feature_data = np_data_ints[:,list(headers).index(feature_of_interest)]
     
-    if data_type=='categorical':
-        cat_list_integer = [np.argmax(cat, axis=-1) for cat in cat_list]
-        np_data_ints = np.concatenate(cat_list_integer, axis=-1)
-        headers = cat_names
-    elif data_type=='continuous':
-        np_data_ints = np.concatenate(con_list, axis=-1)
-        headers = con_names
-    else:
-        raise ValueError("Wrong data type was selected")
-    
-    feature_data = np_data_ints[:,list(headers).index(feature_of_interest)]
-    
-    return(feature_data, headers)
+#     return(feature_data, headers)
     
 
 def visualize_embedding(path, feature_of_interest, embedding, mask, cat_list, 
                         con_list, cat_names, con_names):
-    
+    """
+    Visualize 2 dimension representation of latent space of trained model
+
+    Args:
+        path (str): a string that defines a path to the directory where the results will be saved
+        feature_of_interest (str): feature name to visualize
+        embedding (np.array): a 2 dimensional representation of latent space of trained model
+        mask (np.array): np.array of boaleans, where False values correspond to features that had only NA values.
+        cat_list (list): list of np.arrays for data of categorical data type
+        con_list (list): list of np.arrays for data of continuous data type
+        cat_names (list): np.array of strings of feature names of categorical data
+        con_names (list): np.array of strings of feature names of continuous data
+
+    Raises:
+        ValueError: feature_of_interest is not in cat_names or con_names
+    """    
     if feature_of_interest in cat_names:
         data_type = 'categorical'
     elif feature_of_interest in con_names:
@@ -307,9 +424,9 @@ def visualize_embedding(path, feature_of_interest, embedding, mask, cat_list,
         raise ValueError("feature_of_interest is not in cat_names or con_names")
     
     
-    feature_data, headers = get_feature_data(data_type, feature_of_interest, 
-                                             cat_list=cat_list, con_list=con_list, 
-                                             cat_names=cat_names, con_names=con_names)
+    feature_data = get_feature_data(data_type, feature_of_interest, 
+                                    cat_list=cat_list, con_list=con_list, 
+                                    cat_names=cat_names, con_names=con_names)
     
     
     if data_type == 'categorical':
@@ -323,6 +440,16 @@ def visualize_embedding(path, feature_of_interest, embedding, mask, cat_list,
         
         
 def f_plot_importance(path, sum_diffs, features, feature_names, fig_name):
+    """
+    Make a plot for feature importance
+
+    Args:
+        path (str):  a string that defines a path to the directory where the results will be saved
+        sum_diffs (np.array): for each feature sum of differences of all latent dimensions between existing latent space and new latent space (where the feature is set to NA value)
+        features (np.array): np.array of values of data of the features 
+        feature_names (np.array): np.array of strings of feature names
+        fig_name (str): figure name to save
+    """    
     fig = plt.figure(figsize = (20,20))
     plot_importance.summary_plot(sum_diffs, features=features, 
                                  feature_names=feature_names, max_display = 25, 
@@ -331,6 +458,16 @@ def f_plot_importance(path, sum_diffs, features, feature_names, fig_name):
     
     
 def plot_categorical_importance(path, sum_diffs, cat_list, feature_names, fig_name):
+    """
+    Make a plot for feature importance of categorical data
+
+    Args:
+        path (str): a string that defines a path to the directory where the results will be saved
+        sum_diffs (np.array): for each categorical feature sum of differences of all latent dimensions between existing latent space and new latent space (where the feature is set to NA value)
+        cat_list (list): list of np.arrays for data of categorical data type
+        feature_names (np.array): np.array of strings of feature names
+        fig_name (str): figure name to save 
+    """    
     
     # Converting from one hot to numerical variables
     cat_ints_list = []
@@ -346,12 +483,21 @@ def plot_categorical_importance(path, sum_diffs, cat_list, feature_names, fig_na
                       sum_diffs=sum_diffs,
                       features=cat_target_all,
                       feature_names=feature_names,
-                      fig_name='importance_SHAP_cat')
+                      fig_name=fig_name)
     
 
     
 def plot_continuous_importance(path, train_loader, sum_diffs, feature_names, fig_name):
-    
+    """
+    Make a plot for feature importance of continuous data
+
+    Args:
+        path (str): a string that defines a path to the directory where the results will be saved
+        train_loader (Dataloader): Dataloader of training set
+        sum_diffs (np.array): for each continuous feature sum of differences of all latent dimensions between existing latent space and new latent space (where the feature is set to NA value) 
+        feature_names (np.array): np.array of strings of feature names
+        fig_name (str): figure name to save
+    """    
     con_all = np.asarray(train_loader.dataset.con_all)
     sum_diffs = np.transpose(sum_diffs)
 
@@ -359,11 +505,18 @@ def plot_continuous_importance(path, train_loader, sum_diffs, feature_names, fig
                       sum_diffs=sum_diffs,
                       features=con_all,
                       feature_names=feature_names,
-                      fig_name='importance_SHAP_con')
+                      fig_name=fig_name)
     
 
 def visualize_indi_var(df_indi_var, version, path):
+    """
+    Visualizing variation within drugs across all data and specific for each omics
 
+    Args:
+        df_indi_var (pd.DataFrame): TODO
+        version (str): the subdirectory where the results will be saved
+        path (str): the subdirectory where the results will be saved
+    """
     plt.style.use('seaborn-whitegrid')
     fig = plt.figure(figsize=(12,10))
     ax = sns.barplot(data=df_indi_var.T, palette="tab10", saturation=0.50)
@@ -378,7 +531,15 @@ def visualize_indi_var(df_indi_var, version, path):
 
 
 def visualize_drug_similarity_across_all(recon_average_corr_new_all, drug_h, version, path):
-    
+    """
+    Visualizing the heatmap of similarities within drugs across all data
+
+    Args:
+        recon_average_corr_new_all (np.array): TODO
+        drug_h (np.array): np.array of strings of feature names data type whose data are changed to test their effects in the pipeline
+        version (str): the subdirectory where the results will be saved
+        path (str): the subdirectory where the results will be saved
+    """    
     cos_sim = cosine_similarity(recon_average_corr_new_all)
 
     corr = pd.DataFrame(cos_sim, columns = drug_h, index = drug_h)

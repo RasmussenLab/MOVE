@@ -10,15 +10,17 @@ import logging
 logger = logging.getLogger('data_utils')
 
 def merge_configs(base_config, config_types):
-    """
+    """ 
     Merges base_config with user defined configuration
-    
-    inputs:
-        base_config: YAML configuration
-        config_types: list of ints of names of user defined configuration types 
-    returns:
-        config_section: YAML configuration of base_config overrided by user defined configs and filtered for config_types classes
-    """
+
+    Args:
+        base_config (omegaconf.dictconfig.DictConfig): YAML configuration
+        config_types (list[int]): names of user defined configuration types
+
+    Returns:
+        omegaconf.dictconfig.DictConfig: YAML configuration of base_config overrided by user defined configs and filtered for config_types classes
+
+    """   
     user_config_dict = dict()
     override_types = []
     
@@ -54,13 +56,14 @@ def merge_configs(base_config, config_types):
 def read_cat(path, file_name):
     """
     Reads categorical data file into numpy array
-    
-    inputs:
-        path: pathway to the directory where file is located
-        file_name: str of file name to read (in .npy format) 
-    returns:
-        data: np.array of input data
-    """
+
+    Args:
+        path (str): pathway to the directory where file is located
+        file_name (str): file name to read (in .npy format) 
+
+    Returns:
+        np.array: input categorical data
+    """    
     
     data = np.load(path + file_name)
     data = data.astype(np.float32)
@@ -71,13 +74,15 @@ def read_con(path, file_name):
     """
     Reads continuous data file into np.array, sets nan values as zeros and filters columns if all of the values were nan 
     
-    inputs:
-        path: pathway to the directory where file is located
-        file_name: str of file name to read (in .npy format) 
-    returns:
-        data: np.array of input data
-        mask_col: np.array of boolean objects, where False value corresponds to features that were filtered out
-    """
+    Args:
+        path (str): pathway to the directory where file is located
+        file_name (str): file name to read (in .npy format)
+
+    Returns:
+        (tuple): tuple containing:
+            data (np.array): of input data
+            mask_col(np.array): np.array of Boolean values where False value corresponds to features that were filtered out
+    """    
     data = np.load(path + file_name)
     data = data.astype(np.float32)
     data[np.isnan(data)] = 0
@@ -88,13 +93,16 @@ def read_con(path, file_name):
 
 def read_header(path, file_name, mask=None):
     """
-    Reads features names from the headers 
-    inputs:
-        path: pathway to the directory where file is located
-        file_name: str of file name to read (in .npy format) 
-    returns:
-        header: list of strings of elements in the header
-    """    
+    Reads features names from the headers
+
+    Args:
+        path (str): pathway to the directory where file is located
+        file_name (str): file name to read (in .npy format)
+        mask (np.array, optional): Bolean values that correspond to used features of input data. Defaults to None.
+
+    Returns:
+        list[str]: features names in the header
+    """      
 
     header = pd.read_csv(path + file_name, sep='\t', header=None)
     header = header.squeeze().astype('str')
@@ -109,13 +117,15 @@ def read_header(path, file_name, mask=None):
 def initiate_default_dicts(n_empty_dicts, n_list_dicts):
     """
     Initiates empty default dictionaries
+
+    Args:
+        n_empty_dicts (int): the number of how many defaultdicts without specified data type to initiate
+        n_list_dicts (int): the number of how many defaultdicts with list type to initiate
     
-    inputs:
-        n_empty_dicts: int of how many defaultdicts without specified data type to initiate
-        n_list_dicts: int of how many defaultdicts with list type to initiate
-    returns:
-        tuple(default_dicts): tuple with initiated defaultdicts
-    """   
+    Returns:
+        tuple: a tuple with initiated defaultdicts
+
+    """    
     default_dicts = [defaultdict() for _ in range(n_empty_dicts)] + \
             [defaultdict(list) for _ in range(n_list_dicts)]
      
@@ -124,22 +134,27 @@ def initiate_default_dicts(n_empty_dicts, n_list_dicts):
 def get_data(headers_path, interim_data_path, categorical_data_names, continuous_data_names, data_of_interest):
     """
     Reads the data for models' inputs
-    
-    inputs:
-        headers_path: str of pathway to headers data 
-        interim_data_path: str of a pathway to a folder of intermediate data files (e.g. .npy)
-        categorical_data_names: list of strings of categorical data type names
-        continuous_data_names: list of strings of continuous data type names
-        data_of_interest: str of data type name whose features are changed to test their effects in the pipeline
-    returns:
-        cat_list: list of np.arrays for data of categorical data type 
-        con_list: list of np.arrays for data of continuous data type
-        cat_names: np.array of strings of feature names of categorical data
-        con_names: np.array of strings of feature names of continuous data
-        headers_all: np.array of strings of feature names of all data
-        drug: np.array of input data whose feature data are changed to test their effects in the pipeline
-        drug_h: np.array of strings of feature names data type whose data are changed to test their effects in the pipeline
-    """   
+
+    Args:
+        headers_path (str): a pathway to headers data
+        interim_data_path (str): a pathway to a folder of intermediate data files (e.g. .npy)
+        categorical_data_names (list[str]): list of strings of categorical data type names
+        continuous_data_names (list[str]): list of strings of continuous data type names
+        data_of_interest (str): data type name whose features are changed to test their effects in the pipeline
+
+    Returns:
+        (tuple): a tuple containing:
+            cat_list (list[np.array]): list of np.arrays for data of categorical data type 
+            con_list (list[np.array]): list of np.arrays for data of continuous data type
+            cat_names (list[np.array]): np.array of strings of feature names of categorical data
+            con_names (list[np.array]): np.array of strings of feature names of continuous data
+            headers_all (list[np.array]): np.array of strings of feature names of all data
+            drug (np.array): np.array of input data whose feature data are changed to test their effects in the pipeline
+            drug_h (np.array): np.array of strings of feature names data type whose data are changed to test their effects in the pipeline
+
+    Raises:
+        ValueError: In data.yaml file data_of_interest is chosen neither from defined continuous nor categorical data types
+    """  
         
     # Initiate lists
     cat_list, cat_names, con_list, con_names = [], [], [], []
@@ -183,11 +198,13 @@ def get_data(headers_path, interim_data_path, categorical_data_names, continuous
 def encode_cat(sorted_data, na='NA'):
     """
     Encodes categorical data into one-hot encoding
-    
-    inputs:
-         raw_input: a list of source data sorted by IDs from baseline_ids.txt file
-    returns:
-         data_input: one hot encoded data
+
+    Args:
+        sorted_data (list): a list of source data sorted by IDs from baseline_ids.txt file
+        na (str, optional): the string how NA values are encoded in raw input data. Defaults to 'NA'.
+
+    Returns:
+        np.array: one hot encoded data
     """ 
      
     matrix = np.array(sorted_data)
@@ -237,12 +254,14 @@ def encode_cat(sorted_data, na='NA'):
 def encode_con(sorted_data):
     """
     Log transforms and z-normalizes the data
-    
-    Input: 
-         raw_input: a list of source data sorted by IDs from baseline_ids.txt file
+
+    Args:
+        sorted_data (list): a list of source data sorted by IDs from baseline_ids.txt file
+
     Returns:
-         data_input: numpy array with log transformed and z-score normalized data
-         mask_col: a np.array vector of Bolean values that correspond to nonzero sd values 
+        (tuple): a tuple containing:
+            data_input (np.array): numpy array with log transformed and z-score normalized data
+            mask_col (np.array): a np.array vector of Bolean values that correspond to nonzero sd values    
     """
     
     matrix = np.array(sorted_data)
@@ -270,13 +289,14 @@ def encode_con(sorted_data):
 def sort_data(data, ids, labels):
     """
     Sorts data based on the ids file
-    
-    Inputs:
-         data: a dictionary with the data to encode
-         ids: a list of personal identfiers (ID) from baseline_ids.txt file
-         labels: a list of column names from the source data file
+
+    Args:
+        data (dict): a dictionary with the data to encode
+        ids (list): a list of personal identfiers (ID) from baseline_ids.txt file
+        labels (list): a list of column names from the source data file
+
     Returns:
-         sorted_data: a list of source data sorted by IDs from baseline_ids.txt file
+        list: a list of source data sorted by IDs from baseline_ids.txt file
     """
     
     n_labels = len(labels)
@@ -295,15 +315,16 @@ def sort_data(data, ids, labels):
 def read_ids(path, ids_file_name, ids_colname, ids_has_header=True):
     """
     Function reads ids into the list
-     
-    Inputs:
-         path: a string that defines a path to the directory the input data is stored
-         ids_file_name: a string of ids file name
-         ids_colname: a string of column name of ids
-         ids_has_header: boolean if first column is a header
+
+    Args:
+        path (str): a string that defines a path to the directory the input data is stored
+        ids_file_name (str): a string of ids file name
+        ids_colname (str): a string of column name of ids
+        ids_has_header (bool, Bol): boolean if first column is a header. Defaults to True.
+
     Returns:
-         ids: a list of personal identfiers (ID) from .txt ids file
-    """
+        list: a list of personal identfiers (ID) from .txt ids file
+    """  
     # Setting header variable
     header=0 if ids_has_header else None
         
@@ -322,16 +343,19 @@ def read_ids(path, ids_file_name, ids_colname, ids_has_header=True):
 def read_files(var_type, path, data_type, na):
     """
     Function reads the input file into the dictionary
-     
-    Inputs:
-         path: a string that defines a path to the directory the input data is stored
-         data_type: a string that defines a name of .tsv file to encode
-         na: a string that defines how NA values are defined in the source data file
+
+    Args:
+        var_type (str): a string out of ['categorical', 'continuous'], defines input data type to encode
+        path (str): a string that defines a path to the directory the input data is stored
+        data_type (str): a string that defines a name of .tsv file to encode
+        na (str): a string that defines how NA values are defined in the raw input data file
+
     Returns:
-         ids: a list of personal identfiers (ID) from baseline_ids.txt file
-         raw_input: a dictionary with the data to encode
-         header:a list of personal identfiers (ID) from .txt ids file
-    """
+        (tuple): a tuple containing:
+            ids (list): a list of personal identfiers (ID) from baseline_ids.txt file
+            raw_input (dict): a dictionary with the data to encode
+            header (list): a list of personal identfiers (ID) from .txt ids file
+    """  
                  
     raw_input = dict()
     with open(path + f"{data_type}.tsv", "r") as f:
@@ -359,15 +383,16 @@ def read_files(var_type, path, data_type, na):
 def generate_file(var_type, raw_data_path, interim_data_path, headers_path, data_type, ids, na='NA'):
     """
     Function encodes source data type and saves the file
-     
-    inputs:
-         var_type: a string out of ['categorical', 'continuous'], defines input data type to encode
-         raw_data_path: a string that defines a path to the directory the input data is stored
-         interim_data_path: a string that defines a path of directory where to save the files
-         data_type: a string that defines a name of .tsv file to encode
-         ids: a list of personal identfiers (ID) from .txt ids file
-         na: a string that defines how NA values are defined in the source data file
-    """
+
+    Args:
+        var_type (str): a string out of ['categorical', 'continuous'], defines input data type to encode
+        raw_data_path (str): a string that defines a path to the directory the input data is stored
+        interim_data_path (str): a string that defines a path of directory where to save the files
+        headers_path (str): a string that defines a path of directory where to save headers
+        data_type (str): a string that defines a name of .tsv file to encode
+        ids (list): a list of personal identfiers (ID) from .txt ids file
+        na (str, optional): a string that defines how NA values are defined in the raw input data file. Defaults to 'NA'.
+    """    
     
     isExist = os.path.exists(interim_data_path)
     if not isExist:
@@ -397,14 +422,16 @@ def generate_file(var_type, raw_data_path, interim_data_path, headers_path, data
 
 def get_header(header, mask=None, start=1):
     """
-    Reads features names from the headers 
-    inputs:
-        header: list with values of the header column of input data  
-        mask: np.array of boolean objects, where False value corresponds to features to filtered out
-        start: int corresponding to how many lines to read for the header
-    returns:
-        header: np.array of strings of feature names
-    """   
+    Reads features names from the headers
+
+    Args:
+        header (list): list with values of the header column of input data
+        mask (np.array, optional): np.array of boolean objects, where False value corresponds to features to filtered out. Defaults to None.
+        start (int, optional): number corresponding to how many lines to read for the header. Defaults to 1.
+
+    Returns:
+        np.array: np.array of strings of feature names
+    """     
     header = header[start:]
     if not mask is None:
         header = np.array(header)
@@ -412,16 +439,17 @@ def get_header(header, mask=None, start=1):
     
     return header    
 
-    
-def get_list_value(*args):
-    arg_tuple = [arg[0] if len(arg) == 1 else arg for arg in args]
-    return(arg_tuple)     
-
-
-
-
 def get_best_epoch(results_df):
+    """
+    Gets the number of epochs for further experiments after hyperparameter tuning for reconstruction 
+
+    Args:
+        results_df (pd.DataFrame): pd.DataFrame of results after hyperparameter tuning for reconstruction 
     
+    Returns:
+        (int): number of epochs used in further computations
+
+    """    
     #Rounding best_epoch to closest 10 (just in case if best_epoch is less than 5 - to closest number)
     round_epoch = lambda x : round(x, 0) if (x < 5) else round(x, -1)
     best_epoch = results_df['best_epochs'].mean()
@@ -431,7 +459,15 @@ def get_best_epoch(results_df):
 
 
 def get_sort_list(results_df):
-    
+    """
+    Sorts DataFrame by mean recustruction accuracy on test set
+
+    Args:
+        results_df (pd.DataFrame): pd.DataFrame with results of hyperparameter tuning for reconstruction 
+
+    Returns:
+        pd.DataFrame: sorted pd.DataFrame by mean recustruction accuracy on test set
+    """ 
     #Gets mean values of test accuracy reconstruction
     results_df['recon_acc_test_mean'] = results_df['recon_acc_test'].map(lambda x: x.mean())
     
@@ -441,6 +477,16 @@ def get_sort_list(results_df):
 
 
 def get_length(hyperpars_vals_dict, hyperpar_name):
+    """
+    gets the number of total combinations with given hyperparameter value set
+
+    Args:
+        hyperpars_vals_dict (defaultdict(list)): defaultdict with hyperparameter keys and values of hyperparameters that gave best mean recustruction accuracy on test set
+        hyperpar_name (str): name of hyperparameter
+
+    Returns:
+        (int): the number of total combinations with given hyperparameter value set
+    """  
     lengths = 1
     for key in hyperpars_vals_dict:  
         length = len(hyperpars_vals_dict[key])
@@ -452,7 +498,17 @@ def get_length(hyperpars_vals_dict, hyperpar_name):
     return(lengths)
 
 def get_best_params(results_df_sorted, n_combos_opt, hyperpars_names):
+    """
+    Gets a set of hyperparameter values of no more than n_combos_opt combinations that showed the highest mean reconstruction accuracy 
 
+    Args:
+        results_df_sorted (pd.DataFrame): sorted pd.DataFrame by mean recustruction accuracy on test set
+        n_combos_opt (int): number of maximum total of combinations to save for further optimization
+        hyperpars_names (list[str]): list of hyperparameter values that are used in hyperparameter optimization
+
+    Returns:
+        (dict): dict with best hyperparameter values used in further optimization 
+    """ 
     hyperpars_vals_dict = defaultdict(list)
     for index, row in results_df_sorted.iterrows():
         
@@ -468,7 +524,14 @@ def get_best_params(results_df_sorted, n_combos_opt, hyperpars_names):
     return(hyperpars_vals_dict)
 
 def make_and_save_best_reconstruct_params(results_df, hyperparams_names, max_param_combos_to_save):
-    
+    """
+    Gets the dictionary with best hyperparameter values used in further optimization and save these results
+
+    Args:
+        results_df (pd.DataFrame): pd.DataFrame with results of hyperparameter tuning for reconstruction 
+        hyperparams_names (list[str]): list of hyperparameter values that are used in hyperparameter optimization
+        max_param_combos_to_save (int): number of maximum total of combinations to save for further optimization
+    """  
     # Getting the best number of epochs used in further trainings
     best_epoch = get_best_epoch(results_df)
     
@@ -488,7 +551,18 @@ def make_and_save_best_reconstruct_params(results_df, hyperparams_names, max_par
     
 
 def get_best_stability_paramset(stability_df, hyperparams_names):
+    """
+    Gets the hyperparameters values of the lowest difference among reconstructions
+
+    Args:
+        stability_df (pd.DataFrame): pd.DataFrame with results of hyperparameter tuning for stability
+        hyperparams_names (list[str]): list of hyperparameter values that are used in hyperparameter optimization
     
+    Returns:
+        (tuple): tuple containing:
+            params_to_save (dict): dictionary of parameters to save for further optimization
+            stability_df_sorted (pd.DataFrame): pd.DataFrame with results of hyperparameter tuning for stability sorted by mean difference among reconstruction
+    """ 
     params_to_save = dict()
     stability_df_sorted = stability_df.sort_values('difference', ascending=False).iloc[:1]
     for hyperparam in hyperparams_names: 
@@ -497,7 +571,15 @@ def get_best_stability_paramset(stability_df, hyperparams_names):
     return(params_to_save, stability_df_sorted)
 
 def get_best_4_latent_spaces(results_df_sorted):
-    
+    """
+    Gets best four latent space sizes used for the script 5
+
+    Args:
+        results_df_sorted (pd.DataFrame): pd.DataFrame with results of hyperparameter tuning for stability sorted by mean difference among reconstruction
+
+    Returns:
+        (list): list of ints with best 4 latent spaces sizes
+    """    
     #Selecting best two latent spaces
     best_latent = []
     for index, row in results_df_sorted.iterrows():
@@ -528,7 +610,14 @@ def get_best_4_latent_spaces(results_df_sorted):
     return(best_latent)
 
 def make_and_save_best_stability_params(results_df, hyperparams_names, nepochs):
-    
+    """
+    Gets the dictionaries with best hyperparameter values used in further optimization and save these results
+
+    Args:
+        results_df (pd.DataFrame): pd.DataFrame with results of hyperparameter tuning for stability
+        hyperparams_names (list[str]): list of hyperparameter values that are used in hyperparameter optimization
+        nepochs (int): best number of epochs that was calulated in the 2nd script
+    """    
     logger.info('Starting calculating the best hyperparameter values used in further model trainings') 
     
     # Getting best set of hyperparameters
@@ -554,7 +643,23 @@ def make_and_save_best_stability_params(results_df, hyperparams_names, nepochs):
     logger.info(f'Saving best hyperparameter values in training_association.yaml: \n \n{OmegaConf.to_yaml(dict(params_to_save))}')
     logger.warning('Please manually review if the hyperparameter values were selected correctly and adjust them in the training_association.yaml and training_latent.yaml files.')
 
-def read_saved_files(nLatents, repeats, path, version, drug):
+def read_saved_files(nLatents, repeats, path, version):
+    """
+    Reads the saved files of 5th script 
+
+    Args:
+        nLatents (list): list of latent sizes used in running 5th script 
+        repeats (int): number of repeats used in running 5th script
+        path (str): path to the folder where results were saved 
+        version (str): version where the results were saved
+    
+    Returns:
+        (tuple): tuple containing:
+            results (dict): TODO
+            recon_results (dict): {latents: {repeat: {drug: np.array of changes in continuous data when label of drug is changed}}}
+            groups (dict): TODO
+            mean_bas (dict): dict with keys as nLatent and values of np.arrays of floats with means of reconstruction differences between forwards of network
+    """   
     results, recon_results, groups, mean_bas = initiate_default_dicts(n_empty_dicts=0, n_list_dicts=4)
     
     iters = itertools.product(nLatents, range(repeats))

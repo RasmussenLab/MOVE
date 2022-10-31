@@ -27,31 +27,32 @@ def optimize_reconstruction(nHiddens, nLatents, nLayers, nDropout, nBeta, batch_
     """
     Performs hyperparameter tuning for the reconstruction
     
-    inputs:
-        nHiddens: a list with integers with the number of neurons in hidden layers 
-        nLatents: a list with integers with a size of the latent dimension
-        nLayers: a list with integers with the number of layers
-        nDropout: a list with floats with dropout probabilities applied after each nonlinearity in encoder and decoder
-        nBeta: a list with floats with beta values (Multiplies KLD by the inverse of this value)
-        batch_sizes: a list with ints with batch sizes
-        nepochs: integer of a maximum number of epochs to train the model
-        repeat: integer of the number of times to train the model with the same configuration
-        lrate: float of learning rate to train the model
-        kldsteps: a list with integers corresponding to epochs when kld is decreased by the selected rate
-        batchsteps: a list with integers corresponding to epochs when batch size is increased
-        patience: int corresponding to the number of epochs to wait before early stop if no progress on the validation set 
-        cuda: boolean if train model on GPU; if False - trains on CPU. 
-        processed_data_path: str of the pathway to directory where hyperparameter tuning results are saved
-        cat_list: list with input data of categorical data type
-        con_list: list with input data of continuous data type
-        continuous_weights: list of ints of weights for each continuous dataset
-        categorical_weights: list of ints of weights for each categorical dataset
-        seed: int of seed number
-    returns:
-        likelihood_tests: Defaultdict. Keys: set of hyperparameter values; values: float of VAE likelihood on test set 
-        recon_acc_tests: Defaultdict. Keys: set of hyperparameter values; values: list of floats of reconstruction accuracies for testing set for all of the data types
-        recon_acc: Defaultdict. Keys: set of hyperparameter values; values: list of floats of reconstruction accuracies for training set for all of the data types 
-        results_df: pd.DataFrame with all of the results of hyperparameter tuning
+    Args:
+        nHiddens (list[int]): a list with integers with the number of neurons in hidden layers 
+        nLatents (list[int]): a list with integers with a size of the latent dimension
+        nLayers (list[int]): a list with integers with the number of layers
+        nDropout (list[int]): a list with floats with dropout probabilities applied after each nonlinearity in encoder and decoder
+        nBeta (list[int]): a list with floats with beta values (Multiplies KLD by the inverse of this value)
+        batch_sizes (list[int]): a list with ints with batch sizes
+        nepochs (int): integer of a maximum number of epochs to train the model
+        repeat (int): integer of the number of times to train the model with the same configuration
+        lrate (float): float of learning rate to train the model
+        kldsteps (list[int]): a list with integers corresponding to epochs when kld is decreased by the selected rate
+        batchsteps (list[int]): a list with integers corresponding to epochs when batch size is increased
+        patience (int): int corresponding to the number of epochs to wait before early stop if no progress on the validation set 
+        cuda (bool): boolean if train model on GPU; if False - trains on CPU. 
+        processed_data_path (str): str of the pathway to directory where hyperparameter tuning results are saved
+        cat_list (list): list with input data of categorical data type
+        con_list (list): list with input data of continuous data type
+        continuous_weights (list): list of ints of weights for each continuous dataset
+        categorical_weights (list): list of ints of weights for each categorical dataset
+        seed (int): int of seed number
+    Returns:
+        (tuple): a tuple containing:
+            likelihood_tests (Defaultdict): Keys: set of hyperparameter values; values: float of VAE likelihood on test set 
+            recon_acc_tests (Defaultdict): Keys: set of hyperparameter values; values: list of floats of reconstruction accuracies for testing set for all of the data types
+            recon_acc (Defaultdict): Keys: set of hyperparameter values; values: list of floats of reconstruction accuracies for training set for all of the data types 
+            results_df (pd.DataFrame): pd.DataFrame with all of the results of hyperparameter tuning
     """ 
 
     # Preparing the data
@@ -179,31 +180,31 @@ def optimize_stability(nHiddens, nLatents, nDropout, nBeta, repeat, nepochs, nLa
     """
     Performs hyperparameter tuning for stability
     
-    inputs:
-        nHiddens: a list with integers with the number of neurons in hidden layers 
-        nLatents: a list with integers with a size of the latent dimension
-        nDropout: a list with floats with dropout probabilities applied after each nonlinearity in encoder and decoder
-        nBeta: a list with floats with beta values (Multiplies KLD by the inverse of this value)
-        repeat: integer of the number of times to train the model with the same configuration
-        nepochs: integer of number of epochs to train the model (received by optimize_reconstruction() function)
-        nLayers: a list with integers with the number of layers
-        batch_sizes: a list with ints with batch sizes
-        lrate: float of learning rate to train the model
-        kldsteps: a list with integers corresponding to epochs when kld is decreased by the selected rate
-        batchsteps: a list with integers corresponding to epochs when batch size is increased
-        cuda: boolean if train model on GPU; if False - trains on CPU. 
-        path: str of the pathway to directory where hyperparameter tuning results are saved        
-        cat_list: list with input data of categorical data type
-        con_list: list with input data of continuous data type        
-        continuous_weights: list of ints of weights for each continuous dataset
-        categorical_weights: list of ints of weights for each categorical dataset
-        seed: int of seed number
-    returns:
-        embeddings: Defaultdict. Keys: set of hyperparameter values; values: np.array of VAE latent representation of input dataset reduced to 2 dimensions by UMAP 
-        latents: Defaultdict. Keys: set of hyperparameter values; values: np.array of VAE latent representation of input dataset
-        con_recons: Defaultdict. Keys: set of hyperparameter values; values: VAE reconstructions of continuous input data 
-        cat_recons: Defaultdict. Keys: set of hyperparameter values; values: VAE reconstructions of categorical input data 
-        recon_acc: Defaultdict. Keys: hyperparameter values. Values: list of reconstruction accuracies for each of the dataset as values
+    Args:
+        nHiddens (list): a list with integers with the number of neurons in hidden layers 
+        nLatents (list): a list with integers with a size of the latent dimension
+        nDropout (list): a list with floats with dropout probabilities applied after each nonlinearity in encoder and decoder
+        nBeta (list): a list with floats with beta values (Multiplies KLD by the inverse of this value)
+        repeat (int): integer of the number of times to train the model with the same configuration
+        nepochs (int): integer of number of epochs to train the model (received by optimize_reconstruction() function)
+        nLayers (list): a list with integers with the number of layers
+        batch_sizes (list): a list with ints with batch sizes
+        lrate (float): float of learning rate to train the model
+        kldsteps (list): a list with integers corresponding to epochs when kld is decreased by the selected rate
+        batchsteps (list): a list with integers corresponding to epochs when batch size is increased
+        cuda (bool): boolean if train model on GPU; if False - trains on CPU. 
+        path (str): str of the pathway to directory where hyperparameter tuning results are saved        
+        cat_list (list): list with input data of categorical data type
+        con_list (list): list with input data of continuous data type        
+        continuous_weights (list): list of ints of weights for each continuous dataset
+        categorical_weights (list): list of ints of weights for each categorical dataset
+        seed (int): int of seed number
+    Returns:
+        embeddings (Defaultdict): Keys: set of hyperparameter values; values: np.array of VAE latent representation of input dataset reduced to 2 dimensions by UMAP 
+        latents (Defaultdict): Keys: set of hyperparameter values; values: np.array of VAE latent representation of input dataset
+        con_recons (Defaultdict): Keys: set of hyperparameter values; values: VAE reconstructions of continuous input data 
+        cat_recons (Defaultdict): Keys: set of hyperparameter values; values: VAE reconstructions of categorical input data 
+        recon_acc (Defaultdict): Keys: hyperparameter values. Values: list of reconstruction accuracies for each of the dataset as values
     """ 
     
     models, latents, embeddings, con_recons, cat_recons, recon_acc, los, likelihood = initiate_default_dicts(1, 7)
@@ -256,31 +257,30 @@ def train_model_association(path, cuda, nepochs, nLatents, batch_sizes, nHidden,
     """
     Trains models with different number of latent spaces and evaluates the effects of selected data type
    
-    inputs:
-        path: str of the pathway to the directory where hyperparameter tuning results are saved  
-        cuda: boolean if train model on GPU; if False - trains on CPU. 
-        nepochs: integer of number of epochs to train the model (received by optimize_reconstruction() function)
+    Args:
+        path (str): str of the pathway to the directory where hyperparameter tuning results are saved  
+        cuda (bool): boolean if train model on GPU; if False - trains on CPU. 
+        nepochs (int): integer of number of epochs to train the model (received by optimize_reconstruction() function)
         
-        nLatents: a list with integers with a size of the latent dimension    
-        batch_sizes: int with batch size
-        nHidden: int with the number of neurons in hidden layers 
-        nl: int with the number of layers
-        nBeta: float with beta value (Multiplies KLD by the inverse of this value)        
-        drop: float with dropout probability applied after each nonlinearity in encoder and decoder
-        con_list: list with input data of continuous data type   
-        cat_list: list with input data of categorical data type
-        continuous_weights: list of ints of weights for each continuous dataset
-        categorical_weights: list of ints of weights for each categorical dataset
-        version: str corresponding to subdirectory name where the results will be saved
-        repeats: integer of the number of times to train the model with the same configuration
-        kldsteps: a list with integers corresponding to epochs when kld is decreased by the selected rate
-        batchsteps: a list with integers corresponding to epochs when batch size is increased
-
-        lrate: a float of learning rate to train the model
-        drug: an np.array of data whose features are changed to test their effects
-        categorical_names: list of strings of categorical data names
-        data_of_interest: str of data type name whose features are changed to test their effects
-        seed: int of seed number  
+        nLatents (list): a list with integers with a size of the latent dimension    
+        batch_sizes (int): int with batch size
+        nHidden (int): int with the number of neurons in hidden layers 
+        nl (int): int with the number of layers
+        nBeta (float): float with beta value (Multiplies KLD by the inverse of this value)        
+        drop (float): float with dropout probability applied after each nonlinearity in encoder and decoder
+        con_list (list): list with input data of continuous data type   
+        cat_list (list): list with input data of categorical data type
+        continuous_weights (list): list of ints of weights for each continuous dataset
+        categorical_weights (list): list of ints of weights for each categorical dataset
+        version (str): str corresponding to subdirectory name where the results will be saved
+        repeats (int): integer of the number of times to train the model with the same configuration
+        kldsteps (list): a list with integers corresponding to epochs when kld is decreased by the selected rate
+        batchsteps (list): a list with integers corresponding to epochs when batch size is increased
+        lrate (float): a float of learning rate to train the model
+        drug (np.array): an np.array of data whose features are changed to test their effects
+        categorical_names (list): list of strings of categorical data names
+        data_of_interest (str): str of data type name whose features are changed to test their effects
+        seed (int): int of seed number  
     """
         
     # For data saving results
@@ -325,37 +325,37 @@ def train_model(cat_list, con_list, categorical_weights, continuous_weights, bat
     """
     Performs hyperparameter tuning for stability
     
-    inputs:
-        cat_list: list with input data of categorical data type
-        con_list: list with input data of continuous data type  
-        categorical_weights: list of ints of weights for each categorical dataset
-        continuous_weights: list of ints of weights for each continuous dataset
-        batch_sizes: a list with ints with batch sizes
-        nHiddens: a list with integers with the number of neurons in hidden layers 
-        nLayers: a list with integers with the number of layers
-        nLatents: a list with integers with a size of the latent dimension    
-        nBeta: a list with floats with beta values (Multiplies KLD by the inverse of this value)        
-        nDropout: a list with floats with dropout probabilities applied after each nonlinearity in encoder and decoder
-        cuda: boolean if train model on GPU; if False - trains on CPU. 
-        kldsteps: a list with integers corresponding to epochs when kld is decreased by the selected rate
-        batchsteps: a list with integers corresponding to epochs when batch size is increased
-        nepochs: integer of number of epochs to train the model
-        lrate: a float of learning rate to train the model
-        seed: int of seed number       
-        test_loader: Dataloader with test dataset 
-        patience: int corresponding to the number of epochs to wait before early stop if no progress on the validation set 
-        early_stopping: boolean if use early stopping 
-    returns:
-        best_model: model object that had lowest loss on test set
-        loss: list of losses on train set during the training
-        ce: list of Binary cross-entropy losses on categorical data of train set during the training
-        sse: list of sum of squared estimate of errors on continuous data of train set during the training
-        KLD: list of KLD losses on train set during the training
-        train_loader: Dataloader of training set
-        kld_w: float of KLD weight
-        cat_shapes: list of tuple (npatient, nfeatures, ncategories) corresponding to categorical data shapes.
-        con_shapes: list of ints corresponding to a number of features each continuous data type have 
-        best_epoch: int of epoch that had the lowest loss on test set. 
+    Args:
+        cat_list (list): list with input data of categorical data type
+        con_list (list): list with input data of continuous data type  
+        categorical_weights (list): list of ints of weights for each categorical dataset
+        continuous_weights (list): list of ints of weights for each continuous dataset
+        batch_sizes (list): a list with ints with batch sizes
+        nHiddens (list): a list with integers with the number of neurons in hidden layers 
+        nLayers (list): a list with integers with the number of layers
+        nLatents (list): a list with integers with a size of the latent dimension    
+        nBeta (list): a list with floats with beta values (Multiplies KLD by the inverse of this value)        
+        nDropout (list): a list with floats with dropout probabilities applied after each nonlinearity in encoder and decoder
+        cuda (bool): boolean if train model on GPU; if False - trains on CPU. 
+        kldsteps (list): a list with integers corresponding to epochs when kld is decreased by the selected rate
+        batchsteps (list): a list with integers corresponding to epochs when batch size is increased
+        nepochs (int): integer of number of epochs to train the model
+        lrate (float): a float of learning rate to train the model
+        seed (int): int of seed number       
+        test_loader (Dataloader): Dataloader with test dataset 
+        patience (int): int corresponding to the number of epochs to wait before early stop if no progress on the validation set 
+        early_stopping (bool): boolean if use early stopping 
+    Returns:
+        best_model (object): model object that had lowest loss on test set
+        loss (list): list of losses on train set during the training
+        ce (list): list of Binary cross-entropy losses on categorical data of train set during the training
+        sse (list): list of sum of squared estimate of errors on continuous data of train set during the training
+        KLD (list): list of KLD losses on train set during the training
+        train_loader (Dataloader): Dataloader of training set
+        kld_w (float): float of KLD weight
+        cat_shapes (list): list of tuple (npatient, nfeatures, ncategories) corresponding to categorical data shapes.
+        con_shapes (list): list of ints corresponding to a number of features each continuous data type have 
+        best_epoch (int): int of epoch that had the lowest loss on test set. 
     """ 
     device = torch.device("cuda" if cuda == True else "cpu")
     

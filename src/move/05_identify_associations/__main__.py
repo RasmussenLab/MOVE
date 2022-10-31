@@ -64,7 +64,7 @@ def main(base_config: MOVEConfig):
     train_model_association(processed_data_path, cuda, nepochs, nLatents, batch_sizes, nHiddens, nLayers, nBeta, nDropout, con_list, cat_list, continuous_weights, categorical_weights, version, repeats, kld_steps, batch_steps, lrate, drug, categorical_names, data_of_interest, seed)
     
     # Loading the saved files by train_model_association() - for using the results without the need to rerun the function
-    results, recon_results, groups, mean_bas = read_saved_files(nLatents, repeats, processed_data_path, version, drug)
+    results, recon_results, groups, mean_bas = read_saved_files(nLatents, repeats, processed_data_path, version)
     
     ### Starting the analysis
     cor_results = correction_new(results)

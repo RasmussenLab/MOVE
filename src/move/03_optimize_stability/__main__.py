@@ -3,7 +3,7 @@ import hydra
 from move.conf.schema import MOVEConfig
 
 from move.training.train import optimize_stability
-from move.utils.data_utils import get_data, get_list_value, merge_configs, make_and_save_best_stability_params
+from move.utils.data_utils import get_data, merge_configs, make_and_save_best_stability_params
 from move.utils.visualization_utils import draw_boxplot
 from move.utils.analysis import get_top10_stability, calculate_latent
 from move.utils.logger import get_logger

@@ -62,20 +62,27 @@ for i in range(10):
 def summary_plot(shap_values, features=None, feature_names=None, max_display=None, plot_type="dot",
                  color=None, axis_color="#333333", title=None, alpha=1, show=True, sort=True,
                  color_bar=True, auto_size_plot=True, layered_violin_max_num_bins=50, class_names=None, size = 10):
-    """Create a SHAP summary plot, colored by feature values when they are provided.
-    Parameters
-    ----------
-    shap_values : numpy.array
-        Matrix of SHAP values (# samples x # features)
-    features : numpy.array or pandas.DataFrame or list
-        Matrix of feature values (# samples x # features) or a feature_names list as shorthand
-    feature_names : list
-        Names of the features (length # features)
-    max_display : int
-        How many top features to include in the plot (default is 20, or 7 for interaction plots)
-    plot_type : "dot" (default) or "violin"
-        What type of summary plot to produce
     """
+    Create a SHAP summary plot, colored by feature values when they are provided.
+
+    Args:
+        shap_values (np.array): Matrix of SHAP values (# samples x # features)
+        features (np.array or pd.DataFrame or list, optional): Matrix of feature values (# samples x # features) or a feature_names list as shorthand. Defaults to None.
+        feature_names (list, optional): Names of the features (length # features). Defaults to None.
+        max_display (int, optional): How many top features to include in the plot (default is 20, or 7 for interaction plots). Defaults to None.
+        plot_type (str, optional): What type of summary plot to produce. Defaults to "dot".   
+        color (str, optional): color for a plot. Defaults to None.
+        axis_color (str, optional): color for axis. Defaults to "#333333".
+        title (str, optional): #Not used in the function. Defaults to None. 
+        alpha (float, optional): The alpha blending value, between 0 (transparent) and 1 (opaque). Defaults to 1.
+        show (bool, optional): whether to show plot. Defaults to True.
+        sort (bool, optional): #Not used in the function. Defaults to True.
+        color_bar (bool, optional): Draw color bar. Defaults to True.
+        auto_size_plot (bool, optional): autosize plot. Defaults to True.
+        layered_violin_max_num_bins (int, optional): maximum number of bins for layered violin. Defaults to 50.
+        class_names (list, optional): features names. Defaults to None.
+        size (int, optional): size for the plot (if auto_size_plot=True). Defaults to 10.
+    """    
     
     multi_class = False
     if isinstance(shap_values, list):

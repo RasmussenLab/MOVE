@@ -16,29 +16,31 @@ from move.utils import dataloaders
 
 def get_latent(best_model, train_loader, test_loader, kld_w):
     """
-    Gets prediction results of trained models on train and test sets  
-    
-    inputs:
-        best_model: trained VAE model object
-        train_loader: Dataloader of training set
-        test_loader: Dataloader of testing set
-        kld_w: float of KLD weight
-    returns:
-        con_recon: np.array of VAE reconstructions of continuous training data
-        latent: np.array of VAE latent representation of training data (mu values) 
-        latent_var: np.array of VAE latent representation of training data (logvar values)
-        cat_recon: np.array VAE reconstructions of categorical training data
-        cat_class: np.array of target values of categorical training data  
-        loss: float of total loss on train set
-        likelihood: float of sum of BCE (for categorical data) and SSE (for continuous data) losses for training data
-        latent_test: np.array of VAE latent representation of testing data (mu values) 
-        latent_var_test: np.array of VAE latent representation of testing data (logvar values)
-        cat_recon_test: np.array VAE reconstructions of categorical testing data
-        cat_class_test: np.array of target values of categorical testing data 
-        con_recon_test: np.array of VAE reconstructions of continuous testing data
-        loss_test: float of total loss on testing set 
-        likelihood_test: float of sum of BCE (for categorical data) and SSE (for continuous data) losses for testing data
-    """ 
+    Gets prediction results of trained models on train and test sets
+
+    Args:
+        best_model (object): trained VAE model object
+        train_loader (Dataloader):  Dataloader of training set
+        test_loader (Dataloader): Dataloader of testing set
+        kld_w (float): float of KLD weight
+
+    Returns:
+        (tuple): a tuple containing:
+            con_recon (np.array): np.array of VAE reconstructions of continuous training data
+            latent (np.array): np.array of VAE latent representation of training data (mu values) 
+            latent_var (np.array): np.array of VAE latent representation of training data (logvar values)
+            cat_recon (np.array): np.array VAE reconstructions of categorical training data
+            cat_class (np.array): np.array of target values of categorical training data  
+            loss (float): float of total loss on train set
+            likelihood (float): float of sum of BCE (for categorical data) and SSE (for continuous data) losses for training data
+            latent_test (np.array): np.array of VAE latent representation of testing data (mu values) 
+            latent_var_test (np.array): np.array of VAE latent representation of testing data (logvar values)
+            cat_recon_test (np.array): np.array VAE reconstructions of categorical testing data
+            cat_class_test (np.array): np.array of target values of categorical testing data 
+            con_recon_test (np.array): np.array of VAE reconstructions of continuous testing data
+            loss_test (float): float of total loss on testing set 
+            likelihood_test (float): float of sum of BCE (for categorical data) and SSE (for continuous data) losses for testing data
+    """
     
     # Get training set results
     train_test_loader = DataLoader(dataset=train_loader.dataset, batch_size=1, drop_last=False, shuffle=False)
@@ -58,25 +60,27 @@ def get_latent(best_model, train_loader, test_loader, kld_w):
 
 def cal_recon(cat_shapes, cat_recon, cat_class, train_loader, con_recon, con_shapes, cat_recon_test, cat_class_test, test_loader, con_recon_test):
     """
-    Calculates reconstruction accuracy for categorical and continuous data types for training and test datasets
-    
-    inputs:
-        cat_shapes: list of tuple (npatient, nfeatures, ncategories) corresponding to categorical data shapes.
-        cat_recon: np.array VAE reconstructions of categorical training data
-        cat_class: np.array of target values of categorical training data
-        train_loader: Dataloader of training set
-        con_recon: np.array of VAE reconstructions of continuous training data
-        con_shapes: list of ints corresponding to a number of features each continuous data type have
-        cat_recon_test: np.array VAE reconstructions of categorical testing data
-        cat_class_test: np.array of target values of categorical testing data
-        test_loader: Dataloader of testing set
-        con_recon_test: np.array of VAE reconstructions of continuous testing data
-    returns:
-        cat_true_recon: list of floats of reconstruction accuracies for training sets for categorical data types 
-        true_recon: list of floats of reconstruction accuracies for training sets for continuous data types
-        cat_true_recon_test: list of floats of reconstruction accuracies for testing sets for continuous data types
-        true_recon_test: list of floats of reconstruction accuracies for testing sets for continuous data types
-    """
+    _summary_
+
+    Args:
+        cat_shapes (list[tuple]): list of tuple (npatient, nfeatures, ncategories) corresponding to categorical data shapes.
+        cat_recon (np.array): np.array VAE reconstructions of categorical training data
+        cat_class (np.array): np.array of target values of categorical training data
+        train_loader (Dataloader): Dataloader of training set
+        con_recon (np.array): np.array of VAE reconstructions of continuous training data
+        con_shapes (list[int]): list of ints corresponding to a number of features each continuous data type have
+        cat_recon_test (np.array): np.array VAE reconstructions of categorical testing data
+        cat_class_test (np.array): np.array of target values of categorical testing data
+        test_loader (Dataloader): Dataloader of testing set
+        con_recon_test (np.array): np.array of VAE reconstructions of continuous testing data
+
+    Returns:
+        (tuple): a tuple containing:
+            cat_true_recon (list[float]): list of floats of reconstruction accuracies for training sets for categorical data types 
+            true_recon (list[float]): list of floats of reconstruction accuracies for training sets for continuous data types
+            cat_true_recon_test (list[float]): list of floats of reconstruction accuracies for testing sets for continuous data types
+            true_recon_test (list[float]): list of floats of reconstruction accuracies for testing sets for continuous data types
+    """    
     
     cat_true_recon = cal_cat_recon(cat_shapes, cat_recon, cat_class)
     con_true_recon = cal_con_recon(train_loader, con_recon, con_shapes)
@@ -89,15 +93,15 @@ def cal_recon(cat_shapes, cat_recon, cat_class, train_loader, con_recon, con_sha
 def cal_cat_recon(cat_shapes, cat_recon, cat_class):
     """
     Calculates reconstruction accuracy for categorical data
-     
-    inputs:
-        cat_shapes: list of tuple (npatient, nfeatures, ncategories) corresponding to categorical data shapes.
-        cat_recon: np.array VAE reconstructions of categorical training data
-        cat_class: np.array of target values of categorical training data
-        train_loader: Dataloader of training set
-    returns:
-        cat_true_recon: list of floats of reconstruction accuracies of categorical data types
-    """
+
+    Args:
+        cat_shapes (list[tuple]): (npatient, nfeatures, ncategories) corresponding to categorical data shapes.
+        cat_recon (np.array): VAE reconstructions of categorical training data
+        cat_class (np.array): target values of categorical training data
+
+    Returns:
+        list[float]: reconstruction accuracies of categorical data types
+    """    
     
     cat_true_recon = []
     cat_total_recon = []
@@ -124,14 +128,15 @@ def cal_cat_recon(cat_shapes, cat_recon, cat_class):
 def cal_con_recon(train_loader, con_recon, con_shapes):
     """
     Calculates reconstruction accuracy for data of continuous data types
-    
-    inputs:
-        train_loader: Dataloader of training set
-        con_recon: np.array of VAE reconstructions of continuous training data
-        con_shapes: list of ints corresponding to a number of features each continuous data type have
-    returns: 
-        con_true_recon: list of floats of reconstruction accuracies for continuous data types
-    """
+
+    Args:
+        train_loader (Dataloader): Dataloader of training set
+        con_recon (np.array): np.array of VAE reconstructions of continuous training data
+        con_shapes (list[int]): list of ints corresponding to a number of features each continuous data type have
+
+    Returns:
+        list[float]: list of floats of reconstruction accuracies for continuous data types
+    """    
     total_shape = 0
     con_true_recon = []
     cos_values = []
@@ -169,16 +174,17 @@ def cal_con_recon(train_loader, con_recon, con_shapes):
 def get_baseline(model, train_loader, con_recon, repeat=25, kld_w=0):
     """
     Calculates mean means of reconstruction differences 
-    
-    inputs:
-        model: trained VAE model object
-        train_loader: Dataloader of training set
-        con_recon: np.array of VAE reconstructions of continuous training data
-        repeat: int of number of times repeat propagation through the network in the forward direction
-        kld_w: float of KLD weight
-    returns: 
-        baseline_mean: np.array of floats with means of reconstruction differences between forwards of network
-    """
+
+    Args:
+        model (object): trained VAE model object
+        train_loader (Dataloader): Dataloader of training set
+        con_recon (np.array): np.array of VAE reconstructions of continuous training data
+        repeat (int, optional): number of times repeat propagation through the network in the forward direction. Defaults to 25.
+        kld_w (float, optional): KLD weight. Defaults to 0.
+
+    Returns:
+        np.array: np.array of floats with means of reconstruction differences between forwards of network
+    """   
     
     recon_diff_baseline = list()
     for r in range(repeat):
@@ -249,20 +255,22 @@ def change_drug_atc(train_loader, trans_table, con_recon, drug, types = [[1,0]],
 def change_drug(model, train_loader, con_recon, drug, data_start, data_end, kld_w, types = [[1,0]]):
     """
     Calculates mean means of reconstruction differences when changing a label of a drug
-    
-    inputs:
-        model: trained VAE model object
-        train_loader: Dataloader of training set
-        con_recon: np.array of VAE reconstructions of continuous training data
-        drug: an np.array of data whose features are changed to test their effects 
-        data_start: int corresponding to the index where features of data type of interest starts in input dataset
-        data_end: int corresponding to the index where features of data type of interest ends in input dataset
-        kld_w: float of KLD weight
-        types: list of list of ints corresponding to categories in a data class
-    returns: 
-        recon_diff_con_none (dict): {latents: {repeat: {drug: np.array of changes in continuous data when label of drug is flipped}}
-        none_groups: dict, keys int of feature index of continuous input data, values: list of booleans. TODO:
-    """
+
+    Args:
+        model (object): trained VAE model object
+        train_loader (Dataloader): Dataloader of training set
+        con_recon (np.array): np.array of VAE reconstructions of continuous training data
+        drug (np.array): an np.array of data whose features are changed to test their effects
+        data_start (int): int corresponding to the index where features of data type of interest starts in input dataset
+        data_end (int): int corresponding to the index where features of data type of interest ends in input dataset
+        kld_w (float): KLD weight
+        types (list, optional): list of list of ints corresponding to categories in a data class. Defaults to [[1,0]].
+
+    Returns:
+        (tuple): a tuple containing:
+            recon_diff_con_none (dict): {latents: {repeat: {drug: np.array of changes in continuous data when label of drug is flipped}}
+            none_groups (dict): keys int of feature index of continuous input data, values (list of booleans): TODO:
+    """  
     types = np.array(types)
     
     recon_diff_con_none = dict()
@@ -299,17 +307,18 @@ def change_drug(model, train_loader, con_recon, drug, data_start, data_end, kld_
 def cal_sig_hits(recon_diff_con_none, none_groups, drug, baseline_mean, con_all, types = [[1,0]]):
     """
     Calculates mean means of reconstruction differences when changing a label of a drug
-    
-    inputs:
-        recon_diff_con_none: dictionary, where keys: int of feature index of continuous input data, values: floats of reconstruction differences when in the input data changing to a label of drug
-        none_groups: dict, keys int of feature index of continuous input data, values: list of booleans
-        drug: an np.array of data whose features are changed to test their effects
-        baseline_mean: np.array of floats with means of reconstruction differences between forwards of network
-        con_all:  TODO
-        types: list of list of ints corresponding to categories in a data class
-    returns: 
-        none_stats: TODO
-    """
+
+    Args:
+        recon_diff_con_none (dict): keys: int of feature index of continuous input data, values: floats of reconstruction differences when in the input data changing to a label of drug
+        none_groups (dict): keys int of feature index of continuous input data, values: list of booleans TODO
+        drug (np.array): an np.array of data whose features are changed to test their effects
+        baseline_mean (np.array): np.array of floats with means of reconstruction differences between forwards of network
+        con_all (np.array): np.array for data of continuous data type
+        types (list, optional): list of list of ints corresponding to categories in a data class. Defaults to [[1,0]].
+
+    Returns:
+        list: TODO
+    """  
     
     data_shapes = drug.shape
     none_avg = list()
@@ -346,14 +355,15 @@ def cal_sig_hits(recon_diff_con_none, none_groups, drug, baseline_mean, con_all,
     return none_stats
 
 def correction_new(results):
-    '''
+    """
     Corrects for multiple comparisons problem using bonferroni correction.
-    
-    Inputs:
-        results: TODO
+
+    Args:
+        results(dict): TODO
+
     Returns:
-        new_results: TODO
-    '''
+        DefaultDict: TODO
+    """
     
     new_results = defaultdict(dict)
     for l in results:
@@ -373,15 +383,17 @@ def get_start_end_positions(
 ) -> Tuple[int, int]:
     """
     Gets start and end indexes where features of a data type of interest are in the input dataset
-    
-    inputs:
-        cat_list: list with input data of categorical data type
-        categorical_names: list of strings of categorical data names
-        data_of_interest: str of data type name whose features are changed to test their effects
-    returns: 
-        start: int corresponding to the index where features of data type of interest starts in input dataset
-        end: int corresponding to the index where features of data type of interest ends in input dataset
-    """
+
+    Args:
+        cat_list (List[np.ndarray]): list with input data of categorical data type
+        categorical_names (List[str]): list of strings of categorical data names
+        data_of_interest (str): str of data type name whose features are changed to test their effects
+
+    Returns:
+        (tuple): a tuple containing:
+            start (int): the index where features of data type of interest starts in input dataset
+            end (int): the index where features of data type of interest ends in input dataset
+    """ 
     i = categorical_names.index(data_of_interest)
     # assuming every item in cat_list has 3 dimensions
     shapes = [0] + [int.__mul__(*data.shape[1:]) for data in cat_list]

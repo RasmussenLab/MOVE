@@ -7,14 +7,9 @@ Welcome to move-dl's documentation!
 ===================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   pages/installation
+   pages/tutorial
+   pages/api/API

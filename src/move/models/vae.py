@@ -12,6 +12,30 @@ from move.core.typing import FloatArray
 logger = logging.getLogger('vae.py')
 
 class VAE(nn.Module):
+    """
+    Variational autoencoder.
+
+    Args:
+        categorical_shapes (Optional[list[tuple]], optional): shape of the different continuous datasets if any. Defaults to None.
+        continuous_shapes (Optional[list[tuple]], optional): shape of the different categorical datasets if any. Defaults to None.
+        categorical_weights (Optional[list[int]], optional): list of weights for each categorical dataset. Defaults to None.
+        continuous_weights (Optional[list[int]], optional): list of weights for each continuous dataset. Defaults to None.
+        num_hidden (list[int], optional): List of n_neurons in the hidden layers. Defaults to [200, 200].
+        num_latent (int, optional): Number of neurons in the latent layer. Defaults to 20.
+        beta (float, optional): Multiply KLD by the inverse of this value. Defaults to 0.01.
+        dropout (float, optional): Probability of dropout on forward pass. Defaults to 0.2.
+        cuda (bool, optional): Use CUDA (GPU accelerated training). Defaults to False.
+
+    Raises:
+        ValueError: Minimum 1 latent unit
+        ValueError: Beta must be greater than zero.
+        ValueError: Dropout must be between zero and one.
+        ValueError: Shapes of the input data must be provided.
+        ValueError: Number of continuous weights must be the same as number of continuous datasets
+        ValueError: Number of categorical weights must be the same as number of categorical datasets
+    """    
+
+
     """Variational autoencoder.
 
     Instantiate with:
@@ -44,6 +68,7 @@ class VAE(nn.Module):
         dropout: float = 0.2,
         cuda: bool = False,
     ):
+ 
         if num_latent < 1:
             raise ValueError(f"Minimum 1 latent unit. Input was {num_latent}.")
 
@@ -134,6 +159,17 @@ class VAE(nn.Module):
         self.out = nn.Linear(self.num_hidden[0], self.input_size)  # to output
 
     def encode(self, x):
+        """
+        Encodes the data in the data loader and returns the encoded matrix.
+
+        Args:
+            x (torch.Tensor): input data
+
+        Returns:
+            (tuple): a tuple containing:
+                (torch.Tensor): mean latent vector 
+                (torch.Tensor): mean log-variance vector
+        """        
         # Hidden layers
         for encoderlayer, encodernorm in zip(self.encoderlayers, self.encodernorms):
             x = encoderlayer(x)
@@ -144,12 +180,32 @@ class VAE(nn.Module):
         return self.mu(x), self.var(x)
 
     def reparameterize(self, mu, logvar):
+        """
+        Performs reparametrization trick
+
+        Args:
+            mu (torch.Tensor): mean latent vector 
+            logvar (torch.Tensor): mean log-variance vector
+
+        Returns:
+            torch.Tensor: sample from latent space distribution
+        """        
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
 
         return eps.mul(std).add_(mu)
 
     def decompose_categorical(self, reconstruction):
+        """
+        Returns list of final reconstructions (after applying 
+        log-softmax to the outputs of decoder) of each categorical class
+
+        Args:
+            reconstruction (torch.Tensor): results of final layer of the decoder
+
+        Returns:
+            list: list of final reconstructions of each categorical class
+        """        
         cat_tmp = reconstruction.narrow(1, 0, self.num_categorical)
 
         # handle soft max for each categorical dataset
@@ -170,6 +226,17 @@ class VAE(nn.Module):
         return cat_out
 
     def decode(self, x):
+        """
+        _summary_
+
+        Args:
+            x (torch.Tensor): sample from latent space distribution
+
+        Returns:
+            (tuple): a tuple containing:
+                cat_out (list): list of reconstructions of every categorical data class
+                con_out (torch.Tensor): reconstruction of continuous data 
+        """        
         for decoderlayer, decodernorm in zip(self.decoderlayers, self.decodernorms):
             x = decoderlayer(x)
             x = self.relu(x)
@@ -195,6 +262,19 @@ class VAE(nn.Module):
         return cat_out, con_out
 
     def forward(self, tensor):
+        """
+        Forward propagate through the VAE network
+
+        Args:
+            tensor (torch.Tensor): input data
+
+        Returns:
+            (tuple): a tuple containing:
+                cat_out (list): list of reconstructions of every categorical data class
+                con_out (torch.Tensor): reconstructions of continuous data  
+                mu (torch.Tensor): mean latent vector 
+                logvar (torch.Tensor): mean log-variance vector
+        """        
         mu, logvar = self.encode(tensor)
         z = self.reparameterize(mu, logvar)
         cat_out, con_out = self.decode(z)
@@ -202,6 +282,16 @@ class VAE(nn.Module):
         return cat_out, con_out, mu, logvar
 
     def calculate_cat_error(self, cat_in, cat_out):
+        """
+        Calulates errors (cross-entropy) for categorical data reconstructions
+
+        Args:
+            cat_in (torch.Tensor): input categorical data
+            cat_out (list): list of reconstructions of every categorical data class
+
+        Returns:
+            torch.Tensor: Errors (cross-entropy) for categorical data reconstructions
+        """        
         batch_size = cat_in.shape[0]
 
         # calcualte target values for all cat datasets
@@ -229,6 +319,17 @@ class VAE(nn.Module):
         return cat_errors
 
     def calculate_con_error(self, con_in, con_out, loss):
+        """
+        Calulates errors (MSE) for continuous data reconstructions
+
+        Args:
+            con_in (torch.tensor): input continuous data
+            con_out (torch.tensor): reconstructions of continuous data
+            loss (torch.nn.modules.loss): loss function
+
+        Returns:
+            MSE (torch.Tensor): loss
+        """        
         batch_size = con_in.shape[0]
         total_shape = 0
         con_errors = []
@@ -246,6 +347,26 @@ class VAE(nn.Module):
 
     # Reconstruction + KL divergence losses summed over all elements and batch
     def loss_function(self, cat_in, cat_out, con_in, con_out, mu, logvar, kld_w):
+        """
+        Calculates the loss for data reconstructions
+
+        Args:
+            cat_in (torch.Tensor): input categorical data
+            cat_out (list): list of reconstructions of every categorical data class
+            con_in (torch.Tensor): input continuous data
+            con_out (torch.Tensor): reconstructions of continuous data
+            mu (torch.Tensor): mean latent vector 
+            logvar (torch.Tensor): mean log-variance vector
+            kld_w (float): kld weight
+
+        Returns:
+            (tuple): a tuple containing:
+                torch.Tensor: total loss on train set during the training of the epoch
+                torch.Tensor: BCE loss on train set during the training of the epoch
+                torch.Tensor: SSE loss on train set during the training of the epoch
+                torch.Tensor: KLD loss on train set during the training of the epoch
+        """       
+
         MSE = 0
         CE = 0
         # calculate loss for catecorical data if in the input
@@ -282,6 +403,22 @@ class VAE(nn.Module):
         return loss, CE, MSE, KLD * KLD_weight
 
     def encoding(self, train_loader, epoch, lrate, kld_w):
+        """
+        One iteration of VAE
+
+        Args:
+            train_loader (Dataloader): Dataloader with train dataset
+            epoch (int): the epoch
+            lrate (float): learning rate for the model
+            kld_w (float): float of KLD weight
+
+        Returns:
+            (tuple): a tuple containing:
+                torch.Tensor: total loss on train set during the training of the epoch
+                torch.Tensor: BCE loss on train set during the training of the epoch
+                torch.Tensor: SSE loss on train set during the training of the epoch
+                torch.Tensor: KLD loss on train set during the training of the epoch
+        """        
         self.train()
         train_loss = 0
         log_interval = 50
@@ -344,6 +481,18 @@ class VAE(nn.Module):
         )
 
     def make_cat_recon_out(self, length):
+        """
+        Initiate empty tensors for categorical data
+
+        Args:
+            length (int): number of samples
+
+        Returns:
+            (tuple): a tuple containing:
+                cat_class (torch.Tensor): empty tensor for input categorical data 
+                cat_recon (torch.Tensor): empty tensor for reconstructed categorical data
+                cat_total_shape (int): number of features of linearized one hot categorical data    
+        """        
         cat_total_shape = 0
         for cat_shape in self.categorical_shapes:
             cat_total_shape += cat_shape[1]
@@ -353,6 +502,20 @@ class VAE(nn.Module):
         return cat_class, cat_recon, cat_total_shape
 
     def get_cat_recon(self, batch, cat_total_shape, cat, cat_out):
+        """
+        Generates categorical input and reconstruction data
+
+        Args:
+            batch (int): number of samples in the batch
+            cat_total_shape (int): number of features of linearized one hot categorical data 
+            cat (torch.Tensor): input categorical data
+            cat_out (torch.Tensor): reconstructed categorical data
+
+        Returns:
+            (tuple): a tuple containing:
+                cat_out_class (np.array): reconstructed categorical data 
+                cat_target (np.array): input categorical data 
+        """        
         count = 0
         cat_out_class = torch.empty((batch, cat_total_shape)).int()
         cat_target = torch.empty((batch, cat_total_shape)).int()
@@ -388,6 +551,15 @@ class VAE(nn.Module):
 
 
     def _validate_batch(self, batch: tuple[torch.Tensor, torch.Tensor]) -> torch.Tensor:
+        """
+        Returns the batch of categorical and continuous data if they are not None
+
+        Args:
+            batch (tuple[torch.Tensor, torch.Tensor]): batches of categorical and continuous data 
+
+        Returns:
+            torch.Tensor: a formed batch 
+        """        
         cat, con = batch
         if self.num_categorical is None:
             return con
@@ -399,14 +571,15 @@ class VAE(nn.Module):
     def project(
         self, dataloader: DataLoader
     ) -> FloatArray:
-        """Generates an embedding of the data contained in the DataLoader.
+        """
+        Generates an embedding of the data contained in the DataLoader.
 
         Args:
-            dataloader: A DataLoader with categorical or continuous data
+            dataloader (DataLoader): A DataLoader with categorical or continuous data
 
         Returns:
-            Embedding
-        """
+            FloatArray: Embedding
+        """    
         self.eval()
         embedding = []
         for batch in dataloader:
@@ -421,15 +594,16 @@ class VAE(nn.Module):
     def reconstruct(
         self, dataloader: DataLoader
     ) -> tuple[list[FloatArray], FloatArray]:
-        """Generates a reconstruction of the data contained in the DataLoader.
+        """
+        Generates a reconstruction of the data contained in the DataLoader.
 
         Args:
-            dataloader: A DataLoader with categorical or continuous data
+            dataloader (DataLoader): A DataLoader with categorical or continuous data
 
         Returns:
-            A list of categorical reconstructions and the continuous
+            tuple[list[FloatArray], FloatArray]: A list of categorical reconstructions and the continuous
             reconstruction
-        """
+        """    
         self.eval()
         cat_recons = [[] for _ in range(len(self.categorical_shapes))]
         con_recons = []
@@ -446,6 +620,24 @@ class VAE(nn.Module):
 
     @torch.no_grad()
     def latent(self, dataloader: DataLoader, kld_weight: float):
+        """
+        Iterate through validation or test dataset
+
+        Args:
+            dataloader (DataLoader): Dataloader with test dataset
+            kld_weight (float): KLD weight
+
+        Returns:
+            (tuple): a tuple containing:   
+                latent (np.array):
+                latent_var (np.array): array of VAE latent space mean vectors values
+                cat_recon (np.array): array of VAE latent space logvar vectors values
+                cat_class (np.array): input categorical data 
+                con_recon (np.array): reconstructions of continuous data
+                test_loss (float): total loss on test set
+                test_likelihood (float): total likelihood on test set
+        """        
+
         self.eval()
         test_loss = 0
         test_likelihood = 0

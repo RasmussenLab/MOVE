@@ -91,7 +91,7 @@ def identify_associations(config: MOVEConfig):
     num_samples = len(cast(Sized, train_dataloader.sampler))  # N
 
     con_shapes = [con.shape[1] for con in con_list]
-    _, baseline_dataloader = make_dataloader(
+    baseline_dataloader = make_dataloader(
         cat_list, con_list, shuffle=False, batch_size=num_samples
     )
     dataloaders = perturb_categorical_data(

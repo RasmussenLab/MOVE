@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 __license__ = "MIT"
-__version__ = (1, 2, 0)
+__version__ = (1, 2, 1)
 __all__ = ["conf", "data", "models", "training_loop", "VAE"]
 
+HYDRA_VERSION_BASE = "1.2"
 
 from move import conf, data, models
 from move.models.vae import VAE

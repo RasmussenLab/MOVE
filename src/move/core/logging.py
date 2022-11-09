@@ -2,13 +2,14 @@ import logging
 from pathlib import Path
 
 
-def get_logger(name):
+def get_logger(name: str):
     """Return a logger with the specified name. The logger writes messages to
     a log file and the console.
 
     Args:
-        name: name of the logger. If it contains a dot, only the succeeding
-        substring is used (e.g., `foo.bar` => `bar`).
+        name:
+            Name of the logger. If it contains a dot, only the succeeding
+            substring is used (e.g., `foo.bar` => `bar`).
 
     Returns:
         Logger

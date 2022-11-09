@@ -1,6 +1,5 @@
-__all__ = ["MOVEDataset", "make_dataloader"]
+__all__ = ["MOVEDataset", "make_dataset", "make_dataloader", "split_samples"]
 
-from functools import reduce
 from typing import Optional
 
 import numpy as np
@@ -82,19 +81,7 @@ class MOVEDataset(TensorDataset):
 
 def concat_cat_list(
     cat_list: list[FloatArray],
-) -> tuple[list[tuple[int, ...]], BoolArray, FloatArray]:
-    """
-    Concatenate a list of categorical data
-
-    Args:
-        cat_list (list[FloatArray]): list with each categorical class data
-
-    Returns:
-        (tuple): a tuple containing:
-            cat_shapes (list[tuple[int, ...]]): list of categorical data classes shapes (N_patients, N_variables, N_max-classes)
-            mask (BoolArray):  mask for patients with no measurments
-            cat_all (FloatArray): 2D array of concatenated patients categorical data
-    """  
+) -> tuple[list[tuple[int, ...]], FloatArray]:
     cat_shapes = []
     cat_flat = []
     for cat in cat_list:
@@ -102,73 +89,112 @@ def concat_cat_list(
         cat_flat.append(cat.reshape(cat.shape[0], -1))
     cat_all = np.concatenate(cat_flat, axis=1)
     mask = cat_all.sum(axis=1) > 5  # True if row sum is greater than 5
-    return cat_shapes, mask, cat_all
+    return cat_shapes, cat_all
 
 
 def concat_con_list(
     con_list: list[FloatArray],
-) -> tuple[list[int], BoolArray, FloatArray]:
-    """
-    Concatenate a list of continuous data
-
-    Args:
-        con_list (list[FloatArray]): list with each continuous class data
-
-    Returns:
-        (tuple): a tuple containing:
-            n_con_shapes (list[int]): list of continuous data classes shapes (in 1D) (N_variables)
-            mask (BoolArray):  mask for patients with no measurments
-            con_all (FloatArray): 2D array of concatenated patients continuous data
-    """    
+) -> tuple[list[int], FloatArray]:
     con_shapes = [con.shape[1] for con in con_list]
     con_all: FloatArray = np.concatenate(con_list, axis=1)
     mask = con_all.sum(axis=1) != 0  # True if row sum is not zero
-    return con_shapes, mask, con_all
+    return con_shapes, con_all
 
 
-def make_dataloader(
+def make_dataset(
     cat_list: Optional[list[FloatArray]] = None,
     con_list: Optional[list[FloatArray]] = None,
-    **kwargs
-) -> tuple[BoolArray, DataLoader]:
-    """
-    Creates a DataLoader that combines categorical and continuous datasets.
+    mask: Optional[BoolArray] = None,
+) -> MOVEDataset:
+    """Creates a dataset that combines categorical and continuous datasets.
 
     Args:
-        cat_list: list of categorical datasets (# samples x # features
-        x # classes). Defaults to None.
-        con_list: list of continuous datasets (# samples x # features).
-        Defaults to None.
-        **kwargs: Arguments to pass to the DataLoader (e.g., batch size)
+        cat_list:
+            List of categorical datasets (`num_samples` x `num_features`
+            x `num_categories`). Defaults to None.
+        con_list:
+            List of continuous datasets (`num_samples` x `num_features`).
+            Defaults to None.
+        mask:
+            Boolean array to mask samples. Defaults to None.
 
     Raises:
         ValueError: If both inputs are None
 
     Returns:
-        (tuple): a tuple containing:
-            mask (BoolArray): mask to remove rows (samples) with all zeros
-            dataloader (Dataloader): Dataloader
+        MOVEDataset
     """
     if cat_list is None and con_list is None:
         raise ValueError("At least one type of data must be in the input")
 
-    cat_shapes, cat_mask, cat_all = [None] * 3
+    cat_shapes, cat_all = None, None
     if cat_list:
-        cat_shapes, cat_mask, cat_all = concat_cat_list(cat_list)
+        cat_shapes, cat_all = concat_cat_list(cat_list)
 
-    con_shapes, con_mask, con_all = [None] * 3
+    con_shapes, con_all = None, None
     if con_list:
-        con_shapes, con_mask, con_all = concat_con_list(con_list)
+        con_shapes, con_all = concat_con_list(con_list)
 
-    mask: BoolArray = reduce(
-        np.logical_and, [mask for mask in [cat_mask, con_mask] if mask is not None]
-    )
     if cat_all is not None:
-        cat_all = torch.from_numpy(cat_all[mask])
+        cat_all = torch.from_numpy(cat_all)
+        if mask is not None:
+            cat_all = cat_all[mask]
 
     if con_all is not None:
-        con_all = torch.from_numpy(con_all[mask])
+        con_all = torch.from_numpy(con_all)
+        if mask is not None:
+            con_all = con_all[mask]
 
-    dataset = MOVEDataset(cat_all, con_all, cat_shapes, con_shapes)
-    dataloader = DataLoader(dataset, **kwargs)
-    return mask, dataloader
+    return MOVEDataset(cat_all, con_all, cat_shapes, con_shapes)
+
+
+def make_dataloader(
+    cat_list: Optional[list[FloatArray]] = None,
+    con_list: Optional[list[FloatArray]] = None,
+    mask: Optional[BoolArray] = None,
+    **kwargs
+) -> DataLoader:
+    """Creates a DataLoader that combines categorical and continuous datasets.
+
+    Args:
+        cat_list:
+            List of categorical datasets (`num_samples` x `num_features`
+            x `num_categories`). Defaults to None.
+        con_list:
+            List of continuous datasets (`num_samples` x `num_features`).
+            Defaults to None.
+        mask:
+            Boolean array to mask samples. Defaults to None.
+        **kwargs:
+            Arguments to pass to the DataLoader (e.g., batch size)
+
+    Raises:
+        ValueError: If both inputs are None
+
+    Returns:
+        DataLoader
+    """
+    dataset = make_dataset(cat_list, con_list, mask)
+    return DataLoader(dataset, **kwargs)
+
+
+def split_samples(
+    num_samples: int,
+    train_frac: float,
+) -> BoolArray:
+    """Generate mask to randomly split samples into training and test sets.
+
+    Args:
+        num_samples: Number of samples to split.
+        train_frac: Fraction of samples corresponding to training set.
+
+    Returns:
+        Boolean array to mask test samples.
+    """
+    sample_ids = np.arange(num_samples)
+    train_size = int(train_frac * num_samples)
+
+    rng = np.random.default_rng()
+    train_ids = rng.permutation(sample_ids)[:train_size]
+
+    return np.isin(sample_ids, train_ids)

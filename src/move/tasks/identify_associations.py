@@ -17,7 +17,7 @@ from move.conf.schema import (
     MOVEConfig,
 )
 from move.core.logging import get_logger
-from move.core.typing import IntArray, FloatArray
+from move.core.typing import FloatArray, IntArray
 from move.data import io
 from move.data.dataloaders import MOVEDataset, make_dataloader
 from move.data.perturbations import perturb_categorical_data
@@ -81,18 +81,17 @@ def identify_associations(config: MOVEConfig):
         f"Target value: {task_config.target_value} => {target_value.astype(int)[0]}"
     )
 
-    train_mask, train_dataloader = make_dataloader(
+    train_dataloader = make_dataloader(
         cat_list,
         con_list,
         shuffle=True,
         batch_size=task_config.batch_size,
         drop_last=True,
     )
-    logger.debug(f"Masked training samples: {np.sum(~train_mask)}/{train_mask.size}")
     num_samples = len(cast(Sized, train_dataloader.sampler))  # N
 
     con_shapes = [con.shape[1] for con in con_list]
-    _, baseline_dataloader = make_dataloader(
+    baseline_dataloader = make_dataloader(
         cat_list, con_list, shuffle=False, batch_size=num_samples
     )
     dataloaders = perturb_categorical_data(
@@ -295,8 +294,8 @@ def identify_associations(config: MOVEConfig):
         b_df.reset_index(inplace=True)
         results = results.merge(a_df, on="feature_a_id").merge(b_df, on="feature_b_id")
         results["feature_b_dataset"] = pd.cut(
-            results["feature_b_id"],
-            bins=np.cumsum([0] + con_shapes),
+            cast(IntArray, results["feature_b_id"].values),
+            bins=cast(list[int], np.cumsum([0] + con_shapes)),
             right=False,
             labels=config.data.continuous_names,
         )

@@ -2,16 +2,17 @@ __all__ = [
     "MOVEConfig",
     "EncodeDataConfig",
     "AnalyzeLatentConfig",
+    "TuneModelConfig",
     "IdentifyAssociationsConfig",
     "IdentifyAssociationsBayesConfig",
     "IdentifyAssociationsTTestConfig",
 ]
 
 from dataclasses import dataclass, field
+from typing import Any, Optional
 
 from hydra.core.config_store import ConfigStore
-from omegaconf import OmegaConf, MISSING
-from typing import Any, Optional
+from omegaconf import MISSING, OmegaConf
 
 from move.models.vae import VAE
 from move.training.training_loop import training_loop
@@ -29,44 +30,22 @@ class InputConfig:
 
 @dataclass
 class DataConfig:
-    user_conf: str = MISSING
-    na_value: str = MISSING
     raw_data_path: str = MISSING
     interim_data_path: str = MISSING
     processed_data_path: str = MISSING
-    headers_path: str = MISSING
-    version: str = MISSING
-    ids_file_name: str = MISSING
-    ids_has_header: bool = MISSING
-    ids_colname: str = MISSING
     sample_names: str = MISSING
     categorical_inputs: list[InputConfig] = MISSING
     continuous_inputs: list[InputConfig] = MISSING
-    data_of_interest: str = MISSING
     categorical_names: list[str] = MISSING
     continuous_names: list[str] = MISSING
     categorical_weights: list[int] = MISSING
     continuous_weights: list[int] = MISSING
-    data_features_to_visualize_notebook4: list[str] = MISSING
-    write_omics_results_notebook5: list[str] = MISSING
 
 
 @dataclass
 class ModelConfig:
     _target_: str = MISSING
     cuda: bool = MISSING
-
-
-@dataclass
-class VAEConfigDeprecated(ModelConfig):
-    user_conf: str = MISSING
-    seed: int = MISSING
-    cuda: bool = MISSING
-    lrate: float = MISSING
-    num_epochs: int = MISSING
-    patience: int = MISSING
-    kld_steps: list[int] = MISSING
-    batch_steps: list[int] = MISSING
 
 
 @dataclass
@@ -81,57 +60,6 @@ class VAEConfig(ModelConfig):
     beta: float = MISSING
     dropout: float = MISSING
     cuda: bool = False
-
-
-@dataclass
-class TuningReconstructionConfig:
-    user_config: str
-    num_hidden: list[int]
-    num_latent: list[int]
-    num_layers: list[int]
-    beta: list[float]
-    dropout: list[float]
-    batch_sizes: list[int]
-    repeats: int
-    max_param_combos_to_save: int
-
-
-@dataclass
-class TuningStabilityConfig:
-    user_config: str
-    num_hidden: list[int]
-    num_latent: list[int]
-    num_layers: list[int]
-    beta: list[float]
-    dropout: list[float]
-    batch_sizes: list[int]
-    repeat: int
-    tuned_num_epochs: int
-
-
-@dataclass
-class TrainingLatentConfig:
-    user_config: str
-    num_hidden: int
-    num_latent: int
-    num_layers: int
-    dropout: float
-    beta: float
-    batch_sizes: int
-    tuned_num_epochs: int
-
-
-@dataclass
-class TrainingAssociationConfig:
-    user_config: str
-    num_hidden: int
-    num_latent: list[int]
-    num_layers: int
-    dropout: float
-    beta: float
-    batch_sizes: int
-    repeats: int
-    tuned_num_epochs: int
 
 
 @dataclass
@@ -170,6 +98,13 @@ class EncodeDataConfig(TaskConfig):
 
 
 @dataclass
+class TuneModelConfig(TaskConfig):
+    """Configure the "tune model" task."""
+
+    ...
+
+
+@dataclass
 class AnalyzeLatentConfig(TaskConfig):
     """Configure the "analyze latents" task.
 
@@ -189,7 +124,7 @@ class IdentifyAssociationsConfig(TaskConfig):
         target_dataset:
             Name of categorical dataset to perturb.
         target_value:
-            The value to change to. It should be a category name. 
+            The value to change to. It should be a category name.
         num_refits:
             Number of times to refit the model.
         sig_threshold:
@@ -236,12 +171,7 @@ class MOVEConfig:
     defaults: list[Any] = field(default_factory=lambda: [dict(data="base_data")])
     data: DataConfig = MISSING
     task: TaskConfig = MISSING
-    model: VAEConfigDeprecated = MISSING
-    tune_reconstruction: TuningReconstructionConfig = MISSING
-    tune_stability: TuningStabilityConfig = MISSING
-    train_latent: TrainingLatentConfig = MISSING
-    train_association: TrainingAssociationConfig = MISSING
-    name: str = MISSING
+    seed: Optional[int] = None
 
 
 def extract_weights(configs: list[InputConfig]) -> list[int]:
@@ -261,6 +191,11 @@ cs.store(
     group="task",
     name="encode_data",
     node=EncodeDataConfig,
+)
+cs.store(
+    group="task",
+    name="tune_model_schema",
+    node=TuneModelConfig,
 )
 cs.store(
     group="task",

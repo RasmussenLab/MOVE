@@ -9,12 +9,11 @@ import os
 
 
 def set_global_seed(seed: Optional[int]) -> None:
-    """
-    Sets global seed
+    """Seed the random number generators.
 
     Args:
-        seed (Optional[int]): integer for seed
-    """    
+        seed: Seed for global random state.
+    """
     if seed is None:
         return
     random.seed(seed) #

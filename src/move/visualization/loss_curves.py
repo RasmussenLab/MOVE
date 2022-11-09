@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from move.visualization.style import (
-    DEFAULT_QUALITATIVE_PALETTE,
     DEFAULT_PLOT_STYLE,
+    DEFAULT_QUALITATIVE_PALETTE,
     color_cycle,
     style_settings,
 )

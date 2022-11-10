@@ -89,27 +89,9 @@ def feature_min_max(x: np.ndarray) -> tuple[FloatArray,FloatArray] :
 
     Returns:
         minimum: list with minimum value per feature (column)
-        maximum: list with maximum  " "
-               
-
-
-def feature_min_max(x: np.ndarray) -> tuple[FloatArray,FloatArray] :
-    """
-    Read an array of continuous values and extract the 
-    minimum and maximum per column (feature).
-
-    Args:
-        x: 2D array with samples in its rows and features in its columns
-
-    Returns:
-        minimum: list with minimum value per feature (column)
-        maximum: list with maximum  " "
-
-    """
-    minimum = np.nanmin(x, axis=0)
-    maximum = np.nanmax(x, axis=0)
-    return minimum, maximum
-    """
+        maximum: list with maximum  " "    
+    """    
+    
     minimum = np.nanmin(x, axis=0)
     maximum = np.nanmax(x, axis=0)
     return minimum, maximum

@@ -7,6 +7,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from move.data.dataloaders import MOVEDataset
+from move.data.preprocessing import feature_min_max
 
 
 def perturb_categorical_data(
@@ -110,4 +111,58 @@ def perturb_continuous_data(
         )
         dataloaders.append(perturbed_dataloader)
 
+    return dataloaders
+
+def perturb_continuous_data_extended(
+    baseline_dataloader: DataLoader,
+    con_dataset_names: list[str],
+    target_dataset_name: str,
+    perturbation_type: str,
+) -> list[DataLoader]:
+    """Add perturbations to continuous data. For each feature in the target
+    dataset, change the value to its minimum or maximum for all samples.
+
+    Args:
+        baseline_dataloader: Baseline dataloader
+        con_dataset_names: List of continuous dataset names
+        target_dataset_name: Target continuous dataset to perturb
+        perturbation_type: 'minimum' or 'maximum'.
+
+    Returns:
+        List of dataloaders containing all perturbed datasets
+    """
+
+    baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
+    assert baseline_dataset.con_shapes is not None
+    assert baseline_dataset.con_all is not None
+
+    target_idx = con_dataset_names.index(target_dataset_name) # dataset index 
+    splits = np.cumsum([0] + baseline_dataset.con_shapes)
+    slice_ = slice(*splits[target_idx : target_idx + 2])
+
+    num_features = baseline_dataset.con_shapes[target_idx]
+    dataloaders = []
+    for i in range(num_features):
+        perturbed_con = baseline_dataset.con_all.clone()
+        perturbed_con = perturbed_con[:, slice_]
+        # Change the desired feature by its standardized minimum value or maximum value
+        min_feat_val_list, max_feat_val_list= feature_min_max(perturbed_con)
+        if perturbation_type == 'minimum':
+            perturbed_con[:, i] = torch.FloatTensor([min_feat_val_list[i]])
+        elif perturbation_type == 'maximum':
+            perturbed_con[:, i] = torch.FloatTensor([max_feat_val_list[i]])
+
+        perturbed_dataset = MOVEDataset(
+            baseline_dataset.cat_all,
+            perturbed_con,
+            baseline_dataset.cat_shapes,
+            baseline_dataset.con_shapes,
+        )
+
+        perturbed_dataloader = DataLoader(
+            perturbed_dataset,
+            shuffle=False,
+            batch_size=baseline_dataloader.batch_size,
+        )
+        dataloaders.append(perturbed_dataloader)
     return dataloaders

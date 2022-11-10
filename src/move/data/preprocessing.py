@@ -9,7 +9,6 @@ from sklearn.preprocessing import scale as standardize
 
 from move.core.typing import BoolArray, FloatArray, IntArray
 
-
 def _category_name(value: Any) -> str:
     return value if isinstance(value, str) else str(int(value))
 
@@ -79,3 +78,21 @@ def scale(x: np.ndarray) -> tuple[FloatArray, BoolArray]:
     scaled_x = standardize(logx[:, mask_1d], axis=0)
     scaled_x[np.isnan(scaled_x)] = 0
     return scaled_x, mask_1d
+
+
+def feature_min_max(x: np.ndarray) -> tuple[FloatArray,FloatArray] :
+    """
+    Read an array of continuous values and extract the 
+    minimum and maximum per column (feature).
+
+    Args:
+        x: 2D array with samples in its rows and features in its columns
+
+    Returns:
+        minimum: list with minimum value per feature (column)
+        maximum: list with maximum  " "
+
+    """
+    minimum = np.nanmin(x, axis=0)
+    maximum = np.nanmax(x, axis=0)
+    return minimum, maximum

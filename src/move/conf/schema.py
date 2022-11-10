@@ -159,6 +159,7 @@ class IdentifyAssociationsConfig(TaskConfig):
     num_refits: int = MISSING
     sig_threshold: float = 0.05
     save_refits: bool = False
+    perturbation_continuous: str = MISSING
 
 
 @dataclass

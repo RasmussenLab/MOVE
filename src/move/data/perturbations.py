@@ -87,7 +87,7 @@ def perturb_continuous_data(
     assert baseline_dataset.con_shapes is not None
     assert baseline_dataset.con_all is not None
 
-    target_idx = con_dataset_names.index(target_dataset_name)
+    target_idx = con_dataset_names.index(target_dataset_name) 
     splits = np.cumsum([0] + baseline_dataset.con_shapes)
     slice_ = slice(*splits[target_idx : target_idx + 2])
 
@@ -159,10 +159,12 @@ def perturb_continuous_data_extended(
             baseline_dataset.con_shapes,
         )
 
+        print('H')
         perturbed_dataloader = DataLoader(
             perturbed_dataset,
             shuffle=False,
             batch_size=baseline_dataloader.batch_size,
         )
         dataloaders.append(perturbed_dataloader)
+        print('G')
     return dataloaders

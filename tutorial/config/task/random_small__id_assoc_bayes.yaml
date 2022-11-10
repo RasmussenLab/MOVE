@@ -6,8 +6,8 @@ batch_size: 10
 
 num_refits: 40
 
-target_dataset: random.small.drugs
-target_value: 1
+target_dataset: random.small.proteomics
+target_value: minimum
 save_refits: True
 
 model:

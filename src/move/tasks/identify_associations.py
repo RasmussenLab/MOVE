@@ -383,6 +383,7 @@ def identify_associations_continuous(config: MOVEConfig):
         mean_diff = np.zeros((num_perturbed, num_samples, num_continuous))
         normalizer = 1 / task_config.num_refits
         for j in range(task_config.num_refits):
+            print("{}/{}".format(j,task_config.num_refits))
             # Initialize model
             model: VAE = hydra.utils.instantiate(
                 task_config.model,

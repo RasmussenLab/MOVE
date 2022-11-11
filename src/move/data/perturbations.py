@@ -142,13 +142,14 @@ def perturb_continuous_data_extended(
     dataloaders = []
     for i in range(num_features):
         perturbed_con = baseline_dataset.con_all.clone()
-        perturbed_con = perturbed_con[:, slice_]
+        #print("Perturbed con shape", np.sum(perturbed_con))
+        target_dataset = perturbed_con[:, slice_]
         # Change the desired feature by its standardized minimum value or maximum value
-        min_feat_val_list, max_feat_val_list= feature_min_max(perturbed_con)
+        min_feat_val_list, max_feat_val_list= feature_min_max(target_dataset)
         if perturbation_type == 'minimum':
-            perturbed_con[:, i] = torch.FloatTensor([min_feat_val_list[i]])
+            target_dataset[:, i] = torch.FloatTensor([min_feat_val_list[i]])
         elif perturbation_type == 'maximum':
-            perturbed_con[:, i] = torch.FloatTensor([max_feat_val_list[i]])
+            target_dataset[:, i] = torch.FloatTensor([max_feat_val_list[i]])
 
         perturbed_dataset = MOVEDataset(
             baseline_dataset.cat_all,
@@ -157,12 +158,11 @@ def perturb_continuous_data_extended(
             baseline_dataset.con_shapes,
         )
 
-        print('H')
         perturbed_dataloader = DataLoader(
             perturbed_dataset,
             shuffle=False,
             batch_size=baseline_dataloader.batch_size,
         )
         dataloaders.append(perturbed_dataloader)
-        print('G')
+
     return dataloaders

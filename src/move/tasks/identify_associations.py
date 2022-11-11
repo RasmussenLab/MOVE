@@ -67,7 +67,7 @@ def identify_associations_categorical(config: MOVEConfig):
     logger = get_logger(__name__)
     task_config = cast(IdentifyAssociationsConfig, config.task)
     task_type = _get_task_type(task_config)
-    logger.info(f"Beginning task: identify associations ({task_type})")
+    logger.info(f"Beginning task: identify associations categorical ({task_type})")
     _validate_task_config(task_config, task_type)
 
     interim_path = Path(config.data.interim_data_path)
@@ -321,7 +321,7 @@ def identify_associations_continuous(config: MOVEConfig):
     logger = get_logger(__name__)
     task_config = cast(IdentifyAssociationsConfig, config.task)
     task_type = _get_task_type(task_config)
-    logger.info(f"Beginning task: identify associations ({task_type})")
+    logger.info(f"Beginning task: identify associations continuous ({task_type})")
     _validate_task_config(task_config, task_type)
 
     interim_path = Path(config.data.interim_data_path)
@@ -410,10 +410,8 @@ def identify_associations_continuous(config: MOVEConfig):
 
             # Calculate baseline reconstruction
             _, baseline_recon = model.reconstruct(baseline_dataloader)
-            print(np.shape(baseline_dataloader))
             # Calculate perturb reconstruction => keep track of mean difference
             for i in range(num_perturbed):
-                print(np.shape(dataloaders[i]))
                 _, perturb_recon = model.reconstruct(dataloaders[i])
                 diff = perturb_recon - baseline_recon  # 2D: N x C
                 mean_diff[i, :, :] += diff * normalizer

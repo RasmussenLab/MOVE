@@ -14,30 +14,6 @@ logger = logging.getLogger("vae.py")
 
 
 class VAE(nn.Module):
-    """
-    Variational autoencoder.
-
-    Args:
-        categorical_shapes (Optional[list[tuple]], optional): shape of the different continuous datasets if any. Defaults to None.
-        continuous_shapes (Optional[list[tuple]], optional): shape of the different categorical datasets if any. Defaults to None.
-        categorical_weights (Optional[list[int]], optional): list of weights for each categorical dataset. Defaults to None.
-        continuous_weights (Optional[list[int]], optional): list of weights for each continuous dataset. Defaults to None.
-        num_hidden (list[int], optional): List of n_neurons in the hidden layers. Defaults to [200, 200].
-        num_latent (int, optional): Number of neurons in the latent layer. Defaults to 20.
-        beta (float, optional): Multiply KLD by the inverse of this value. Defaults to 0.01.
-        dropout (float, optional): Probability of dropout on forward pass. Defaults to 0.2.
-        cuda (bool, optional): Use CUDA (GPU accelerated training). Defaults to False.
-
-    Raises:
-        ValueError: Minimum 1 latent unit
-        ValueError: Beta must be greater than zero.
-        ValueError: Dropout must be between zero and one.
-        ValueError: Shapes of the input data must be provided.
-        ValueError: Number of continuous weights must be the same as number of continuous datasets
-        ValueError: Number of categorical weights must be the same as number of categorical datasets
-    """    
-
-
     """Variational autoencoder.
 
     Instantiate with:
@@ -51,11 +27,13 @@ class VAE(nn.Module):
         dropout: Probability of dropout on forward pass [0.2]
         cuda: Use CUDA (GPU accelerated training) [False]
 
-    vae.trainmodel(dataloader, nepochs batchsteps, lrate, logfile, modelfile)
-        Trains the model, returning None
-
-    vae.encode(self, data_loader):
-        Encodes the data in the data loader and returns the encoded matrix.
+    Raises:
+        ValueError: Minimum 1 latent unit
+        ValueError: Beta must be greater than zero.
+        ValueError: Dropout must be between zero and one.
+        ValueError: Shapes of the input data must be provided.
+        ValueError: Number of continuous weights must be the same as number of continuous datasets
+        ValueError: Number of categorical weights must be the same as number of categorical datasets
     """
 
     def __init__(
@@ -229,7 +207,7 @@ class VAE(nn.Module):
 
     def decode(self, x):
         """
-        _summary_
+        Decode to the input space from the latent space
 
         Args:
             x (torch.Tensor): sample from latent space distribution
@@ -330,8 +308,8 @@ class VAE(nn.Module):
             loss (torch.nn.modules.loss): loss function
 
         Returns:
-            MSE (torch.Tensor): loss
-        """        
+            torch.Tensor: MSE loss
+        """
         batch_size = con_in.shape[0]
         total_shape = 0
         con_errors = []
@@ -562,10 +540,10 @@ class VAE(nn.Module):
         Returns the batch of categorical and continuous data if they are not None
 
         Args:
-            batch (tuple[torch.Tensor, torch.Tensor]): batches of categorical and continuous data 
+            batch: batches of categorical and continuous data
 
         Returns:
-            torch.Tensor: a formed batch 
+            a formed batch
         """        
         cat, con = batch
         if self.num_categorical is None:
@@ -601,10 +579,10 @@ class VAE(nn.Module):
         Generates a reconstruction of the data contained in the DataLoader.
 
         Args:
-            dataloader (DataLoader): A DataLoader with categorical or continuous data
+            dataloader: A DataLoader with categorical or continuous data
 
         Returns:
-            tuple[list[FloatArray], FloatArray]: A list of categorical reconstructions and the continuous
+            A list of categorical reconstructions and the continuous
             reconstruction
         """    
         self.eval()
@@ -626,8 +604,8 @@ class VAE(nn.Module):
         Iterate through validation or test dataset
 
         Args:
-            dataloader (DataLoader): Dataloader with test dataset
-            kld_weight (float): KLD weight
+            dataloader: Dataloader with test dataset
+            kld_weight: KLD weight
 
         Returns:
             (tuple): a tuple containing:   

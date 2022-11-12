@@ -14,10 +14,10 @@ class MOVEDataset(TensorDataset):
     Characterizes a dataset for PyTorch
 
     Args:
-        cat_all (torch.Tensor, optional): categorical input matrix (N_patients, N_variables x N_max-classes. Defaults to None.
-        con_all (torch.Tensor, optional): normalized continuous input matrix (N_patients, N_variables). Defaults to None.
-        cat_shapes (list, optional): list of tuples correspoding to number of features (N_variables, N_max-classes) of each categorical class. Defaults to None.
-        con_shapes (list, optional): list of tuples correspoding to number of features (N_variables) of each continuous class. Defaults to None.
+        cat_all: categorical input matrix (N_patients, N_variables x N_max-classes.
+        con_all: normalized continuous input matrix (N_patients, N_variables).
+        cat_shapes: list of tuples correspoding to number of features (N_variables, N_max-classes) of each categorical class.
+        con_shapes: list of tuples correspoding to number of features (N_variables) of each continuous class.
 
     Raises:
         ValueError: Number of samples between categorical and continuous datasets must match.

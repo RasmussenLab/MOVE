@@ -73,6 +73,19 @@ class MOVEDataset(TensorDataset):
 def concat_cat_list(
     cat_list: list[FloatArray],
 ) -> tuple[list[tuple[int, ...]], FloatArray]:
+    """
+    Concatenate a list of categorical data
+    Args:
+        cat_list: list with each categorical class data
+    Returns:
+        (tuple): a tuple containing:
+            cat_shapes:
+                list of categorical data classes shapes (N_samples,
+                N_variables, N_max-classes)
+            cat_all (FloatArray):
+                2D array of concatenated patients categorical data
+    """
+
     cat_shapes = []
     cat_flat = []
     for cat in cat_list:
@@ -86,6 +99,17 @@ def concat_cat_list(
 def concat_con_list(
     con_list: list[FloatArray],
 ) -> tuple[list[int], FloatArray]:
+    """
+    Concatenate a list of continuous data
+    Args:
+        con_list (list[FloatArray]): list with each continuous class data
+    Returns:
+        (tuple): a tuple containing:
+            n_con_shapes:
+                list of continuous data classes shapes (in 1D) (N_variables)
+            con_all:
+                2D array of concatenated patients continuous data
+    """
     con_shapes = [con.shape[1] for con in con_list]
     con_all: FloatArray = np.concatenate(con_list, axis=1)
     mask = con_all.sum(axis=1) != 0  # True if row sum is not zero

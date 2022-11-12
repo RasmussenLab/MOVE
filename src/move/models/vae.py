@@ -63,7 +63,7 @@ class VAE(nn.Module):
         if continuous_shapes is None and categorical_shapes is None:
             raise ValueError("Shapes of the input data must be provided.")
 
-        num_categorical = sum([int.__mul__(*shape[1:]) for shape in categorical_shapes])
+        num_categorical = sum([int.__mul__(*shape) for shape in categorical_shapes])
         num_continuous = sum(continuous_shapes)
 
         self.input_size = 0
@@ -194,16 +194,16 @@ class VAE(nn.Module):
         cat_out = []
         pos = 0
         for cat_shape in self.categorical_shapes:
-            cat_dataset = cat_tmp[:, pos : (cat_shape[1] * cat_shape[2] + pos)]
+            cat_dataset = cat_tmp[:, pos : (cat_shape[0] * cat_shape[1] + pos)]
 
             cat_out_tmp = cat_dataset.view(
-                cat_dataset.shape[0], cat_shape[1], cat_shape[2]
+                cat_dataset.shape[0], cat_shape[0], cat_shape[1]
             )
             cat_out_tmp = cat_out_tmp.transpose(1, 2)
             cat_out_tmp = self.log_softmax(cat_out_tmp)
 
             cat_out.append(cat_out_tmp)
-            pos += cat_shape[1] * cat_shape[2]
+            pos += cat_shape[0] * cat_shape[1]
 
         return cat_out
 
@@ -287,9 +287,9 @@ class VAE(nn.Module):
         cat_errors = []
         pos = 0
         for cat_shape in self.categorical_shapes:
-            cat_dataset = cat_in[:, pos : (cat_shape[1] * cat_shape[2] + pos)]
+            cat_dataset = cat_in[:, pos : (cat_shape[0] * cat_shape[1] + pos)]
 
-            cat_dataset = cat_dataset.view(cat_in.shape[0], cat_shape[1], cat_shape[2])
+            cat_dataset = cat_dataset.view(cat_in.shape[0], cat_shape[0], cat_shape[1])
             cat_target = cat_dataset
             cat_target = cat_target.argmax(2)
             cat_target[cat_dataset.sum(dim=2) == 0] = -1
@@ -298,10 +298,10 @@ class VAE(nn.Module):
             # Cross entropy loss for categroical
             loss = nn.NLLLoss(reduction="sum", ignore_index=-1)
             cat_errors.append(
-                loss(cat_out[count], cat_target) / (batch_size * cat_shape[1])
+                loss(cat_out[count], cat_target) / (batch_size * cat_shape[0])
             )
             count += 1
-            pos += cat_shape[1] * cat_shape[2]
+            pos += cat_shape[0] * cat_shape[1]
 
         cat_errors = torch.stack(cat_errors)
         return cat_errors
@@ -499,7 +499,7 @@ class VAE(nn.Module):
         """        
         cat_total_shape = 0
         for cat_shape in self.categorical_shapes:
-            cat_total_shape += cat_shape[1]
+            cat_total_shape += cat_shape[0]
 
         cat_class = torch.empty((length, cat_total_shape)).int()
         cat_recon = torch.empty((length, cat_total_shape)).int()
@@ -528,27 +528,27 @@ class VAE(nn.Module):
         shape_1 = 0
         for cat_shape in self.categorical_shapes:
             # Get input categorical data
-            cat_in_tmp = cat[:, pos : (cat_shape[1] * cat_shape[2] + pos)]
-            cat_in_tmp = cat_in_tmp.view(cat.shape[0], cat_shape[1], cat_shape[2])
+            cat_in_tmp = cat[:, pos : (cat_shape[0] * cat_shape[1] + pos)]
+            cat_in_tmp = cat_in_tmp.view(cat.shape[0], cat_shape[0], cat_shape[1])
 
             # Calculate target values for input
             cat_target_tmp = cat_in_tmp
             cat_target_tmp = torch.argmax(cat_target_tmp.detach(), dim=2)
             cat_target_tmp[cat_in_tmp.sum(dim=2) == 0] = -1
             cat_target[
-                :, shape_1 : (cat_shape[1] + shape_1)
+                :, shape_1 : (cat_shape[0] + shape_1)
             ] = cat_target_tmp  # .numpy()
 
             # Get reconstructed categorical data
             cat_out_tmp = cat_out[count]
             cat_out_tmp = cat_out_tmp.transpose(1, 2)
-            cat_out_class[:, shape_1 : (cat_shape[1] + shape_1)] = torch.argmax(
+            cat_out_class[:, shape_1 : (cat_shape[0] + shape_1)] = torch.argmax(
                 cat_out_tmp, dim=2
             )  # .numpy()
 
             # make counts for next dataset
-            pos += cat_shape[1] * cat_shape[2]
-            shape_1 += cat_shape[1]
+            pos += cat_shape[0] * cat_shape[1]
+            shape_1 += cat_shape[0]
             count += 1
 
         cat_target = cat_target.numpy()

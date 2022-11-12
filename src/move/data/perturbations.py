@@ -34,17 +34,18 @@ def perturb_categorical_data(
 
     target_idx = cat_dataset_names.index(target_dataset_name)
     splits = np.cumsum(
-        [0] + [int.__mul__(*shape[1:]) for shape in baseline_dataset.cat_shapes]
+        [0] + [int.__mul__(*shape) for shape in baseline_dataset.cat_shapes]
     )
     slice_ = slice(*splits[target_idx : target_idx + 2])
 
     target_shape = baseline_dataset.cat_shapes[target_idx]
-    num_features = target_shape[1]  # CHANGE
+    num_features = target_shape[0]  # CHANGE
 
     dataloaders = []
     for i in range(num_features):
         perturbed_cat = baseline_dataset.cat_all.clone()
-        target_dataset = perturbed_cat[:, slice_].view(*target_shape)
+        target_dataset = perturbed_cat[:, slice_].view(baseline_dataset.num_samples,
+                                                       *target_shape)
         target_dataset[:, i, :] = torch.FloatTensor(target_value)
         perturbed_dataset = MOVEDataset(
             perturbed_cat,

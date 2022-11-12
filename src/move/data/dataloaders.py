@@ -89,7 +89,8 @@ def concat_cat_list(
     cat_shapes = []
     cat_flat = []
     for cat in cat_list:
-        cat_shapes.append(cat.shape)
+        cat_shape = (cat.shape[1], cat.shape[2])
+        cat_shapes.append(cat_shape)
         cat_flat.append(cat.reshape(cat.shape[0], -1))
     cat_all = np.concatenate(cat_flat, axis=1)
     mask = cat_all.sum(axis=1) > 5  # True if row sum is greater than 5

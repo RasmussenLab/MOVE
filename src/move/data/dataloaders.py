@@ -80,8 +80,8 @@ def concat_cat_list(
     Returns:
         (tuple): a tuple containing:
             cat_shapes:
-                list of categorical data classes shapes (N_samples,
-                N_variables, N_max-classes)
+                list of categorical data classes shapes (N_variables,
+                 N_max-classes)
             cat_all (FloatArray):
                 2D array of concatenated patients categorical data
     """

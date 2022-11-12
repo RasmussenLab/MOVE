@@ -49,28 +49,11 @@ class MOVEDataset(TensorDataset):
         self.con_shapes = con_shapes
 
     def __len__(self) -> int:
-        """
-        Return number of samples samples
-
-        Returns:
-            int: number of samples
-        """  
         return self.num_samples
 
     def __getitem__(
         self, idx: int
     ) -> tuple[Optional[torch.Tensor], Optional[torch.Tensor]]:
-        """
-        Get item based on selected index.
-
-        Args:
-            idx (int): index of item
-
-        Returns:
-            (tuple): a tuple containing:
-                cat_slice (torch.Tensor): categorical features data of selected item
-                con_slice (torch.Tensor): continuous features data of selected item
-        """   
         cat_slice = None if self.cat_all is None else self.cat_all[idx]
         con_slice = None if self.con_all is None else self.con_all[idx]
         return cat_slice, con_slice

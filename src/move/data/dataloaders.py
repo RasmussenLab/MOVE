@@ -13,9 +13,6 @@ class MOVEDataset(TensorDataset):
     """
     Characterizes a dataset for PyTorch
 
-    Attributes:
-        TensorDataset (class): class to represent data as list of tensors
-        
     Args:
         cat_all (torch.Tensor, optional): categorical input matrix (N_patients, N_variables x N_max-classes. Defaults to None.
         con_all (torch.Tensor, optional): normalized continuous input matrix (N_patients, N_variables). Defaults to None.

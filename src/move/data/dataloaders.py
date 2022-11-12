@@ -102,7 +102,7 @@ def concat_con_list(
     """
     Concatenate a list of continuous data
     Args:
-        con_list (list[FloatArray]): list with each continuous class data
+        con_list: list with each continuous class data
     Returns:
         (tuple): a tuple containing:
             n_con_shapes:

@@ -75,7 +75,7 @@ def analyze_latent(config: MOVEConfig) -> None:
 
     raw_data_path = Path(config.data.raw_data_path)
     interim_path = Path(config.data.interim_data_path)
-    output_path = Path(config.data.processed_data_path) / "latent_space"
+    output_path = Path(config.data.results_path) / "latent_space"
     output_path.mkdir(exist_ok=True, parents=True)
 
     logger.debug("Reading data")

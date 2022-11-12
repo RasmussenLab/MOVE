@@ -4,7 +4,7 @@ defaults:
 
 raw_data_path: maize/data/
 interim_data_path: maize/interim_data/
-processed_data_path: maize/results/
+results_path: maize/results/
 
 sample_names: maize_ids
 

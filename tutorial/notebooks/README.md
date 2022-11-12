@@ -49,9 +49,9 @@ data.yaml:
 na_value (str):  the string that corresponds to the NA value in the raw data files
 raw_data_path (str): a pathway to the folder where raw data is located 
 interim_data_path (str): a pathway to the folder where processed raw data will be saved (in .npy format)
-processed_data_path (str): a pathway to the folder where the results will be saved 
+results_path (str): a pathway to the folder where the results will be saved 
 headers_path (str): pathway where the headers for interim_data will be saved
-version (str): name of the subfolder in processed_data_path where the results will be saved
+version (str): name of the subfolder in results_path where the results will be saved
 ids_file_name (str): the name of the file that has data IDs (with the file suffix, e.g. baseline_ids.txt)
 ids_has_header (boolean): if ids_file_name has header 
 ids_colname (str): the name of the column where ids are stored (0 if ids_file_name has no header)

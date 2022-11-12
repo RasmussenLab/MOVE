@@ -50,7 +50,7 @@ def tune_model(config: MOVEConfig) -> float:
     task_config = cast(TuneModelConfig, config.task)
 
     interim_path = Path(config.data.interim_data_path)
-    output_path = Path(config.data.processed_data_path) / "tune_model"
+    output_path = Path(config.data.results_path) / "tune_model"
     output_path.mkdir(exist_ok=True, parents=True)
 
     logger.debug("Reading data")

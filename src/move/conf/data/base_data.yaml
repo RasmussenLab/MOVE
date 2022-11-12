@@ -1,10 +1,10 @@
 
 # raw - for raw data (e.g., TSVs, text)
 # interim - for intermediate data (e.g., NPYs, trained models, latents)
-# processed - for resultsa (e.g., TSVs)
+# processed - for results (e.g., TSVs)
 raw_data_path: data/
 interim_data_path: interim_data/
-processed_data_path: processed_data/  # RENAME 'results_path'
+results_path: processed_data/
 
 sample_names: baseline_ids
 

@@ -14,14 +14,23 @@ class MOVEDataset(TensorDataset):
     Characterizes a dataset for PyTorch
 
     Args:
-        cat_all: categorical input matrix (N_patients, N_variables x N_max-classes.
-        con_all: normalized continuous input matrix (N_patients, N_variables).
-        cat_shapes: list of tuples correspoding to number of features (N_variables, N_max-classes) of each categorical class.
-        con_shapes: list of tuples correspoding to number of features (N_variables) of each continuous class.
+        cat_all:
+            categorical input matrix (N_patients, N_variables x N_max-classes.
+        con_all:
+            normalized continuous input matrix (N_patients, N_variables).
+        cat_shapes:
+            list of tuples correspoding to number of features (N_variables,
+            N_max-classes) of each categorical class.
+        con_shapes:
+            list of tuples correspoding to number of features
+            (N_variables) of each continuous class.
 
     Raises:
-        ValueError: Number of samples between categorical and continuous datasets must match.
-        ValueError: Categorical and continuous data cannot be both empty.
+        ValueError:
+            Number of samples between categorical and continuous datasets must
+            match.
+        ValueError:
+            Categorical and continuous data cannot be both empty.
     """   
     def __init__(
         self,
@@ -41,7 +50,9 @@ class MOVEDataset(TensorDataset):
                     "datasets must match."
                 )
         elif num_samples is None:
-            raise ValueError("Categorical and continuous data cannot be both empty.")
+            raise ValueError(
+                "Categorical and continuous data cannot be both empty."
+            )
         self.num_samples = num_samples
         self.cat_all = cat_all
         self.cat_shapes = cat_shapes

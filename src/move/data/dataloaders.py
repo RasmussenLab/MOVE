@@ -15,14 +15,14 @@ class MOVEDataset(TensorDataset):
 
     Args:
         cat_all:
-            categorical input matrix (N_patients, N_variables x N_max-classes.
+            categorical input matrix (N_samples, N_variables x N_max-classes.
         con_all:
-            normalized continuous input matrix (N_patients, N_variables).
+            normalized continuous input matrix (N_samples, N_variables).
         cat_shapes:
-            list of tuples correspoding to number of features (N_variables,
+            list of tuples corresponding to number of features (N_variables,
             N_max-classes) of each categorical class.
         con_shapes:
-            list of tuples correspoding to number of features
+            list of tuples corresponding to number of features
             (N_variables) of each continuous class.
 
     Raises:

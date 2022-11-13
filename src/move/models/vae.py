@@ -67,14 +67,15 @@ class VAE(nn.Module):
         num_continuous = sum(continuous_shapes)
 
         self.input_size = 0
-        if not (num_continuous is None or continuous_shapes is None):
+        if num_continuous is not None and \
+                continuous_shapes is not None:
             self.num_continuous = num_continuous
             self.input_size += self.num_continuous
             self.continuous_shapes = continuous_shapes
 
-            if not (continuous_weights is None):
+            if continuous_weights is not None:
                 self.continuous_weights = continuous_weights
-                if not len(continuous_shapes) == len(continuous_weights):
+                if len(continuous_shapes) != len(continuous_weights):
                     raise ValueError(
                         "Number of continuous weights must be the same as"
                         " number of continuous datasets"
@@ -82,14 +83,15 @@ class VAE(nn.Module):
         else:
             self.num_continuous = None
 
-        if not (num_categorical is None or categorical_shapes is None):
+        if num_categorical is not None and \
+                categorical_shapes is not None:
             self.num_categorical = num_categorical
             self.input_size += self.num_categorical
             self.categorical_shapes = categorical_shapes
 
-            if not (categorical_weights is None):
+            if categorical_weights is not None:
                 self.categorical_weights = categorical_weights
-                if not len(categorical_shapes) == len(categorical_weights):
+                if len(categorical_shapes) != len(categorical_weights):
                     raise ValueError(
                         "Number of categorical weights must be the same as"
                         " number of categorical datasets"
@@ -249,10 +251,10 @@ class VAE(nn.Module):
             con_out = reconstruction.narrow(
                 1, self.num_categorical, self.num_continuous
             )
-        elif not (self.num_categorical is None):
+        elif self.num_categorical is not None:
             cat_out = self.decompose_categorical(reconstruction)
             con_out = None
-        elif not (self.num_continuous is None):
+        elif self.num_continuous is not None:
             cat_out = None
             con_out = reconstruction.narrow(1, 0, self.num_continuous)
 
@@ -394,9 +396,9 @@ class VAE(nn.Module):
         MSE = 0
         CE = 0
         # calculate loss for catecorical data if in the input
-        if not (cat_out is None):
+        if cat_out is not None:
             cat_errors = self.calculate_cat_error(cat_in, cat_out)
-            if not (self.categorical_weights is None):
+            if self.categorical_weights is not None:
                 CE = torch.sum(
                     cat_errors * torch.Tensor(self.categorical_weights).to(self.device)
                 )
@@ -404,7 +406,7 @@ class VAE(nn.Module):
                 CE = torch.sum(cat_errors) / len(cat_errors)
 
         # calculate loss for continuous data if in the input
-        if not (con_out is None):
+        if con_out is not None:
             batch_size = con_in.shape[0]
             # Mean square error loss for continauous
             loss = nn.MSELoss(reduction="sum")
@@ -412,7 +414,7 @@ class VAE(nn.Module):
             con_out[con_in == 0] == 0
 
             # include different weights for each omics dataset
-            if not (self.continuous_weights is None):
+            if self.continuous_weights is not None:
                 MSE = self.calculate_con_error(con_in, con_out, loss)
             else:
                 MSE = loss(con_out, con_in) / (batch_size * self.num_continuous)
@@ -467,11 +469,12 @@ class VAE(nn.Module):
             cat = cat.to(self.device)
             con = con.to(self.device)
 
-            if not (self.num_categorical is None or self.num_continuous is None):
+            if self.num_categorical is not None and \
+                    self.num_continuous is not None:
                 tensor = torch.cat((cat, con), 1)
-            elif not (self.num_categorical is None):
+            elif self.num_categorical is not None:
                 tensor = cat
-            elif not (self.num_continuous is None):
+            elif self.num_continuous is not None:
                 tensor = con
 
             optimizer.zero_grad()
@@ -486,10 +489,10 @@ class VAE(nn.Module):
             epoch_loss += loss.data.item()
             epoch_kldloss += kld.data.item()
 
-            if not (self.num_continuous is None):
+            if self.num_continuous is not None:
                 epoch_sseloss += sse.data.item()
 
-            if not (self.num_categorical is None):
+            if self.num_categorical is not None:
                 epoch_bceloss += bce.data.item()
 
             optimizer.step()
@@ -697,7 +700,7 @@ class VAE(nn.Module):
         latent_var = torch.empty((num_samples, self.num_latent))
 
         # reconstructed output
-        if not (self.num_categorical is None):
+        if self.num_categorical is not None:
             cat_class, cat_recon, cat_total_shape = self.make_cat_recon_out(num_samples)
         else:
             cat_class = None
@@ -715,11 +718,12 @@ class VAE(nn.Module):
             con = con.to(self.device)
 
             # get dataset
-            if not (self.num_categorical is None or self.num_continuous is None):
+            if self.num_categorical is not None and \
+                    self.num_continuous is not None:
                 tensor = torch.cat((cat, con), 1)
-            elif not (self.num_categorical is None):
+            elif self.num_categorical is not None:
                 tensor = cat
-            elif not (self.num_continuous is None):
+            elif self.num_continuous is not None:
                 tensor = con
 
             # Evaluate
@@ -735,14 +739,14 @@ class VAE(nn.Module):
             test_likelihood += bce + sse
             test_loss += loss.data.item()
 
-            if not (self.num_categorical is None):
+            if self.num_categorical is not None:
                 cat_out_class, cat_target = self.get_cat_recon(
                     batch, cat_total_shape, cat, cat_out
                 )
                 cat_recon[row : row + len(cat_out_class)] = torch.Tensor(cat_out_class)
                 cat_class[row : row + len(cat_target)] = torch.Tensor(cat_target)
 
-            if not (self.num_continuous is None):
+            if self.num_continuous is not None:
                 con_recon[row : row + len(con_out)] = con_out
 
             latent_var[row : row + len(logvar)] = logvar

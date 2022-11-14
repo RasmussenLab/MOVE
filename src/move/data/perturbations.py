@@ -7,7 +7,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from move.data.dataloaders import MOVEDataset
-from move.data.preprocessing import feature_min_max
+from move.data.preprocessing import feature_stats
 
 
 def perturb_categorical_data(
@@ -117,17 +117,26 @@ def perturb_continuous_data_extended(
     target_dataset_name: str,
     perturbation_type: str,
 ) -> list[DataLoader]:
+
     """Add perturbations to continuous data. For each feature in the target
-    dataset, change the value to its minimum or maximum for all samples.
+    dataset, change the feature's value in all patients:
+    1,2) substituting this feature in all samples by the feature's minimum/maximum value.
+    3,4) Adding/Substracting one standard deviation to the sample's feature value.
 
     Args:
         baseline_dataloader: Baseline dataloader
         con_dataset_names: List of continuous dataset names
         target_dataset_name: Target continuous dataset to perturb
-        perturbation_type: 'minimum' or 'maximum'.
+        perturbation_type: 'minimum', 'maximum', 'plus_std' or 'minus_std'.
 
     Returns:
         List of dataloaders containing all perturbed datasets
+
+    Note:
+        Given the previous standardization to zero mean and unit variance,
+        one could add 1 directly to every perturbed value. However, this 
+        function was created so that it could generalize to non-normalized
+        datasets.
     """
 
     baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
@@ -142,14 +151,17 @@ def perturb_continuous_data_extended(
     dataloaders = []
     for i in range(num_features):
         perturbed_con = baseline_dataset.con_all.clone()
-        #print("Perturbed con shape", np.sum(perturbed_con))
         target_dataset = perturbed_con[:, slice_]
-        # Change the desired feature by its standardized minimum value or maximum value
-        min_feat_val_list, max_feat_val_list= feature_min_max(target_dataset)
-        if perturbation_type == 'minimum':
+        # Change the desired feature value by:
+        min_feat_val_list, max_feat_val_list, std_feat_val_list = feature_stats(target_dataset)
+        if perturbation_type == 'minimum': #
             target_dataset[:, i] = torch.FloatTensor([min_feat_val_list[i]])
         elif perturbation_type == 'maximum':
             target_dataset[:, i] = torch.FloatTensor([max_feat_val_list[i]])
+        elif perturbation_type == 'plus_std':
+            target_dataset[:, i] += torch.FloatTensor([std_feat_val_list[i]])
+        elif perturbation_type == 'minus_std':
+            target_dataset[:, i] -= torch.FloatTensor([std_feat_val_list[i]])
 
         perturbed_dataset = MOVEDataset(
             baseline_dataset.cat_all,

@@ -25,7 +25,7 @@ from move.data.preprocessing import one_hot_encode_single
 from move.models.vae import VAE
 
 TaskType = Literal["bayes", "ttest"]
-
+ContinuousTargetValue = ["minimum","maximum","plus_std","minus_std"]
 
 def _get_task_type(
     task_config: IdentifyAssociationsConfig,
@@ -53,10 +53,8 @@ def identify_associations(config: MOVEConfig):
     identification functions."""
 
     task_config = cast(IdentifyAssociationsConfig, config.task)
-    # For continuous target datasets:
-    if task_config.target_value == 'minimum' or task_config.target_value == 'maximum':
+    if task_config.target_value in ContinuousTargetValue:
         identify_associations_continuous(config)
-    # For categorical target datasets
     else:
         identify_associations_categorical(config)
 
@@ -333,6 +331,7 @@ def identify_associations_continuous(config: MOVEConfig):
     task_config = cast(IdentifyAssociationsConfig, config.task)
     task_type = _get_task_type(task_config)
     logger.info(f"Beginning task: identify associations continuous ({task_type})")
+    logger.info(f"Perturbation type: {task_config.target_value}")
     _validate_task_config(task_config, task_type)
 
     interim_path = Path(config.data.interim_data_path)

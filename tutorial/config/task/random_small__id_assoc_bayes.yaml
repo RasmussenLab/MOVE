@@ -4,10 +4,10 @@ defaults:
 
 batch_size: 10
 
-num_refits: 5 # default is 40
+num_refits: 40 # default is 40
 
-target_dataset: random.small.proteomics
-target_value: minimum
+target_dataset: random.small.metagenomics
+target_value: plus_std
 save_refits: True
 
 model:

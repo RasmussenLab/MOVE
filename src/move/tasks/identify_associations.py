@@ -384,7 +384,7 @@ def identify_associations_continuous(config: MOVEConfig):
     logger.debug(f"# NaN values: {np.sum(nan_mask)}/{orig_con.numel()}")
 
     target_dataset_idx = config.data.continuous_names.index(task_config.target_dataset)
-
+    print(task_config.target_dataset)
     def _bayes_approach(
         task_config: IdentifyAssociationsBayesConfig,
     ) -> tuple[IntArray, FloatArray]:
@@ -394,7 +394,7 @@ def identify_associations_continuous(config: MOVEConfig):
         mean_diff = np.zeros((num_perturbed, num_samples, num_continuous))
         normalizer = 1 / task_config.num_refits
         for j in range(task_config.num_refits):
-            print("{}/{}".format(j,task_config.num_refits))
+            print("{}/{}".format(j+1,task_config.num_refits))
             # Initialize model
             model: VAE = hydra.utils.instantiate(
                 task_config.model,
@@ -553,7 +553,7 @@ def identify_associations_continuous(config: MOVEConfig):
         logger.info("Writing results")
         results = pd.DataFrame(sig_ids, columns=["feature_a_id", "feature_b_id"])
         results.sort_values("feature_a_id", inplace=True)
-        a_df = pd.DataFrame(dict(feature_a_name=cat_names[target_dataset_idx]))
+        a_df = pd.DataFrame(dict(feature_a_name=con_names[target_dataset_idx]))
         a_df.index.name = "feature_a_id"
         a_df.reset_index(inplace=True)
         con_names = reduce(list.__add__, con_names)

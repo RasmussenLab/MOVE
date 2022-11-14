@@ -4,7 +4,7 @@ defaults:
 
 batch_size: 10
 
-num_refits: 40
+num_refits: 5 # default is 40
 
 target_dataset: random.small.proteomics
 target_value: minimum

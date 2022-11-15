@@ -22,9 +22,7 @@ from move.core.typing import BoolArray, FloatArray, ObjectArray, PathLike
 
 
 def read_config(
-    data_config_name: Optional[str],
-    task_config_name: Optional[str],
-    *args
+    data_config_name: Optional[str], task_config_name: Optional[str], *args
 ) -> DictConfig:
     """Composes configuration for the MOVE framework.
 
@@ -36,7 +34,7 @@ def read_config(
     Returns:
         Merged configuration
     """
-    overrides=[]
+    overrides = []
     if data_config_name is not None:
         overrides.append(f"data={data_config_name}")
     if task_config_name is not None:

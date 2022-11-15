@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from move.core.typing import BoolArray, FloatArray
 
 
-class MOVEDataset(TensorDataset):    
+class MOVEDataset(TensorDataset):
     """
     Characterizes a dataset for PyTorch
 
@@ -31,7 +31,8 @@ class MOVEDataset(TensorDataset):
             match.
         ValueError:
             Categorical and continuous data cannot be both empty.
-    """   
+    """
+
     def __init__(
         self,
         cat_all: Optional[torch.Tensor] = None,
@@ -50,9 +51,7 @@ class MOVEDataset(TensorDataset):
                     "datasets must match."
                 )
         elif num_samples is None:
-            raise ValueError(
-                "Categorical and continuous data cannot be both empty."
-            )
+            raise ValueError("Categorical and continuous data cannot be both empty.")
         self.num_samples = num_samples
         self.cat_all = cat_all
         self.cat_shapes = cat_shapes

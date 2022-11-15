@@ -44,8 +44,9 @@ def perturb_categorical_data(
     dataloaders = []
     for i in range(num_features):
         perturbed_cat = baseline_dataset.cat_all.clone()
-        target_dataset = perturbed_cat[:, slice_].view(baseline_dataset.num_samples,
-                                                       *target_shape)
+        target_dataset = perturbed_cat[:, slice_].view(
+            baseline_dataset.num_samples, *target_shape
+        )
         target_dataset[:, i, :] = torch.FloatTensor(target_value)
         perturbed_dataset = MOVEDataset(
             perturbed_cat,

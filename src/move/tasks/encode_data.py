@@ -7,6 +7,7 @@ import numpy as np
 from move.conf.schema import DataConfig
 from move.core.logging import get_logger
 from move.data import io, preprocessing
+from move.visualization.dataset_distributions import plot_value_distributions
 
 
 def encode_data(config: DataConfig):
@@ -24,6 +25,8 @@ def encode_data(config: DataConfig):
     raw_data_path.mkdir(exist_ok=True)
     interim_data_path = Path(config.interim_data_path)
     interim_data_path.mkdir(exist_ok=True)
+    output_path = Path(config.processed_data_path) / "encoded_datasets"
+    output_path.mkdir(exist_ok=True, parents=True)
 
     sample_names = io.read_names(raw_data_path / f"{config.sample_names}.txt")
 
@@ -42,8 +45,19 @@ def encode_data(config: DataConfig):
         logger.info(f"Encoding '{dataset_name}'")
         filepath = raw_data_path / f"{dataset_name}.tsv"
         names, values = io.read_tsv(filepath, sample_names)
+
+        # Plotting the value distribution for all continuous datasets before preprocessing:
+        fig = plot_value_distributions(values,names)
+        fig_path = str(output_path / "Value_distribution_{}_unprocessed.png".format(dataset_name))
+        fig.savefig(fig_path, bbox_inches="tight")
+
         values, mask_1d = preprocessing.scale(values)
         names = names[mask_1d]
         logger.debug(f"Columns with zero variance: {np.sum(~mask_1d)}")
         io.dump_names(interim_data_path / f"{dataset_name}.txt", names)
         np.save(interim_data_path / f"{dataset_name}.npy", values)
+
+        # Plotting the value distribution for all continuous datasets:
+        fig = plot_value_distributions(values,names)
+        fig_path = str(output_path / "Value_distribution_{}.png".format(dataset_name))
+        fig.savefig(fig_path, bbox_inches="tight")

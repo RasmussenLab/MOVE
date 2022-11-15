@@ -112,15 +112,3 @@ batch_sizes (int): the size of batches during training
 repeats (int):  times to repeat the training with each hyperparameter configuration
 tuned_num_epochs (int): number of epochs to train the model (received in script 2)
 ```
-
-training_association.yaml
-```
-num_hidden int): number of hidden nodes in hidden layers
-num_latent (list(int)): dimension of latent space
-num_layers int): number of hidden layers
-dropout (float): the probability of dropout after each nonlinearity
-beta (float): KLD weight coefficient
-batch_sizes (int): the size of batches during training
-repeats (int):  times to repeat the training with each hyperparameter configuration
-tuned_num_epochs (int): number of epochs to train the model (received in script 2)
-```

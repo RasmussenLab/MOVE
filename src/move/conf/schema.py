@@ -32,7 +32,7 @@ class InputConfig:
 class DataConfig:
     raw_data_path: str = MISSING
     interim_data_path: str = MISSING
-    processed_data_path: str = MISSING
+    results_path: str = MISSING
     sample_names: str = MISSING
     categorical_inputs: list[InputConfig] = MISSING
     continuous_inputs: list[InputConfig] = MISSING

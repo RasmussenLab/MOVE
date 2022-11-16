@@ -133,9 +133,7 @@ def perturb_continuous_data_extended(
         List of dataloaders containing all perturbed datasets
 
     Note:
-        Given the previous standardization to zero mean and unit variance,
-        one could add 1 directly to every perturbed value. However, this 
-        function was created so that it could generalize to non-normalized
+        This function was created so that it could generalize to non-normalized
         datasets.
     """
 

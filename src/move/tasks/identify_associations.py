@@ -340,7 +340,7 @@ def identify_associations_continuous(config: MOVEConfig):
         models_path.mkdir(exist_ok=True)
     output_path = Path(config.data.processed_data_path) / "identify_associations"
     output_path.mkdir(exist_ok=True, parents=True)
-    output_subpath = Path(output_path) / "Perturbation visualization"
+    output_subpath = Path(output_path) / "perturbation_visualization"
     output_subpath.mkdir(exist_ok=True, parents=True)
 
     # Read original data and create perturbed datasets
@@ -386,7 +386,6 @@ def identify_associations_continuous(config: MOVEConfig):
     logger.debug(f"# NaN values: {np.sum(nan_mask)}/{orig_con.numel()}")
 
     target_dataset_idx = config.data.continuous_names.index(task_config.target_dataset)
-    print(task_config.target_dataset)
     def _bayes_approach(
         task_config: IdentifyAssociationsBayesConfig,
     ) -> tuple[IntArray, FloatArray]:

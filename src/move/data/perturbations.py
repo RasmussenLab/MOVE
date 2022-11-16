@@ -124,7 +124,7 @@ def perturb_continuous_data_extended(
 ) -> list[DataLoader]:
 
     """Add perturbations to continuous data. For each feature in the target
-    dataset, change the feature's value in all patients:
+    dataset, change the feature's value in all samples (in rows):
     1,2) substituting this feature in all samples by the feature's minimum/maximum value.
     3,4) Adding/Substracting one standard deviation to the sample's feature value.
 
@@ -133,13 +133,17 @@ def perturb_continuous_data_extended(
         con_dataset_names: List of continuous dataset names
         target_dataset_name: Target continuous dataset to perturb
         perturbation_type: 'minimum', 'maximum', 'plus_std' or 'minus_std'.
+        output_subpath: path where the figure showing the perturbation will be saved
 
     Returns:
-        List of dataloaders containing all perturbed datasets
+        - List of dataloaders containing all perturbed datasets
+        - Plot of the feature value distribution after the perturbation. Note that
+          all perturbations are collapsed into one single plot.
 
     Note:
         This function was created so that it could generalize to non-normalized
-        datasets.
+        datasets. Scaling is done per dataset, not per feature -> slightly different stds
+        feature to feature.
     """
 
     baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
@@ -184,8 +188,11 @@ def perturb_continuous_data_extended(
         )
         dataloaders.append(perturbed_dataloader)
 
-    # Plot the perturbations:
-    fig = plot_value_distributions(np.array(perturbations_list))
+
+    print(np.array(perturbations_list).transpose())
+
+    # Plot the perturbations for all features, collapsed in one plot:
+    fig = plot_value_distributions(np.array(perturbations_list).transpose())
     fig_path = str(output_subpath / "Perturbation_distribution_{}.png".format(target_dataset_name))
     fig.savefig(fig_path)
 

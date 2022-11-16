@@ -14,18 +14,16 @@ from move.visualization.style import (
 
 def plot_value_distributions(
     feature_values: FloatArray,
-    style: str = DEFAULT_PLOT_STYLE,
-    nbins: int = 30,
+    style: str = 'fast',
+    nbins: int = 100,
 ) -> matplotlib.figure.Figure:
     """
-    Given a certain dataset and its feature labels,
-    plot the distribution of values.
+    Given a certain dataset, plot its distribution of values.
+
     
     Args:
         feature_values:
             Values of the features, a 2D array (`num_samples` x `num_features`).
-        feature_names:
-            Names of the features.
         style:
             Name of style to apply to the plot.
         colormap:
@@ -35,10 +33,9 @@ def plot_value_distributions(
         Figure
     """
     width: float = max(matplotlib.rcParams["figure.figsize"])
-    figsize = (width, width)
     vmin, vmax = np.nanmin(feature_values),  np.nanmax(feature_values)
     with style_settings(style):
-        fig = plt.figure(figsize=figsize, layout='constrained')
+        fig = plt.figure(layout='constrained')
         ax = fig.add_subplot(projection='3d')
         x_val = np.linspace(vmin,vmax,nbins)
         y_val = np.arange(np.shape(feature_values)[1])

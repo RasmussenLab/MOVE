@@ -329,6 +329,8 @@ def identify_associations_continuous(config: MOVEConfig):
         models_path.mkdir(exist_ok=True)
     output_path = Path(config.data.processed_data_path) / "identify_associations"
     output_path.mkdir(exist_ok=True, parents=True)
+    output_subpath = Path(output_path) / "Perturbation visualization"
+    output_subpath.mkdir(exist_ok=True, parents=True)
 
     # Read original data and create perturbed datasets
     logger.info(f"Perturbing dataset: '{task_config.target_dataset}'")
@@ -357,6 +359,7 @@ def identify_associations_continuous(config: MOVEConfig):
         config.data.continuous_names,
         task_config.target_dataset,
         task_config.target_value,
+        output_subpath,
     )
     dataloaders.append(baseline_dataloader)
 

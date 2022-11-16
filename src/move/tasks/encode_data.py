@@ -47,9 +47,9 @@ def encode_data(config: DataConfig):
         names, values = io.read_tsv(filepath, sample_names)
 
         # Plotting the value distribution for all continuous datasets before preprocessing:
-        fig = plot_value_distributions(values,names)
+        fig = plot_value_distributions(values)
         fig_path = str(output_path / "Value_distribution_{}_unprocessed.png".format(dataset_name))
-        fig.savefig(fig_path, bbox_inches="tight")
+        fig.savefig(fig_path)
 
         values, mask_1d = preprocessing.scale(values)
         names = names[mask_1d]
@@ -58,6 +58,6 @@ def encode_data(config: DataConfig):
         np.save(interim_data_path / f"{dataset_name}.npy", values)
 
         # Plotting the value distribution for all continuous datasets:
-        fig = plot_value_distributions(values,names)
+        fig = plot_value_distributions(values)
         fig_path = str(output_path / "Value_distribution_{}.png".format(dataset_name))
-        fig.savefig(fig_path, bbox_inches="tight")
+        fig.savefig(fig_path)

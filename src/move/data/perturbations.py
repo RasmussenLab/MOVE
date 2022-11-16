@@ -8,6 +8,8 @@ from torch.utils.data import DataLoader
 
 from move.data.dataloaders import MOVEDataset
 from move.data.preprocessing import feature_stats
+from move.core.typing import PathLike
+from move.visualization.dataset_distributions import plot_value_distributions
 
 
 def perturb_categorical_data(
@@ -116,6 +118,7 @@ def perturb_continuous_data_extended(
     con_dataset_names: list[str],
     target_dataset_name: str,
     perturbation_type: str,
+    output_subpath: PathLike,
 ) -> list[DataLoader]:
 
     """Add perturbations to continuous data. For each feature in the target
@@ -147,6 +150,8 @@ def perturb_continuous_data_extended(
 
     num_features = baseline_dataset.con_shapes[target_idx]
     dataloaders = []
+    perturbations_list = []
+
     for i in range(num_features):
         perturbed_con = baseline_dataset.con_all.clone()
         target_dataset = perturbed_con[:, slice_]
@@ -161,6 +166,8 @@ def perturb_continuous_data_extended(
         elif perturbation_type == 'minus_std':
             target_dataset[:, i] -= torch.FloatTensor([std_feat_val_list[i]])
 
+        perturbations_list.append(target_dataset[:, i].numpy())
+
         perturbed_dataset = MOVEDataset(
             baseline_dataset.cat_all,
             perturbed_con,
@@ -174,5 +181,10 @@ def perturb_continuous_data_extended(
             batch_size=baseline_dataloader.batch_size,
         )
         dataloaders.append(perturbed_dataloader)
+
+    # Plot the perturbations:
+    fig = plot_value_distributions(np.array(perturbations_list))
+    fig_path = str(output_subpath / "Perturbation_distribution_{}.png".format(target_dataset_name))
+    fig.savefig(fig_path)
 
     return dataloaders

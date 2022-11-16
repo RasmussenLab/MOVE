@@ -3,6 +3,7 @@ __all__ = ["plot_value_distributions"]
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.figure
+from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 
 from move.core.typing import FloatArray
@@ -13,9 +14,8 @@ from move.visualization.style import (
 
 def plot_value_distributions(
     feature_values: FloatArray,
-    feature_names: list[str],
     style: str = DEFAULT_PLOT_STYLE,
-    nbins: int = 50,
+    nbins: int = 30,
 ) -> matplotlib.figure.Figure:
     """
     Given a certain dataset and its feature labels,
@@ -36,15 +36,24 @@ def plot_value_distributions(
     """
     width: float = max(matplotlib.rcParams["figure.figsize"])
     figsize = (width, width)
+    vmin, vmax = np.nanmin(feature_values),  np.nanmax(feature_values)
     with style_settings(style):
-        fig, ax = plt.subplots(1, 1, constrained_layout=True, figsize=figsize)
-        for i, feature in enumerate(feature_names): 
+        fig = plt.figure(figsize=figsize, layout='constrained')
+        ax = fig.add_subplot(projection='3d')
+        x_val = np.linspace(vmin,vmax,nbins)
+        y_val = np.arange(np.shape(feature_values)[1])
+        x_val, y_val = np.meshgrid(x_val, y_val)
+
+        histogram = []
+        for i in range(np.shape(feature_values)[1]): 
             feat_i_list = feature_values[:,i]
-            vmin, vmax = np.nanmin(feature_values[:,i]) ,  np.nanmax(feature_values[:,i])
-            ax.hist(feat_i_list, bins = np.linspace(vmin,vmax,nbins), label=feature, histtype='step')    
-            ax.set_xlabel("Feature value")
-            ax.set_ylabel("Frequency")
+            feat_hist, feat_bin_edges = np.histogram(feat_i_list, bins=nbins, range=(vmin,vmax))
+            histogram.append(feat_hist)
+    
+        ax.plot_surface(x_val, y_val, np.array(histogram), cmap='viridis')    
+        ax.set_xlabel("Feature value")
+        ax.set_ylabel("Feature ID number")
+        ax.set_zlabel('Frequency')
         #ax.legend()
     return fig
-
 

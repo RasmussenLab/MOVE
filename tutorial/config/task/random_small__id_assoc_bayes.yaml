@@ -7,7 +7,7 @@ batch_size: 10
 num_refits: 40 # default is 40
 
 target_dataset: random.small.metagenomics
-target_value: plus_std
+target_value: minimum
 save_refits: True
 
 model:

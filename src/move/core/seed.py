@@ -1,11 +1,11 @@
 __all__ = ["set_global_seed"]
 
+import os
 import random
 from typing import Optional
 
 import numpy as np
 import torch
-import os
 
 
 def set_global_seed(seed: Optional[int]) -> None:

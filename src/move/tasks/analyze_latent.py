@@ -20,7 +20,10 @@ from move.core.logging import get_logger
 from move.core.typing import FloatArray
 from move.data import io
 from move.data.dataloaders import MOVEDataset, make_dataloader
-from move.data.perturbations import perturb_categorical_data, perturb_continuous_data
+from move.data.perturbations import (
+    perturb_categorical_data,
+    perturb_continuous_data,
+)
 from move.data.preprocessing import one_hot_encode_single
 from move.models.vae import VAE
 from move.training.training_loop import TrainingLoopOutput

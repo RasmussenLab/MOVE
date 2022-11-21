@@ -4,7 +4,7 @@
 
 defaults:
   - override /data: random_small
-  - override /task: tune_model
+  - override /task: tune_model_stability
 
 # Configure which hyperarameters to vary
 # This will run and log the metrics of 12 models (combination of 3 hyperparams
@@ -18,4 +18,4 @@ hydra:
     params:
       task.batch_size: 10, 50
       task.model.num_hidden: "[500],[1000]"
-      task.training_loop.num_epochs: 40, 60, 100
+      task.training_loop.num_epochs: 1, 2, 3

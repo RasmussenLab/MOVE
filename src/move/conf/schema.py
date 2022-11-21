@@ -2,7 +2,8 @@ __all__ = [
     "MOVEConfig",
     "EncodeDataConfig",
     "AnalyzeLatentConfig",
-    "TuneModelConfig",
+    "TuneModelReconstructionConfig",
+    "TuneModelStabilityConfig",
     "IdentifyAssociationsConfig",
     "IdentifyAssociationsBayesConfig",
     "IdentifyAssociationsTTestConfig",
@@ -105,6 +106,19 @@ class TuneModelConfig(TaskConfig):
 
 
 @dataclass
+class TuneModelStabilityConfig(TuneModelConfig):
+    """Configure the "tune model" task."""
+
+    num_refits: int = MISSING
+
+@dataclass
+class TuneModelReconstructionConfig(TuneModelConfig):
+    """Configure the "tune model" task."""
+
+    ...
+
+
+@dataclass
 class AnalyzeLatentConfig(TaskConfig):
     """Configure the "analyze latents" task.
 
@@ -194,8 +208,14 @@ cs.store(
 )
 cs.store(
     group="task",
-    name="tune_model_schema",
-    node=TuneModelConfig,
+    name="tune_model_reconstruction_schema",
+    node=TuneModelReconstructionConfig,
+)
+
+cs.store(
+    group="task",
+    name="tune_model_stability_schema",
+    node=TuneModelStabilityConfig,
 )
 cs.store(
     group="task",

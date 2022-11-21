@@ -18,4 +18,4 @@ hydra:
     params:
       task.batch_size: 10, 50
       task.model.num_hidden: "[500],[1000]"
-      task.training_loop.num_epochs: 1, 2, 3
+      task.training_loop.num_epochs: 40, 60, 100

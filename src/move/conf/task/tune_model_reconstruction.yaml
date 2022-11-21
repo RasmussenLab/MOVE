@@ -1,0 +1,29 @@
+defaults:
+  - tune_model_reconstruction_schema
+
+batch_size: 10
+
+model:
+  categorical_weights: ${weights:${data.categorical_inputs}}
+  continuous_weights: ${weights:${data.continuous_inputs}}
+  num_hidden:
+    - 1000
+  num_latent: 150
+  beta: 0.0001
+  dropout: 0.1
+  cuda: false
+
+training_loop:
+  lr: 1e-4
+  num_epochs: 40
+  batch_dilation_steps:
+    - 50
+    - 100
+    - 150
+  kld_warmup_steps:
+    - 15
+    - 20
+    - 25
+  early_stopping: false
+  patience: 0
+  

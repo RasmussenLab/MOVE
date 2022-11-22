@@ -25,7 +25,7 @@ def encode_data(config: DataConfig):
     raw_data_path.mkdir(exist_ok=True)
     interim_data_path = Path(config.interim_data_path)
     interim_data_path.mkdir(exist_ok=True)
-    output_path = Path(config.processed_data_path) / "encoded_datasets"
+    output_path = Path(config.results_path) / "encoded_datasets"
     output_path.mkdir(exist_ok=True, parents=True)
 
     sample_names = io.read_names(raw_data_path / f"{config.sample_names}.txt")

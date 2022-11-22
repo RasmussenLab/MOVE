@@ -11,13 +11,19 @@ import torch
 from sklearn.base import TransformerMixin
 
 import move.visualization as viz
-from move.analysis.metrics import calculate_accuracy, calculate_cosine_similarity
+from move.analysis.metrics import (
+    calculate_accuracy,
+    calculate_cosine_similarity,
+)
+from move.conf.schema import AnalyzeLatentConfig, MOVEConfig
 from move.core.logging import get_logger
 from move.core.typing import FloatArray
-from move.conf.schema import AnalyzeLatentConfig, MOVEConfig
 from move.data import io
 from move.data.dataloaders import MOVEDataset, make_dataloader
-from move.data.perturbations import perturb_categorical_data, perturb_continuous_data
+from move.data.perturbations import (
+    perturb_categorical_data,
+    perturb_continuous_data,
+)
 from move.data.preprocessing import one_hot_encode_single
 from move.models.vae import VAE
 from move.training.training_loop import TrainingLoopOutput
@@ -72,7 +78,7 @@ def analyze_latent(config: MOVEConfig) -> None:
 
     raw_data_path = Path(config.data.raw_data_path)
     interim_path = Path(config.data.interim_data_path)
-    output_path = Path(config.data.processed_data_path) / "latent_space"
+    output_path = Path(config.data.results_path) / "latent_space"
     output_path.mkdir(exist_ok=True, parents=True)
 
     logger.debug("Reading data")

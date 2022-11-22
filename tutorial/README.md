@@ -69,7 +69,7 @@ defaults:
 
 raw_data_path: data/              # where raw data is stored
 interim_data_path: interim_data/  # where intermediate files will be stored
-processed_data_path: results/     # where result files will be placed
+results_path: results/     # where result files will be placed
 
 sample_names: random.small.ids  # names/IDs of each sample, must appear in the
                                 # other datasets

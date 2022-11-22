@@ -2,13 +2,14 @@ import logging
 from pathlib import Path
 
 
-def get_logger(name):
+def get_logger(name: str):
     """Return a logger with the specified name. The logger writes messages to
     a log file and the console.
 
     Args:
-        name: name of the logger. If it contains a dot, only the succeeding
-        substring is used (e.g., `foo.bar` => `bar`).
+        name:
+            Name of the logger. If it contains a dot, only the succeeding
+            substring is used (e.g., `foo.bar` => `bar`).
 
     Returns:
         Logger
@@ -24,14 +25,14 @@ def get_logger(name):
 
         path = Path.cwd() / "logs"
         path.mkdir(exist_ok=True)
-        format = "[%(asctime)s] [%(levelname)-5s - %(name)s]: %(message)s"
-        formatter = logging.Formatter(format, datefmt="%Y-%m-%d %H:%M:%S")
+        fmt = "[%(asctime)s] [%(levelname)-5s - %(name)s]: %(message)s"
+        formatter = logging.Formatter(fmt, datefmt="%Y-%m-%d %H:%M:%S")
         file_handler = logging.FileHandler(path / f"{name}.log", encoding="utf-8")
         file_handler.setFormatter(formatter)
         file_handler.setLevel(logging.DEBUG)
 
-        format = "[%(levelname)-5s - %(name)s]: %(message)s"
-        formatter = logging.Formatter(format)
+        fmt = "[%(levelname)-5s - %(name)s]: %(message)s"
+        formatter = logging.Formatter(fmt)
         stream_handler = logging.StreamHandler()
         stream_handler.setFormatter(formatter)
         stream_handler.setLevel(logging.INFO)

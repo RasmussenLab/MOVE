@@ -16,4 +16,6 @@ hydra:
   mode: MULTIRUN
   sweeper:
     params:
-      task.batch_size: range(10, 50, 25)
+      task.batch_size: 10, 50
+      task.model.num_hidden: "[500],[1000]"
+      task.training_loop.num_epochs: 40, 60, 100

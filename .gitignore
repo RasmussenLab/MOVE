@@ -35,3 +35,11 @@ tutorial/interim_data/
 tutorial/processed_data/
 tutorial/results/
 tutorial/maize/data
+
+# Virtual environment
+venv/
+virtualvenv/
+
+# docs files
+docs/build/
+docs/source/_templates/

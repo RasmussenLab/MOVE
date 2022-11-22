@@ -521,8 +521,8 @@ def save_results(
         b_df.reset_index(inplace=True)
         results = results.merge(a_df, on="feature_a_id").merge(b_df, on="feature_b_id")
         results["feature_b_dataset"] = pd.cut(
-            results["feature_b_id"],
-            bins=np.cumsum([0] + con_shapes),
+            cast(IntArray, results["feature_b_id"].values),
+            bins=cast(list[int], np.cumsum([0] + con_shapes)),
             right=False,
             labels=config.data.continuous_names,
         )

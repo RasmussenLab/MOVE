@@ -10,7 +10,28 @@ from move.core.typing import BoolArray, FloatArray
 
 
 class MOVEDataset(TensorDataset):
-    "Characterizes a dataset for PyTorch"
+    """
+    Characterizes a dataset for PyTorch
+
+    Args:
+        cat_all:
+            categorical input matrix (N_samples, N_variables x N_max-classes.
+        con_all:
+            normalized continuous input matrix (N_samples, N_variables).
+        cat_shapes:
+            list of tuples corresponding to number of features (N_variables,
+            N_max-classes) of each categorical class.
+        con_shapes:
+            list of tuples corresponding to number of features
+            (N_variables) of each continuous class.
+
+    Raises:
+        ValueError:
+            Number of samples between categorical and continuous datasets must
+            match.
+        ValueError:
+            Categorical and continuous data cannot be both empty.
+    """
 
     def __init__(
         self,
@@ -51,10 +72,24 @@ class MOVEDataset(TensorDataset):
 def concat_cat_list(
     cat_list: list[FloatArray],
 ) -> tuple[list[tuple[int, ...]], FloatArray]:
+    """
+    Concatenate a list of categorical data
+    Args:
+        cat_list: list with each categorical class data
+    Returns:
+        (tuple): a tuple containing:
+            cat_shapes:
+                list of categorical data classes shapes (N_variables,
+                 N_max-classes)
+            cat_all (FloatArray):
+                2D array of concatenated patients categorical data
+    """
+
     cat_shapes = []
     cat_flat = []
     for cat in cat_list:
-        cat_shapes.append(cat.shape)
+        cat_shape = (cat.shape[1], cat.shape[2])
+        cat_shapes.append(cat_shape)
         cat_flat.append(cat.reshape(cat.shape[0], -1))
     cat_all = np.concatenate(cat_flat, axis=1)
     mask = cat_all.sum(axis=1) > 5  # True if row sum is greater than 5
@@ -64,6 +99,17 @@ def concat_cat_list(
 def concat_con_list(
     con_list: list[FloatArray],
 ) -> tuple[list[int], FloatArray]:
+    """
+    Concatenate a list of continuous data
+    Args:
+        con_list: list with each continuous class data
+    Returns:
+        (tuple): a tuple containing:
+            n_con_shapes:
+                list of continuous data classes shapes (in 1D) (N_variables)
+            con_all:
+                2D array of concatenated patients continuous data
+    """
     con_shapes = [con.shape[1] for con in con_list]
     con_all: FloatArray = np.concatenate(con_list, axis=1)
     mask = con_all.sum(axis=1) != 0  # True if row sum is not zero

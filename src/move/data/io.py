@@ -10,34 +10,38 @@ __all__ = [
 
 import json
 from pathlib import Path
-from typing import TYPE_CHECKING, Optional, Union, cast
+from typing import Optional
 
 import hydra
 import numpy as np
 import pandas as pd
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
 
-from move import conf
+from move import HYDRA_VERSION_BASE, conf
 from move.core.typing import BoolArray, FloatArray, ObjectArray, PathLike
 
 
-def read_config(filepath: Optional[Union[str, Path]] = None) -> DictConfig:
+def read_config(
+    data_config_name: Optional[str], task_config_name: Optional[str], *args
+) -> DictConfig:
     """Composes configuration for the MOVE framework.
 
     Args:
-        filepath: Path to YAML configuration file
+        data_config_name: Name of data configuration file
+        task_config_name: Name of task configuration file
+        *args: Additional overrides
 
     Returns:
         Merged configuration
     """
-    with hydra.initialize_config_module(conf.__name__):
-        base_config = hydra.compose("main")
-
-    if filepath is not None:
-        user_config = OmegaConf.load(filepath)
-        return cast(DictConfig, OmegaConf.merge(base_config, user_config))
-    else:
-        return base_config
+    overrides = []
+    if data_config_name is not None:
+        overrides.append(f"data={data_config_name}")
+    if task_config_name is not None:
+        overrides.append(f"task={task_config_name}")
+    overrides.extend(args)
+    with hydra.initialize_config_module(conf.__name__, version_base=HYDRA_VERSION_BASE):
+        return hydra.compose("main", overrides=overrides)
 
 
 def load_categorical_dataset(filepath: PathLike) -> FloatArray:

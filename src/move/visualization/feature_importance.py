@@ -12,8 +12,8 @@ from matplotlib.colors import TwoSlopeNorm
 from move.core.typing import FloatArray
 from move.visualization.style import (
     DEFAULT_DIVERGING_PALETTE,
-    DEFAULT_QUALITATIVE_PALETTE,
     DEFAULT_PLOT_STYLE,
+    DEFAULT_QUALITATIVE_PALETTE,
     color_cycle,
     style_settings,
 )
@@ -169,6 +169,7 @@ def plot_continuous_feature_importance(
     palette = np.empty((25, 4))  # 25 colors x 4 channels
     palette[:13, :] = sm.to_rgba(np.linspace(vmin, 0, 13))  # first slope
     palette[12:, :] = sm.to_rgba(np.linspace(0, vmax, 13))  # second slope
+    palette = palette.tolist()  # NDArray not always supported
 
     with style_settings(style):
         fig, ax = plt.subplots(figsize=figsize)

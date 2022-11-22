@@ -9,10 +9,10 @@ __all__ = [
 ]
 
 from dataclasses import dataclass, field
+from typing import Any, Optional
 
 from hydra.core.config_store import ConfigStore
-from omegaconf import OmegaConf, MISSING
-from typing import Any, Optional
+from omegaconf import MISSING, OmegaConf
 
 from move.models.vae import VAE
 from move.training.training_loop import training_loop
@@ -173,6 +173,7 @@ class EncodeDataConfig(TaskConfig):
 @dataclass
 class TuneModelConfig(TaskConfig):
     """Configure the "tune model" task."""
+
     ...
 
 
@@ -196,7 +197,7 @@ class IdentifyAssociationsConfig(TaskConfig):
         target_dataset:
             Name of categorical dataset to perturb.
         target_value:
-            The value to change to. It should be a category name. 
+            The value to change to. It should be a category name.
         num_refits:
             Number of times to refit the model.
         sig_threshold:
@@ -216,7 +217,6 @@ class IdentifyAssociationsConfig(TaskConfig):
     num_refits: int = MISSING
     sig_threshold: float = 0.05
     save_refits: bool = False
-    perturbation_continuous: str = MISSING
 
 
 @dataclass

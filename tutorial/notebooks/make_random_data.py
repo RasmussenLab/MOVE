@@ -1,47 +1,64 @@
-import matplotlib.pyplot as plt
-import matplotlib
-import numpy as np
-import scipy
-import pandas as pd
-import seaborn as sns
-import re
+import os
 import random
+import re
 from collections import defaultdict
-import os 
+
+import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import scipy
+import seaborn as sns
+
 
 def write_cat(f_name, size, minimum, maximum, name):
-    data = np.random.randint(minimum, maximum + 1, size = size)
-    with open(f_name, 'w') as o:
-        o.write("ID\t" + "\t".join([name + str(j + 1) for j in range(data.shape[1])])+ "\n")
+    data = np.random.randint(minimum, maximum + 1, size=size)
+    with open(f_name, "w") as o:
+        o.write(
+            "ID\t" + "\t".join([name + str(j + 1) for j in range(data.shape[1])]) + "\n"
+        )
         for i in range(data.shape[0]):
-            o.write(str(i) + "\t" + "\t".join([str(j) for j in data[i,:]]) + "\n")
-    
+            o.write(str(i) + "\t" + "\t".join([str(j) for j in data[i, :]]) + "\n")
+
+
 def write_con(f_name, size, m, s, zero, name):
     data = m + s * np.random.randn(size[0], size[1])
-    indices = np.random.choice(data.shape[1]*data.shape[0], replace=False, size=int(data.shape[1]*data.shape[0]*zero))
+    indices = np.random.choice(
+        data.shape[1] * data.shape[0],
+        replace=False,
+        size=int(data.shape[1] * data.shape[0] * zero),
+    )
     data[np.unravel_index(indices, data.shape)] = 0
-    
-    with open(f_name, 'w') as o:
-        o.write("ID\t" + "\t".join([name + str(j + 1) for j in range(data.shape[1])]) + "\n")
+
+    with open(f_name, "w") as o:
+        o.write(
+            "ID\t" + "\t".join([name + str(j + 1) for j in range(data.shape[1])]) + "\n"
+        )
         for i in range(data.shape[0]):
-            o.write(str(i) + "\t" + "\t".join([str(round(np.abs(j))) for j in data[i,:]]) + "\n")
+            o.write(
+                str(i)
+                + "\t"
+                + "\t".join([str(round(np.abs(j))) for j in data[i, :]])
+                + "\n"
+            )
+
 
 # Creating data folder
-isExist = os.path.exists('data/')
+isExist = os.path.exists("data/")
 if not isExist:
-    os.makedirs('data/')     
+    os.makedirs("data/")
 
 with open("data/baseline_ids.txt", "w") as f:
     f.write("\n".join([str(i) for i in range(789)]))
 
-cat_f =  "data/baseline_categorical.tsv"
-write_cat(cat_f, (789,42), 0, 4, "clinical_categorical_")
+cat_f = "data/baseline_categorical.tsv"
+write_cat(cat_f, (789, 42), 0, 4, "clinical_categorical_")
 
-geno_f =  "data/diabetes_genotypes.tsv"
-write_cat(geno_f, (789,393), 0, 2, "SNP_")
+geno_f = "data/diabetes_genotypes.tsv"
+write_cat(geno_f, (789, 393), 0, 2, "SNP_")
 
-drug_f =  "data/baseline_drugs.tsv"
-write_cat(drug_f, (789,20), 0, 1, "drug_")
+drug_f = "data/baseline_drugs.tsv"
+write_cat(drug_f, (789, 20), 0, 1, "drug_")
 
 # Generate continous data
 clin_f = "data/baseline_continuous.tsv"

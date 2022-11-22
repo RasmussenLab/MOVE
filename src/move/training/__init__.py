@@ -8,6 +8,6 @@ __all__ = [
 from move.training.train import (
     optimize_reconstruction,
     optimize_stability,
-    train_model_association,
     train_model,
+    train_model_association,
 )

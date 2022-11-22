@@ -6,9 +6,9 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
+from move.core.typing import PathLike
 from move.data.dataloaders import MOVEDataset
 from move.data.preprocessing import feature_stats
-from move.core.typing import PathLike
 from move.visualization.dataset_distributions import plot_value_distributions
 
 
@@ -87,7 +87,7 @@ def perturb_continuous_data(
     assert baseline_dataset.con_shapes is not None
     assert baseline_dataset.con_all is not None
 
-    target_idx = con_dataset_names.index(target_dataset_name) 
+    target_idx = con_dataset_names.index(target_dataset_name)
     splits = np.cumsum([0] + baseline_dataset.con_shapes)
     slice_ = slice(*splits[target_idx : target_idx + 2])
 
@@ -112,6 +112,7 @@ def perturb_continuous_data(
         dataloaders.append(perturbed_dataloader)
 
     return dataloaders
+
 
 def perturb_continuous_data_extended(
     baseline_dataloader: DataLoader,
@@ -148,7 +149,7 @@ def perturb_continuous_data_extended(
     assert baseline_dataset.con_shapes is not None
     assert baseline_dataset.con_all is not None
 
-    target_idx = con_dataset_names.index(target_dataset_name) # dataset index 
+    target_idx = con_dataset_names.index(target_dataset_name)  # dataset index
     splits = np.cumsum([0] + baseline_dataset.con_shapes)
     slice_ = slice(*splits[target_idx : target_idx + 2])
 
@@ -160,14 +161,16 @@ def perturb_continuous_data_extended(
         perturbed_con = baseline_dataset.con_all.clone()
         target_dataset = perturbed_con[:, slice_]
         # Change the desired feature value by:
-        min_feat_val_list, max_feat_val_list, std_feat_val_list = feature_stats(target_dataset)
-        if perturbation_type == 'minimum': #
+        min_feat_val_list, max_feat_val_list, std_feat_val_list = feature_stats(
+            target_dataset
+        )
+        if perturbation_type == "minimum":  #
             target_dataset[:, i] = torch.FloatTensor([min_feat_val_list[i]])
-        elif perturbation_type == 'maximum':
+        elif perturbation_type == "maximum":
             target_dataset[:, i] = torch.FloatTensor([max_feat_val_list[i]])
-        elif perturbation_type == 'plus_std':
+        elif perturbation_type == "plus_std":
             target_dataset[:, i] += torch.FloatTensor([std_feat_val_list[i]])
-        elif perturbation_type == 'minus_std':
+        elif perturbation_type == "minus_std":
             target_dataset[:, i] -= torch.FloatTensor([std_feat_val_list[i]])
 
         perturbations_list.append(target_dataset[:, i].numpy())
@@ -187,11 +190,9 @@ def perturb_continuous_data_extended(
         dataloaders.append(perturbed_dataloader)
 
 
-    print(np.array(perturbations_list).transpose())
-
     # Plot the perturbations for all features, collapsed in one plot:
     fig = plot_value_distributions(np.array(perturbations_list).transpose())
-    fig_path = str(output_subpath / "Perturbation_distribution_{}.png".format(target_dataset_name))
+    fig_path = str(output_subpath / f"Perturbation_distribution_{target_dataset_name}.png")
     fig.savefig(fig_path)
 
     return dataloaders

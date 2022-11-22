@@ -1,4 +1,3 @@
-
 from typing import Optional
 
 from torch.utils.data import DataLoader
@@ -19,13 +18,13 @@ def dilate_batch(dataloader: DataLoader) -> DataLoader:
 def training_loop(
     model: VAE,
     train_dataloader: DataLoader,
-    valid_dataloader: Optional[DataLoader]=None,
-    lr:float=1e-4,
-    num_epochs: int=100,
-    batch_dilation_steps: list[int]=[],
-    kld_warmup_steps: list[int]=[],
-    early_stopping: bool=False,
-    patience: int=0
+    valid_dataloader: Optional[DataLoader] = None,
+    lr: float = 1e-4,
+    num_epochs: int = 100,
+    batch_dilation_steps: list[int] = [],
+    kld_warmup_steps: list[int] = [],
+    early_stopping: bool = False,
+    patience: int = 0,
 ) -> TrainingLoopOutput:
     """Trains a VAE model with batch dilation and KLD warm-up. Optionally,
     enforce early stopping."""
@@ -46,7 +45,9 @@ def training_loop(
         if epoch in batch_dilation_steps:
             train_dataloader = dilate_batch(train_dataloader)
 
-        for i, output in enumerate(model.encoding(train_dataloader, epoch, lr, kld_weight)):
+        for i, output in enumerate(
+            model.encoding(train_dataloader, epoch, lr, kld_weight)
+        ):
             outputs[i].append(output)
 
         if early_stopping and valid_dataloader is not None:

@@ -1,15 +1,17 @@
 __all__ = ["VAE"]
 
+import logging
 from typing import Optional
+
 import numpy as np
 import torch
 from torch import nn, optim
 from torch.utils.data import DataLoader
-import logging
 
 from move.core.typing import FloatArray
 
-logger = logging.getLogger('vae.py')
+logger = logging.getLogger("vae.py")
+
 
 class VAE(nn.Module):
     """Variational autoencoder.
@@ -241,7 +243,9 @@ class VAE(nn.Module):
 
         con_errors = torch.stack(con_errors)
         con_errors = con_errors / torch.Tensor(self.continuous_shapes).to(self.device)
-        MSE = torch.sum(con_errors * torch.Tensor(self.continuous_weights).to(self.device))
+        MSE = torch.sum(
+            con_errors * torch.Tensor(self.continuous_weights).to(self.device)
+        )
         return MSE
 
     # Reconstruction + KL divergence losses summed over all elements and batch
@@ -252,7 +256,9 @@ class VAE(nn.Module):
         if not (cat_out is None):
             cat_errors = self.calculate_cat_error(cat_in, cat_out)
             if not (self.categorical_weights is None):
-                CE = torch.sum(cat_errors * torch.Tensor(self.categorical_weights).to(self.device))
+                CE = torch.sum(
+                    cat_errors * torch.Tensor(self.categorical_weights).to(self.device)
+                )
             else:
                 CE = torch.sum(cat_errors) / len(cat_errors)
 
@@ -367,14 +373,16 @@ class VAE(nn.Module):
             cat_target_tmp = cat_in_tmp
             cat_target_tmp = torch.argmax(cat_target_tmp.detach(), dim=2)
             cat_target_tmp[cat_in_tmp.sum(dim=2) == 0] = -1
-            cat_target[:, shape_1 : (cat_shape[1] + shape_1)] = cat_target_tmp#.numpy()
+            cat_target[
+                :, shape_1 : (cat_shape[1] + shape_1)
+            ] = cat_target_tmp  # .numpy()
 
             # Get reconstructed categorical data
             cat_out_tmp = cat_out[count]
             cat_out_tmp = cat_out_tmp.transpose(1, 2)
             cat_out_class[:, shape_1 : (cat_shape[1] + shape_1)] = torch.argmax(
                 cat_out_tmp, dim=2
-            )#.numpy()
+            )  # .numpy()
 
             # make counts for next dataset
             pos += cat_shape[1] * cat_shape[2]
@@ -383,9 +391,8 @@ class VAE(nn.Module):
 
         cat_target = cat_target.numpy()
         cat_out_class = cat_out_class.numpy()
-        
-        return cat_out_class, cat_target
 
+        return cat_out_class, cat_target
 
     def _validate_batch(self, batch: tuple[torch.Tensor, torch.Tensor]) -> torch.Tensor:
         cat, con = batch
@@ -396,9 +403,7 @@ class VAE(nn.Module):
         return torch.cat(batch, dim=1)
 
     @torch.no_grad()
-    def project(
-        self, dataloader: DataLoader
-    ) -> FloatArray:
+    def project(self, dataloader: DataLoader) -> FloatArray:
         """Generates an embedding of the data contained in the DataLoader.
 
         Args:
@@ -415,7 +420,6 @@ class VAE(nn.Module):
             embedding.append(mu)
         embedding = torch.cat(embedding, dim=0).numpy()
         return embedding
-
 
     @torch.no_grad()
     def reconstruct(
@@ -442,7 +446,6 @@ class VAE(nn.Module):
         cat_recons = [torch.cat(cats, dim=0).numpy() for cats in cat_recons]
         con_recons = torch.cat(con_recons, dim=0).numpy()
         return cat_recons, con_recons
-
 
     @torch.no_grad()
     def latent(self, dataloader: DataLoader, kld_weight: float):
@@ -510,14 +513,13 @@ class VAE(nn.Module):
 
         test_loss /= len(dataloader)
         logger.info("====> Test set loss: {:.4f}".format(test_loss))
-        
+
         latent = latent.numpy()
         latent_var = latent_var.numpy()
         cat_recon = cat_recon.numpy()
         cat_class = cat_class.numpy()
         con_recon = con_recon.numpy()
-                
-        
+
         assert row == num_samples
         return (
             latent,

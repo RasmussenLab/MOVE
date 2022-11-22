@@ -1,6 +1,6 @@
 __all__ = ["perturb_categorical_data", "perturb_continuous_data"]
 
-from typing import cast
+from typing import cast, Optional
 
 import numpy as np
 import torch
@@ -119,7 +119,7 @@ def perturb_continuous_data_extended(
     con_dataset_names: list[str],
     target_dataset_name: str,
     perturbation_type: str,
-    output_subpath: PathLike,
+    output_subpath: Optional[PathLike] = None,
 ) -> list[DataLoader]:
 
     """Add perturbations to continuous data. For each feature in the target
@@ -191,8 +191,9 @@ def perturb_continuous_data_extended(
 
 
     # Plot the perturbations for all features, collapsed in one plot:
-    fig = plot_value_distributions(np.array(perturbations_list).transpose())
-    fig_path = str(output_subpath / f"Perturbation_distribution_{target_dataset_name}.png")
-    fig.savefig(fig_path)
+    if output_subpath is not None:
+        fig = plot_value_distributions(np.array(perturbations_list).transpose())
+        fig_path = str(output_subpath / f"Perturbation_distribution_{target_dataset_name}.png")
+        fig.savefig(fig_path)
 
     return dataloaders

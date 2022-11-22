@@ -551,7 +551,7 @@ def identify_associations(config: MOVEConfig):
 
     if task_config.save_refits:
         models_path.mkdir(exist_ok=True)
-    output_path = Path(config.data.processed_data_path) / "identify_associations"
+    output_path = Path(config.data.results_path) / "identify_associations"
     output_path.mkdir(exist_ok=True, parents=True)
 
     # Indentify associations between continuous datasets:

@@ -49,7 +49,9 @@ def encode_data(config: DataConfig):
 
         # Plotting the value distribution for all continuous datasets before preprocessing:
         fig = plot_value_distributions(values)
-        fig_path = str(output_path / "Value_distribution_{}_unprocessed.png".format(dataset_name))
+        fig_path = str(
+            output_path / "Value_distribution_{}_unprocessed.png".format(dataset_name)
+        )
         fig.savefig(fig_path)
 
         values, mask_1d = preprocessing.scale(values)
@@ -60,5 +62,5 @@ def encode_data(config: DataConfig):
 
         # Plotting the value distribution for all continuous datasets:
         fig = plot_value_distributions(values)
-        fig_path = str(output_path / "Value_distribution_{}.png".format(dataset_name))
+        fig_path = str(output_path / f"Value_distribution_{dataset_name}.png")
         fig.savefig(fig_path)

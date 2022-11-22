@@ -1,11 +1,9 @@
 __all__ = ["MOVEDataset", "make_dataloader"]
 
-from typing import Tuple
-
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, TensorDataset
-
+from typing import Tuple
 
 class MOVEDataset(TensorDataset):
     "Characterizes a dataset for PyTorch"
@@ -140,5 +138,5 @@ def make_dataloader(cat_list=None, con_list=None, batchsize=10, cuda=False):
     # Create dataloader
     dataloader = DataLoader(
         dataset=dataset, batch_size=batchsize, drop_last=True, shuffle=True
-    )
+    ) 
     return mask, dataloader

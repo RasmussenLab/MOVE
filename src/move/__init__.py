@@ -5,5 +5,5 @@ __version__ = (1, 2, 0)
 __all__ = ["conf", "data", "models", "training", "VAE"]
 
 
-from move import conf, data, models, training
+from move import conf, models, training, data
 from move.models.vae import VAE

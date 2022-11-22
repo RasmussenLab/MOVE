@@ -9,8 +9,8 @@ from matplotlib.colors import TwoSlopeNorm
 from move.core.typing import BoolArray, FloatArray
 from move.visualization.style import (
     DEFAULT_DIVERGING_PALETTE,
-    DEFAULT_PLOT_STYLE,
     DEFAULT_QUALITATIVE_PALETTE,
+    DEFAULT_PLOT_STYLE,
     color_cycle,
     style_settings,
 )

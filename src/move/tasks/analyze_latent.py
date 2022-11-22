@@ -10,13 +10,10 @@ import torch
 from sklearn.base import TransformerMixin
 
 import move.visualization as viz
-from move.analysis.metrics import (
-    calculate_accuracy,
-    calculate_cosine_similarity,
-)
-from move.conf.schema import AnalyzeLatentConfig, MOVEConfig
+from move.analysis.metrics import calculate_accuracy, calculate_cosine_similarity
 from move.core.logging import get_logger
 from move.core.typing import FloatArray
+from move.conf.schema import AnalyzeLatentConfig, MOVEConfig
 from move.data import io
 from move.data.dataloaders import MOVEDataset, make_dataloader
 from move.data.perturbations import (

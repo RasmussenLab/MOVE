@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 
 from move.core.typing import FloatArray
 from move.visualization.style import (
-    DEFAULT_PLOT_STYLE,
     DEFAULT_QUALITATIVE_PALETTE,
+    DEFAULT_PLOT_STYLE,
     color_cycle,
     style_settings,
 )

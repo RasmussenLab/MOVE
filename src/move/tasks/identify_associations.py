@@ -29,7 +29,7 @@ from move.data.preprocessing import one_hot_encode_single
 from move.models.vae import VAE
 
 TaskType = Literal["bayes", "ttest"]
-ContinuousTargetValue = ["minimum", "maximum", "plus_std", "minus_std"]
+CONTINUOUS_TARGET_VALUE = ["minimum", "maximum", "plus_std", "minus_std"]
 
 
 def _get_task_type(
@@ -555,7 +555,7 @@ def identify_associations(config: MOVEConfig):
     output_path.mkdir(exist_ok=True, parents=True)
 
     # Indentify associations between continuous datasets:
-    if task_config.target_value in ContinuousTargetValue:
+    if task_config.target_value in CONTINUOUS_TARGET_VALUE:
         output_subpath = Path(output_path) / "perturbation_visualization"
         output_subpath.mkdir(exist_ok=True, parents=True)
         (
@@ -628,7 +628,7 @@ def identify_associations(config: MOVEConfig):
     ###################### RESULTS ################################
     save_results(
         config,
-        ContinuousTargetValue,
+        CONTINUOUS_TARGET_VALUE,
         con_shapes,
         cat_names,
         con_names,

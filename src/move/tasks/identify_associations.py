@@ -57,19 +57,9 @@ def _validate_task_config(
 def prepare_for_categorical_perturbation(
     config: MOVEConfig,
     interim_path: PathLike,
-) -> tuple[
-    DataLoader,
-    DataLoader,
-    list[DataLoader],
-    int,
-    int,
-    int,
-    list[list[str]],
-    list[list[str]],
-    list[int],
-    BoolArray,
-    BoolArray,
-]:
+    baseline_dataloader: DataLoader,
+    cat_list: list[FloatArray],
+) -> tuple[list[DataLoader], BoolArray, BoolArray,]:
     """
     This function creates the required dataloaders and masks
     for further categorical association analysis.
@@ -77,18 +67,11 @@ def prepare_for_categorical_perturbation(
     Args:
         config: main configuration file
         interim_path: path where the intermediate outputs are saved
+        baseline_dataloader: reference dataloader that will be perturbed
+        cat_list: list of arrays with categorical data
+
     Returns:
-        train_dataloader: shuffled dataloader.
-        baseline_dataloader: baseline dataloader, reference.
         dataloaders: all dataloaders, including baseline appended last.
-        num_perturbed: number of perturbed features (one dataloader per perturbed feature).
-        num_samples: number of samples/patients.
-        num_continuous: number of continuous features.
-        cat_names: list of lists of names for the categorical features.
-                   Each inner list corresponds to a separate dataset.
-        con_names: list of lists of names for the continuous features.
-                   Each inner list corresponds to a separate dataset.
-        con_shapes: list containing the number of features per continuous dataset
         nan_mask: mask for Nans
         feature_mask: masks the column for the perturbed feature.
     """
@@ -96,14 +79,8 @@ def prepare_for_categorical_perturbation(
     # Read original data and create perturbed datasets
     task_config = cast(IdentifyAssociationsConfig, config.task)
     logger = get_logger(__name__)
-    logger.info(f"Perturbing dataset: '{task_config.target_dataset}'")
 
-    cat_list, cat_names, con_list, con_names = io.load_preprocessed_data(
-        interim_path,
-        config.data.categorical_names,
-        config.data.continuous_names,
-    )
-
+    # Loading mappings:
     mappings = io.load_mappings(interim_path / "mappings.json")
     target_mapping = mappings[task_config.target_dataset]
     target_value = one_hot_encode_single(target_mapping, task_config.target_value)
@@ -111,19 +88,6 @@ def prepare_for_categorical_perturbation(
         f"Target value: {task_config.target_value} => {target_value.astype(int)[0]}"
     )
 
-    train_dataloader = make_dataloader(
-        cat_list,
-        con_list,
-        shuffle=True,
-        batch_size=task_config.batch_size,
-        drop_last=True,
-    )
-    num_samples = len(cast(Sized, train_dataloader.sampler))  # N
-
-    con_shapes = [con.shape[1] for con in con_list]
-    baseline_dataloader = make_dataloader(
-        cat_list, con_list, shuffle=False, batch_size=num_samples
-    )
     dataloaders = perturb_categorical_data(
         baseline_dataloader,
         config.data.categorical_names,
@@ -133,10 +97,6 @@ def prepare_for_categorical_perturbation(
     dataloaders.append(baseline_dataloader)
 
     baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
-    num_perturbed = len(dataloaders) - 1  # P
-    num_continuous = sum(con_shapes)  # C
-    logger.debug(f"# perturbed features: {num_perturbed}")
-    logger.debug(f"# continuous features: {num_continuous}")
 
     assert baseline_dataset.con_all is not None
     orig_con = baseline_dataset.con_all
@@ -149,15 +109,7 @@ def prepare_for_categorical_perturbation(
     feature_mask |= np.sum(target_dataset, axis=2) == 0
 
     return (
-        train_dataloader,
-        baseline_dataloader,
         dataloaders,
-        num_perturbed,
-        num_samples,
-        num_continuous,
-        cat_names,
-        con_names,
-        con_shapes,
         nan_mask,
         feature_mask,
     )
@@ -165,43 +117,20 @@ def prepare_for_categorical_perturbation(
 
 def prepare_for_continuous_perturbation(
     config: MOVEConfig,
-    interim_path: PathLike,
     output_subpath: PathLike,
-) -> tuple[
-    DataLoader,
-    DataLoader,
-    list[DataLoader],
-    int,
-    int,
-    int,
-    list[list[str]],
-    list[list[str]],
-    list[int],
-    BoolArray,
-    BoolArray,
-]:
-
+    baseline_dataloader: DataLoader,
+) -> tuple[list[DataLoader], BoolArray, BoolArray,]:
     """
     This function creates the required dataloaders and masks
     for further continuous association analysis.
 
     Args:
-        config: main configuration file
-        interim_path: path where the intermediate outputs are saved
+        config: main configuration file.
         output_subpath: path where the output plots for continuous
                         analysis are saved.
+        baseline_dataloader: reference dataloader that will be perturbed.
     Returns:
-        train_dataloader: shuffled dataloader.
-        baseline_dataloader: baseline dataloader, reference.
         dataloaders: list with all dataloaders, including baseline appended last.
-        num_perturbed: number of perturbed features (one dataloader per perturbed feature).
-        num_samples: number of samples/patients.
-        num_continuous: number of continuous features.
-        cat_names: list of lists of names for the categorical features.
-                   Each inner list corresponds to a separate dataset.
-        con_names: list of lists of names for the continuous features.
-                   Each inner list corresponds to a separate dataset.
-        con_shapes: list containing the number of features per continuous dataset
         nan_mask: mask for Nans
         feature_mask: same as nan_mask, in this case.
     """
@@ -209,30 +138,6 @@ def prepare_for_continuous_perturbation(
     # Read original data and create perturbed datasets
     logger = get_logger(__name__)
     task_config = cast(IdentifyAssociationsConfig, config.task)
-    task_type = _get_task_type(task_config)
-    logger.info(f"Beginning task: identify associations continuous ({task_type})")
-    logger.info(f"Perturbing dataset: '{task_config.target_dataset}'")
-    logger.info(f"Perturbation type: {task_config.target_value}")
-
-    cat_list, cat_names, con_list, con_names = io.load_preprocessed_data(
-        interim_path,
-        config.data.categorical_names,
-        config.data.continuous_names,
-    )
-
-    train_dataloader = make_dataloader(
-        cat_list,
-        con_list,
-        shuffle=True,
-        batch_size=task_config.batch_size,
-        drop_last=True,
-    )
-    num_samples = len(cast(Sized, train_dataloader.sampler))  # N
-
-    con_shapes = [con.shape[1] for con in con_list]
-    baseline_dataloader = make_dataloader(
-        cat_list, con_list, shuffle=False, batch_size=num_samples
-    )
 
     dataloaders = perturb_continuous_data_extended(
         baseline_dataloader,
@@ -244,10 +149,6 @@ def prepare_for_continuous_perturbation(
     dataloaders.append(baseline_dataloader)
 
     baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
-    num_perturbed = len(dataloaders) - 1  # P
-    num_continuous = sum(con_shapes)  # C
-    logger.debug(f"# perturbed features: {num_perturbed}")
-    logger.debug(f"# continuous features: {num_continuous}")
 
     assert baseline_dataset.con_all is not None
     orig_con = baseline_dataset.con_all
@@ -255,19 +156,7 @@ def prepare_for_continuous_perturbation(
     logger.debug(f"# NaN values: {np.sum(nan_mask)}/{orig_con.numel()}")
     feature_mask = nan_mask
 
-    return (
-        train_dataloader,
-        baseline_dataloader,
-        dataloaders,
-        num_perturbed,
-        num_samples,
-        num_continuous,
-        cat_names,
-        con_names,
-        con_shapes,
-        nan_mask,
-        feature_mask,
-    )
+    return (dataloaders, nan_mask, feature_mask)
 
 
 def _bayes_approach(
@@ -541,7 +430,9 @@ def identify_associations(config: MOVEConfig):
         3) Save results.
     """
     #################### DATA PREPARATION ######################
+    ####### Read original data and create perturbed datasets####
 
+    logger = get_logger(__name__)
     task_config = cast(IdentifyAssociationsConfig, config.task)
     task_type = _get_task_type(task_config)
     _validate_task_config(task_config, task_type)
@@ -554,39 +445,52 @@ def identify_associations(config: MOVEConfig):
     output_path = Path(config.data.results_path) / "identify_associations"
     output_path.mkdir(exist_ok=True, parents=True)
 
-    # Indentify associations between continuous datasets:
+    # Load datasets:
+    cat_list, cat_names, con_list, con_names = io.load_preprocessed_data(
+        interim_path,
+        config.data.categorical_names,
+        config.data.continuous_names,
+    )
+
+    train_dataloader = make_dataloader(
+        cat_list,
+        con_list,
+        shuffle=True,
+        batch_size=task_config.batch_size,
+        drop_last=True,
+    )
+
+    con_shapes = [con.shape[1] for con in con_list]
+
+    num_samples = len(cast(Sized, train_dataloader.sampler))  # N
+    num_continuous = sum(con_shapes)  # C
+    logger.debug(f"# continuous features: {num_continuous}")
+
+    # Creating the baseline dataloader:
+    baseline_dataloader = make_dataloader(
+        cat_list, con_list, shuffle=False, batch_size=num_samples
+    )
+
+    # Indentify associations between continuous features:
+    logger.info(f"Perturbing dataset: '{task_config.target_dataset}'")
     if task_config.target_value in CONTINUOUS_TARGET_VALUE:
+        logger.info(f"Beginning task: identify associations continuous ({task_type})")
+        logger.info(f"Perturbation type: {task_config.target_value}")
         output_subpath = Path(output_path) / "perturbation_visualization"
         output_subpath.mkdir(exist_ok=True, parents=True)
-        (
-            train_dataloader,
-            baseline_dataloader,
-            dataloaders,
-            num_perturbed,
-            num_samples,
-            num_continuous,
-            cat_names,
-            con_names,
-            con_shapes,
-            nan_mask,
-            feature_mask,
-        ) = prepare_for_continuous_perturbation(config, interim_path, output_subpath)
+        (dataloaders, nan_mask, feature_mask,) = prepare_for_continuous_perturbation(
+            config, output_subpath, baseline_dataloader
+        )
 
     # Identify associations between categorical and continuous features:
     else:
-        (
-            train_dataloader,
-            baseline_dataloader,
-            dataloaders,
-            num_perturbed,
-            num_samples,
-            num_continuous,
-            cat_names,
-            con_names,
-            con_shapes,
-            nan_mask,
-            feature_mask,
-        ) = prepare_for_categorical_perturbation(config, interim_path)
+        logger.info("Beginning task: identify associations categorical")
+        (dataloaders, nan_mask, feature_mask,) = prepare_for_categorical_perturbation(
+            config, interim_path, baseline_dataloader, cat_list
+        )
+
+    num_perturbed = len(dataloaders) - 1  # P
+    logger.debug(f"# perturbed features: {num_perturbed}")
 
     ################# APPROACH EVALUATION ##########################
 

@@ -157,7 +157,8 @@ folder will contain the following plots:
   on the latent space.
 
 Additionally, TSV files corresponding to each plot will be generated. These can
-be used, for example, to re-create the plots manually.
+be used, for example, to re-create the plots manually or with different 
+styling.
 
 Identifying associations
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -182,7 +183,7 @@ changing hyperparameters like learning rate) and call them by their name here.
 (Intel Core i7-10610U @ 1.80 GHz, 32 MB RAM). You can track the progress by
 checking the corresponding log file created in the ``logs`` folder.
 
-If you want to run, the Bayesian approach instead. Run:
+If you want to try the Bayesian approach instead, run:
 
 .. code-block:: bash
 

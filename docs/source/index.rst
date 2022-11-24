@@ -10,6 +10,6 @@ Welcome to move-dl's documentation!
    :maxdepth: 1
    :caption: Contents:
 
-   pages/installation
+   install
    pages/tutorial
    pages/api/API

@@ -178,6 +178,9 @@ method, this number may fluctuate.
 configuration file. We can create multiple configuration files (for example,
 changing hyperparameters like learning rate) and call them by their name here.
 
+|:stopwatch:| This command takes approximately 45 min to run on a work laptop
+(Intel Core i7-10610U @ 1.80 GHz, 32 MB RAM).
+
 If you want to run, the Bayesian approach instead. Run:
 
 .. code-block:: bash

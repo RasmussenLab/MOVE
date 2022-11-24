@@ -11,10 +11,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path("../src").resolve()))
 
-project = "move-dl"
-copyright = "2022, Valentas Brasas, Ricardo Hernandez Medina"
-author = "Valentas Brasas, Ricardo Hernandez Medina"
-release = "1.0.0"
+import move
+
+project = "MOVE"
+copyright = "2022, Rasmussen Lab"
+author = "Rasmussen Lab"
+release = ".".join(map(str, move.__version__))
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

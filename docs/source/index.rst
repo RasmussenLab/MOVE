@@ -11,5 +11,5 @@ Welcome to move-dl's documentation!
    :caption: Contents:
 
    install
-   pages/tutorial
+   tutorial/overview
    pages/api/API

@@ -1,5 +1,5 @@
-Tutorial
-========
+Introduction to MOVE
+====================
 
 This guide can help you get started with MOVE.
 

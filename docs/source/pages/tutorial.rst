@@ -172,14 +172,15 @@ and the omics features. Run:
 |:arrow_up:| This command will create a ``results_sig_assoc.tsv`` file, listing
 each pair of associated features and the corresponding median p-value for such
 association. There should be ~120 associations found. Due to the nature of the
-method, this number may fluctuate.
+method, this number may slightly fluctuate.
 
 |:warning:| Note that the value after ``task=`` matches the name of our
 configuration file. We can create multiple configuration files (for example,
 changing hyperparameters like learning rate) and call them by their name here.
 
 |:stopwatch:| This command takes approximately 45 min to run on a work laptop
-(Intel Core i7-10610U @ 1.80 GHz, 32 MB RAM).
+(Intel Core i7-10610U @ 1.80 GHz, 32 MB RAM). You can track the progress by
+checking the corresponding log file created in the ``logs`` folder.
 
 If you want to run, the Bayesian approach instead. Run:
 

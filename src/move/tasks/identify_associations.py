@@ -58,7 +58,8 @@ def identify_associations(config: MOVEConfig):
     task_type = _get_task_type(task_config)
     logger.info(f"Beginning task: identify associations ({task_type})")
     _validate_task_config(task_config, task_type)
-
+    
+    device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
     interim_path = Path(config.data.interim_data_path)
     models_path = interim_path / "models"
     if task_config.save_refits:
@@ -141,8 +142,11 @@ def identify_associations(config: MOVEConfig):
             if model_path.exists():
                 logger.debug(f"Re-loading refit {j + 1}/{task_config.num_refits}")
                 model.load_state_dict(torch.load(model_path))
+                model.to(device)
             else:
                 logger.debug(f"Training refit {j + 1}/{task_config.num_refits}")
+                
+                model.to(device)
                 hydra.utils.call(
                     task_config.training_loop,
                     model=model,
@@ -216,8 +220,10 @@ def identify_associations(config: MOVEConfig):
                 if model_path.exists():
                     logger.debug(f"Re-loading refit {j + 1}/{task_config.num_refits}")
                     model.load_state_dict(torch.load(model_path))
+                    model.to(device)
                 else:
                     logger.debug(f"Training refit {j + 1}/{task_config.num_refits}")
+                    model.to(device)
                     hydra.utils.call(
                         task_config.training_loop,
                         model=model,

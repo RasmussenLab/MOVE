@@ -80,7 +80,8 @@ def analyze_latent(config: MOVEConfig) -> None:
     interim_path = Path(config.data.interim_data_path)
     output_path = Path(config.data.results_path) / "latent_space"
     output_path.mkdir(exist_ok=True, parents=True)
-
+    device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
+    
     logger.debug("Reading data")
     sample_names = io.read_names(raw_data_path / f"{config.data.sample_names}.txt")
     cat_list, cat_names, con_list, con_names = io.load_preprocessed_data(
@@ -103,14 +104,18 @@ def analyze_latent(config: MOVEConfig) -> None:
         continuous_shapes=test_dataset.con_shapes,
         categorical_shapes=test_dataset.cat_shapes,
     )
+    
     logger.debug(f"Model: {model}")
 
     model_path = output_path / "model.pt"
     if model_path.exists():
         logger.debug("Re-loading model")
         model.load_state_dict(torch.load(model_path))
+        model.to(device)
     else:
         logger.debug("Training model")
+        
+        model.to(device)
         train_dataloader = make_dataloader(
             cat_list,
             con_list,
@@ -133,8 +138,9 @@ def analyze_latent(config: MOVEConfig) -> None:
         fig_df = pd.DataFrame(dict(zip(viz.LOSS_LABELS, losses)))
         fig_df.index.name = "epoch"
         fig_df.to_csv(output_path / "loss_curve.tsv", sep="\t")
+    
     model.eval()
-
+    
     logger.info("Projecting into latent space")
     latent_space = model.project(test_dataloader)
     reducer: TransformerMixin = hydra.utils.instantiate(task_config.reducer)

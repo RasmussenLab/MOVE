@@ -3,11 +3,26 @@ Introduction to MOVE
 
 This guide can help you get started with MOVE.
 
+About the MOVE pipeline
+-----------------------
+
+MOVE has the following four steps (also called tasks):
+
+1. **Encoding data**: taking input data and converting it into a format MOVE
+   can read.
+2. **Tuning the hyperparameters of the VAE model**: training multiple models to
+   find the set of hyperparameters that produces the best reconstructions or
+   most stable latent space.
+3. **Analyzing the latent space**: training a model and inspecting the latent
+   representation it creates.
+4. **Identifying associations**: using an ensemble of VAE to find associations
+   between the input datasets.
+
 Simulated dataset
 -----------------
 
 For this short tutorial, we provide `simulated dataset`_ (available from our
-GitHub repository). This dataset consists of pretend proteomics and 
+GitHub repository). This dataset consists of pretend proteomics and
 metagenomcis measurements for 500 fictitious individuals. We also report
 whether these individuals have taken or not 20 imaginary drugs.
 
@@ -128,7 +143,7 @@ Tuning the model's hyperparameters
 Once the data has been encoded, we can proceed with the first step of our
 pipeline: tuning the hyperparameters of our deep learning model. This process
 can be time-consuming, because several models will be trained and tested. For
-this short tutorial, you may choose to skip it and proceed to 
+this short tutorial, you may choose to skip it and proceed to
 :ref:`analyze the latent space<Analyzing the latent space>`.
 
 Analyzing the latent space
@@ -141,7 +156,7 @@ reconstructing our input data and generating an informative latent space. Run:
 
     >>> move-dl data=random_small task=random_small__latent
 
-|:arrow_up:| This command will create a ``latent_space`` directory in the 
+|:arrow_up:| This command will create a ``latent_space`` directory in the
 results folder defined in the :ref:`data config<Data configuration>`. This
 folder will contain the following plots:
 
@@ -150,14 +165,14 @@ folder will contain the following plots:
 * **Reconstructions metrics boxplot** shows a score (accuracy or cosine
   similarity for categorical and continuous datasets, respectively) per
   reconstructed dataset.
-* **Latent space scatterplot** shows a reduced representation of the latent 
-  space. To generate this visualization, the latent space is reduced to two  
+* **Latent space scatterplot** shows a reduced representation of the latent
+  space. To generate this visualization, the latent space is reduced to two
   dimensions using TSNE (or another user-defined algorithm, e.g., UMAP).
 * **Feature importance swarmplot** displays the impact perturbing a feature has
   on the latent space.
 
 Additionally, TSV files corresponding to each plot will be generated. These can
-be used, for example, to re-create the plots manually or with different 
+be used, for example, to re-create the plots manually or with different
 styling.
 
 Identifying associations

@@ -2,7 +2,7 @@ __all__ = ["tune_model"]
 
 from pathlib import Path
 from random import shuffle
-from typing import Any, cast, Literal
+from typing import Any, Literal, cast
 
 import hydra
 import numpy as np
@@ -10,6 +10,7 @@ import pandas as pd
 from hydra.core.hydra_config import HydraConfig
 from hydra.types import RunMode
 from matplotlib.cbook import boxplot_stats
+from numpy.typing import ArrayLike
 from omegaconf import OmegaConf
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -17,12 +18,11 @@ from move.analysis.metrics import (
     calculate_accuracy,
     calculate_cosine_similarity,
 )
-
 from move.conf.schema import (
     MOVEConfig,
     TuneModelConfig,
     TuneModelReconstructionConfig,
-    TuneModelStabilityConfig
+    TuneModelStabilityConfig,
 )
 from move.core.logging import get_logger
 from move.core.typing import BoolArray, FloatArray
@@ -44,7 +44,7 @@ def _get_task_type(
     raise ValueError("Unsupported type of task!")
 
 
-def _get_record(values: FloatArray, **kwargs) -> dict[str, Any]:
+def _get_record(values: ArrayLike, **kwargs) -> dict[str, Any]:
     record = kwargs
     bxp_stats, *_ = boxplot_stats(values)
     bxp_stats.pop("fliers")
@@ -88,8 +88,7 @@ def tune_model(config: MOVEConfig) -> float:
     def _tune_stability(
         task_config: TuneModelStabilityConfig,
     ):
-        label = [hp.split("=") for hp in
-                 hydra_config.job.override_dirname.split(",")]
+        label = [hp.split("=") for hp in hydra_config.job.override_dirname.split(",")]
 
         train_dataloader = make_dataloader(
             cat_list,
@@ -104,13 +103,17 @@ def tune_model(config: MOVEConfig) -> float:
             con_list,
             shuffle=False,
             batch_size=1,
-            drop_last=False)
+            drop_last=False,
+        )
 
         train_dataset = cast(MOVEDataset, train_dataloader.dataset)
 
+        logger.info(f"Training {task_config.num_refits} refits")
+
+        cosine_sim0 = None
         cosine_sim_diffs = []
         for j in range(task_config.num_refits):
-            logger.info(f"Refit: {j+1}/{task_config.num_refits}")
+            logger.debug(f"Refit: {j+1}/{task_config.num_refits}")
             model: VAE = hydra.utils.instantiate(
                 task_config.model,
                 continuous_shapes=train_dataset.con_shapes,
@@ -124,16 +127,15 @@ def tune_model(config: MOVEConfig) -> float:
             )
 
             model.eval()
-            latent, _, _, _, _, _, _ = model.latent(test_dataloader, kld_weight=1)
+            latent, *_ = model.latent(test_dataloader, kld_weight=1)
 
-            if j == 0:
+            if cosine_sim0 is None:
                 cosine_sim0 = cosine_similarity(latent)
             else:
                 cosine_sim = cosine_similarity(latent)
                 D = np.absolute(cosine_sim - cosine_sim0)
                 # removing the diagonal element (cos_sim with itself)
-                diff = D[~np.eye(D.shape[0],
-                                 dtype=bool)].reshape(D.shape[0], -1)
+                diff = D[~np.eye(D.shape[0], dtype=bool)].reshape(D.shape[0], -1)
                 mean_diff = np.mean(diff)
                 cosine_sim_diffs.append(mean_diff)
 
@@ -142,17 +144,16 @@ def tune_model(config: MOVEConfig) -> float:
             job_num=job_num,
             **dict(label),
             metric="mean_diff_cosine_similarity",
-            num_refits=task_config.num_refits
+            num_refits=task_config.num_refits,
         )
-        records = [record]
         logger.info("Writing results")
         df_path = output_path / "stability_stats.tsv"
         header = not df_path.exists()
-        df = pd.DataFrame.from_records(records)
+        df = pd.DataFrame.from_records([record])
         df.to_csv(df_path, sep="\t", mode="a", header=header, index=False)
 
     def _tune_reconstruction(
-        task_config: TuneModelStabilityConfig,
+        task_config: TuneModelReconstructionConfig,
     ):
         split_path = interim_path / "split_mask.npy"
         if split_path.exists():
@@ -236,11 +237,11 @@ def tune_model(config: MOVEConfig) -> float:
         df = pd.DataFrame.from_records(records)
         df.to_csv(df_path, sep="\t", mode="a", header=header, index=False)
 
-    if task_type == 'reconstruction':
+    if task_type == "reconstruction":
+        task_config = cast(TuneModelReconstructionConfig, task_config)
         _tune_reconstruction(task_config)
-    elif task_type == 'stability':
+    elif task_type == "stability":
+        task_config = cast(TuneModelStabilityConfig, task_config)
         _tune_stability(task_config)
 
-
     return 0.0
-

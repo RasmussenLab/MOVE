@@ -111,6 +111,7 @@ class TuneModelStabilityConfig(TuneModelConfig):
 
     num_refits: int = MISSING
 
+
 @dataclass
 class TuneModelReconstructionConfig(TuneModelConfig):
     """Configure the "tune model" task."""

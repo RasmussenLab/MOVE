@@ -1,0 +1,5 @@
+# @package _global_
+
+defaults:
+  - override /data: random_continuous
+  - override /task: random_continuous__id_assoc_ttest

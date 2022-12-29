@@ -7,10 +7,10 @@ from typing import Any, cast
 import hydra
 import numpy as np
 import pandas as pd
+import torch
 from hydra.core.hydra_config import HydraConfig
 from hydra.types import RunMode
 from matplotlib.cbook import boxplot_stats
-import torch
 
 from move.analysis.metrics import (
     calculate_accuracy,
@@ -49,8 +49,7 @@ def tune_model(config: MOVEConfig) -> float:
     logger.info(f"Beginning task: tune model {job_num}")
     logger.info(f"Job name: {hydra_config.job.override_dirname}")
     task_config = cast(TuneModelConfig, config.task)
-    
-    device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
+
     interim_path = Path(config.data.interim_data_path)
     output_path = Path(config.data.results_path) / "tune_model"
     output_path.mkdir(exist_ok=True, parents=True)
@@ -82,13 +81,14 @@ def tune_model(config: MOVEConfig) -> float:
     train_dataset = cast(MOVEDataset, train_dataloader.dataset)
 
     assert task_config.model is not None
+    device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
     model: VAE = hydra.utils.instantiate(
         task_config.model,
         continuous_shapes=train_dataset.con_shapes,
         categorical_shapes=train_dataset.cat_shapes,
-    )  
-    model.to(device)  
-    
+    )
+    model.to(device)
+
     logger.debug(f"Model: {model}")
 
     logger.debug("Training model")

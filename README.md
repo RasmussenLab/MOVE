@@ -4,7 +4,7 @@ The code in this repository can be used to run our Multi-Omics Variational
 autoEncoder (MOVE) framework for integration of omics and clinical variabels
 spanning both categorial and continuous data. Our approach includes training
 ensemble VAE models and using *in silico* perturbation experiments to identify
-cross omics associations. The manuscript has been accepted and we will provide 
+cross omics associations. The manuscript has been accepted and we will provide
 the link when it is published.
 
 We developed the method based on a Type 2 Diabetes cohort from the IMI DIRECT
@@ -68,29 +68,8 @@ MOVE has five-six steps:
 
 ## How to run MOVE
 
-You can run the move-dl pipeline from the command line or within a Jupyter
-notebook.
-
-You can run MOVE as Python module with the following command. Details on how
-to set up the configuration for the data and task can be found our
-[tutorial](https://github.com/RasmussenLab/MOVE/tree/main/tutorial) folder.
-
-```bash
->>> move-dl data=[name of data config] task=[name of task config]
-```
-
-Feel free to
-[open an issue](https://github.com/RasmussenLab/MOVE/issues/new/choose) if you
-need any help.
-
-### How to use MOVE with your data
-
-Your data files should be tab separated, include a header and the first column
-should be the IDs of your samples. The configuration of MOVE is done using YAML
-files that describe the input data and the task specification. These should be
-placed in a `config` directory in the working directory. Please see the
-[tutorial](https://github.com/RasmussenLab/MOVE/tree/main/tutorial)
-for more information.
+Please refer to our [**documentation**](https://move-dl.readthedocs.io/) for
+examples and tutorials on how to run MOVE.
 
 
 # Data sets
@@ -110,5 +89,13 @@ available [here](https://directdiabetes.org).
 
 ## Simulated and publicaly available data sets
 
-We have therefore provided two datasets to test the workflow: a simulated 
+We have therefore provided two datasets to test the workflow: a simulated
 dataset and a publicly-available maize rhizosphere microbiome data set.
+
+# Citation
+
+To cite MOVE, use the following information:
+
+Allesøe, R.L., Lundgaard, A.T., Hernández Medina, R. et al. Discovery of
+drug–omics associations in type 2 diabetes with generative deep-learning models.
+*Nat Biotechnol* (2023). https://doi.org/10.1038/s41587-022-01520-x

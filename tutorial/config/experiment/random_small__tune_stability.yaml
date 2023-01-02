@@ -4,7 +4,12 @@
 
 defaults:
   - override /data: random_small
-  - override /task: tune_model
+  - override /task: tune_model_stability
+
+# Define how many models to train to calculate stability
+
+task:
+  num_refits: 10
 
 # Configure which hyperarameters to vary
 # This will run and log the metrics of 12 models (combination of 3 hyperparams

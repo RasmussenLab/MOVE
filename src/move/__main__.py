@@ -34,7 +34,7 @@ def main(config: MOVEConfig) -> None:
         logger.info("No task specified.")
     elif task_type is EncodeDataConfig:
         move.tasks.encode_data(config.data)
-    elif task_type is TuneModelConfig:
+    elif issubclass(task_type, TuneModelConfig):
         move.tasks.tune_model(config)
     elif task_type is AnalyzeLatentConfig:
         move.tasks.analyze_latent(config)

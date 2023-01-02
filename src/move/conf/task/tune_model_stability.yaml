@@ -1,7 +1,8 @@
 defaults:
-  - tune_model_schema
+  - tune_model_stability_schema
 
 batch_size: 10
+num_refits: 3
 
 model:
   categorical_weights: ${weights:${data.categorical_inputs}}

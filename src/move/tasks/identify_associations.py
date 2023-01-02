@@ -118,6 +118,9 @@ def identify_associations(config: MOVEConfig):
     feature_mask = np.all(target_dataset == target_value, axis=2)  # 2D: N x P
     feature_mask |= np.sum(target_dataset, axis=2) == 0
 
+    assert task_config.model is not None
+    device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
+
     def _bayes_approach(
         task_config: IdentifyAssociationsBayesConfig,
     ) -> tuple[IntArray, FloatArray]:
@@ -141,8 +144,11 @@ def identify_associations(config: MOVEConfig):
             if model_path.exists():
                 logger.debug(f"Re-loading refit {j + 1}/{task_config.num_refits}")
                 model.load_state_dict(torch.load(model_path))
+                model.to(device)
             else:
                 logger.debug(f"Training refit {j + 1}/{task_config.num_refits}")
+
+                model.to(device)
                 hydra.utils.call(
                     task_config.training_loop,
                     model=model,
@@ -216,8 +222,10 @@ def identify_associations(config: MOVEConfig):
                 if model_path.exists():
                     logger.debug(f"Re-loading refit {j + 1}/{task_config.num_refits}")
                     model.load_state_dict(torch.load(model_path))
+                    model.to(device)
                 else:
                     logger.debug(f"Training refit {j + 1}/{task_config.num_refits}")
+                    model.to(device)
                     hydra.utils.call(
                         task_config.training_loop,
                         model=model,

@@ -7,6 +7,7 @@ from typing import Any, Literal, cast
 import hydra
 import numpy as np
 import pandas as pd
+import torch
 from hydra.core.hydra_config import HydraConfig
 from hydra.types import RunMode
 from matplotlib.cbook import boxplot_stats
@@ -85,6 +86,9 @@ def tune_model(config: MOVEConfig) -> float:
         config.data.continuous_names,
     )
 
+    assert task_config.model is not None
+    device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
+
     def _tune_stability(
         task_config: TuneModelStabilityConfig,
     ):
@@ -119,6 +123,7 @@ def tune_model(config: MOVEConfig) -> float:
                 continuous_shapes=train_dataset.con_shapes,
                 categorical_shapes=train_dataset.cat_shapes,
             )
+            model.to(device)
 
             hydra.utils.call(
                 task_config.training_loop,
@@ -174,12 +179,12 @@ def tune_model(config: MOVEConfig) -> float:
 
         train_dataset = cast(MOVEDataset, train_dataloader.dataset)
 
-        assert task_config.model is not None
         model: VAE = hydra.utils.instantiate(
             task_config.model,
             continuous_shapes=train_dataset.con_shapes,
             categorical_shapes=train_dataset.cat_shapes,
         )
+        model.to(device)
         logger.debug(f"Model: {model}")
 
         logger.debug("Training model")

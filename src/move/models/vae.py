@@ -582,11 +582,14 @@ class VAE(nn.Module):
             a formed batch
         """
         cat, con = batch
+        cat = cat.to(self.device)
+        con = con.to(self.device)
+
         if self.num_categorical is None:
             return con
         elif self.num_continuous is None:
             return cat
-        return torch.cat(batch, dim=1)
+        return torch.cat((cat, con), dim=1)
 
     @torch.no_grad()
     def project(self, dataloader: DataLoader) -> FloatArray:
@@ -604,7 +607,7 @@ class VAE(nn.Module):
             batch = self._validate_batch(batch)
             *_, mu, _ = self(batch)
             embedding.append(mu)
-        embedding = torch.cat(embedding, dim=0).numpy()
+        embedding = torch.cat(embedding, dim=0).cpu().numpy()
         return embedding
 
     @torch.no_grad()
@@ -630,8 +633,8 @@ class VAE(nn.Module):
             for i, cat in enumerate(cat_recon):
                 cat_recons[i].append(torch.argmax(cat, dim=1))
             con_recons.append(con_recon)
-        cat_recons = [torch.cat(cats, dim=0).numpy() for cats in cat_recons]
-        con_recons = torch.cat(con_recons, dim=0).numpy()
+        cat_recons = [torch.cat(cats, dim=0).cpu().numpy() for cats in cat_recons]
+        con_recons = torch.cat(con_recons, dim=0).cpu().numpy()
         return cat_recons, con_recons
 
     @torch.no_grad()

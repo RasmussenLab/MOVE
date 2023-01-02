@@ -98,19 +98,24 @@ def analyze_latent(config: MOVEConfig) -> None:
     df_index = pd.Index(sample_names, name="sample")
 
     assert task_config.model is not None
+    device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
     model: VAE = hydra.utils.instantiate(
         task_config.model,
         continuous_shapes=test_dataset.con_shapes,
         categorical_shapes=test_dataset.cat_shapes,
     )
+
     logger.debug(f"Model: {model}")
 
     model_path = output_path / "model.pt"
     if model_path.exists():
         logger.debug("Re-loading model")
         model.load_state_dict(torch.load(model_path))
+        model.to(device)
     else:
         logger.debug("Training model")
+
+        model.to(device)
         train_dataloader = make_dataloader(
             cat_list,
             con_list,
@@ -133,6 +138,7 @@ def analyze_latent(config: MOVEConfig) -> None:
         fig_df = pd.DataFrame(dict(zip(viz.LOSS_LABELS, losses)))
         fig_df.index.name = "epoch"
         fig_df.to_csv(output_path / "loss_curve.tsv", sep="\t")
+
     model.eval()
 
     logger.info("Projecting into latent space")

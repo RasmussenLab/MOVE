@@ -21,7 +21,7 @@ config, a task config, and the values of hyperparameters to test out.
 
 The first lines of our config should look like:
 
-.. literalinclude:: /../../tutorial/config/experiment/random_small__tune.yaml
+.. literalinclude:: /../../tutorial/config/experiment/random_small__tune_reconstruction.yaml
     :language: yaml
     :lines: 1-8
 
@@ -38,7 +38,7 @@ two possible values for tuning task:
 Next, we have to define the hyperparameters that we wish to test out. An
 example would be:
 
-.. literalinclude:: /../../tutorial/config/experiment/random_small__tune.yaml
+.. literalinclude:: /../../tutorial/config/experiment/random_small__tune_reconstruction.yaml
     :language: yaml
     :lines: 15-21
 

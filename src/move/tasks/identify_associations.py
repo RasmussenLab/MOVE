@@ -2,7 +2,7 @@ __all__ = ["identify_associations"]
 
 from functools import reduce
 from pathlib import Path
-from typing import Literal, Sized, cast
+from typing import Literal, Sized, Union, cast
 
 import hydra
 import numpy as np
@@ -123,7 +123,7 @@ def identify_associations(config: MOVEConfig):
 
     def _bayes_approach(
         task_config: IdentifyAssociationsBayesConfig,
-    ) -> tuple[IntArray, FloatArray]:
+    ) -> tuple[Union[IntArray, FloatArray], ...]:
         assert task_config.model is not None
         # Train models
         logger.info("Training models")
@@ -186,7 +186,7 @@ def identify_associations(config: MOVEConfig):
         idx = np.argmin(np.abs(fdr - task_config.sig_threshold))
         logger.debug(f"FDR range: [{fdr[0]:.3f} {fdr[-1]:.3f}]")
 
-        return sort_ids[:idx], prob[:idx]
+        return sort_ids[:idx], prob[:idx], fdr[:idx]
 
     def _ttest_approach(
         task_config: IdentifyAssociationsTTestConfig,
@@ -278,7 +278,7 @@ def identify_associations(config: MOVEConfig):
     if task_type == "bayes":
         task_config = cast(IdentifyAssociationsBayesConfig, task_config)
         sig_ids, *extra_cols = _bayes_approach(task_config)
-        extra_colnames = ["proba"]
+        extra_colnames = ["proba", "fdr"]
     else:
         task_config = cast(IdentifyAssociationsTTestConfig, task_config)
         sig_ids, *extra_cols = _ttest_approach(task_config)

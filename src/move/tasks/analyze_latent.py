@@ -1,6 +1,5 @@
 __all__ = ["analyze_latent"]
 
-import enum
 from pathlib import Path
 from typing import Sized, cast
 
@@ -92,7 +91,7 @@ def analyze_latent(config: MOVEConfig) -> None:
         cat_list,
         con_list,
         shuffle=False,
-        batch_size=len(sample_names),
+        batch_size=task_config.batch_size,
     )
     test_dataset = cast(MOVEDataset, test_dataloader.dataset)
     df_index = pd.Index(sample_names, name="sample")

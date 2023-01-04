@@ -61,11 +61,9 @@ class MOVEDataset(TensorDataset):
     def __len__(self) -> int:
         return self.num_samples
 
-    def __getitem__(
-        self, idx: int
-    ) -> tuple[Optional[torch.Tensor], Optional[torch.Tensor]]:
-        cat_slice = None if self.cat_all is None else self.cat_all[idx]
-        con_slice = None if self.con_all is None else self.con_all[idx]
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor]:
+        cat_slice = torch.empty(0) if self.cat_all is None else self.cat_all[idx]
+        con_slice = torch.empty(0) if self.con_all is None else self.con_all[idx]
         return cat_slice, con_slice
 
 
@@ -139,14 +137,14 @@ def make_dataset(
     Returns:
         MOVEDataset
     """
-    if cat_list is None and con_list is None:
+    if not cat_list and not con_list:
         raise ValueError("At least one type of data must be in the input")
 
-    cat_shapes, cat_all = None, None
+    cat_shapes, cat_all = [], None
     if cat_list:
         cat_shapes, cat_all = concat_cat_list(cat_list)
 
-    con_shapes, con_all = None, None
+    con_shapes, con_all = [], None
     if con_list:
         con_shapes, con_all = concat_con_list(con_list)
 

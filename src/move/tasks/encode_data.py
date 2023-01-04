@@ -36,7 +36,8 @@ def encode_data(config: DataConfig):
         mappings[dataset_name] = mapping
         io.dump_names(interim_data_path / f"{dataset_name}.txt", names)
         np.save(interim_data_path / f"{dataset_name}.npy", values)
-    io.dump_mappings(interim_data_path / "mappings.json", mappings)
+    if mappings:
+        io.dump_mappings(interim_data_path / "mappings.json", mappings)
 
     for dataset_name in config.continuous_names:
         logger.info(f"Encoding '{dataset_name}'")

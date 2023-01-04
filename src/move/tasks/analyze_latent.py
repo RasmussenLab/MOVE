@@ -146,12 +146,18 @@ def analyze_latent(config: MOVEConfig) -> None:
     reducer: TransformerMixin = hydra.utils.instantiate(task_config.reducer)
     embedding = reducer.fit_transform(latent_space)
 
-    mappings = io.load_mappings(interim_path / "mappings.json")
+    mappings_path = interim_path / "mappings.json"
+    if mappings_path.exists():
+        mappings = io.load_mappings(mappings_path)
+    else:
+        mappings = {}
+
     fig_df = pd.DataFrame(
         np.take(embedding, [0, 1], axis=1),
         columns=["dim0", "dim1"],
         index=df_index,
     )
+
     for feature_name in task_config.feature_names:
         logger.debug(f"Generating plot: latent space + '{feature_name}'")
         is_categorical = False
@@ -161,9 +167,13 @@ def analyze_latent(config: MOVEConfig) -> None:
             )
             is_categorical = True
         except KeyError:
-            dataset_index, feature_values = find_feature_values(
-                feature_name, con_names, con_list
-            )
+            try:
+                dataset_index, feature_values = find_feature_values(
+                    feature_name, con_names, con_list
+                )
+            except KeyError:
+                logger.warning(f"Feature '{feature_name}' not found in any dataset.")
+                continue
 
         if is_categorical:
             # Convert one-hot encoding to category codes

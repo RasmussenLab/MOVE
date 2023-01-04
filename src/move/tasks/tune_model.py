@@ -106,7 +106,7 @@ def tune_model(config: MOVEConfig) -> float:
             cat_list,
             con_list,
             shuffle=False,
-            batch_size=1,
+            batch_size=task_config.batch_size,
             drop_last=False,
         )
 
@@ -205,7 +205,7 @@ def tune_model(config: MOVEConfig) -> float:
                 con_list,
                 mask,
                 shuffle=False,
-                batch_size=np.count_nonzero(mask),
+                batch_size=task_config.batch_size,
             )
             cat_recons, con_recons = model.reconstruct(dataloader)
             con_recons = np.split(con_recons, model.continuous_shapes[:-1], axis=1)

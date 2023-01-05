@@ -173,20 +173,24 @@ def identify_associations(config: MOVEConfig):
             mask = feature_mask[:, [i]] | nan_mask  # 2D: N x C
             diff = np.ma.masked_array(mean_diff[i, :, :], mask=mask)  # 2D: N x C
             prob = np.ma.compressed(np.mean(diff > 1e-8, axis=0))  # 1D: C
-            bayes_k[i, :] = np.abs(np.log(prob + 1e-8) - np.log(1 - prob + 1e-8))
+            bayes_k[i, :] = np.log(prob + 1e-8) - np.log(1 - prob + 1e-8)
 
         # Calculate Bayes probabilities
-        bayes_p = np.exp(bayes_k) / (1 + np.exp(bayes_k))  # 2D: N x C
-        sort_ids = np.argsort(bayes_k, axis=None)[::-1]  # 1D: N x C
+        bayes_abs = np.abs(bayes_k)
+        bayes_p = np.exp(bayes_abs) / (1 + np.exp(bayes_abs))  # 2D: N x C
+        sort_ids = np.argsort(bayes_abs, axis=None)[::-1]  # 1D: N x C
         prob = np.take(bayes_p, sort_ids)  # 1D: N x C
         logger.debug(f"Bayes proba range: [{prob[-1]:.3f} {prob[0]:.3f}]")
+
+        # Sort Bayes
+        bayes_k = np.take(bayes_k, sort_ids)  # 1D: N x C
 
         # Calculate FDR
         fdr = np.cumsum(1 - prob) / np.arange(1, prob.size + 1)  # 1D
         idx = np.argmin(np.abs(fdr - task_config.sig_threshold))
         logger.debug(f"FDR range: [{fdr[0]:.3f} {fdr[-1]:.3f}]")
 
-        return sort_ids[:idx], prob[:idx], fdr[:idx]
+        return sort_ids[:idx], prob[:idx], fdr[:idx], bayes_k[:idx]
 
     def _ttest_approach(
         task_config: IdentifyAssociationsTTestConfig,
@@ -278,7 +282,7 @@ def identify_associations(config: MOVEConfig):
     if task_type == "bayes":
         task_config = cast(IdentifyAssociationsBayesConfig, task_config)
         sig_ids, *extra_cols = _bayes_approach(task_config)
-        extra_colnames = ["proba", "fdr"]
+        extra_colnames = ["proba", "fdr", "bayes_k"]
     else:
         task_config = cast(IdentifyAssociationsTTestConfig, task_config)
         sig_ids, *extra_cols = _ttest_approach(task_config)
@@ -292,7 +296,6 @@ def identify_associations(config: MOVEConfig):
 
         logger.info("Writing results")
         results = pd.DataFrame(sig_ids, columns=["feature_a_id", "feature_b_id"])
-        results.sort_values("feature_a_id", inplace=True)
         a_df = pd.DataFrame(dict(feature_a_name=cat_names[target_dataset_idx]))
         a_df.index.name = "feature_a_id"
         a_df.reset_index(inplace=True)

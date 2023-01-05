@@ -4,8 +4,13 @@ The code in this repository can be used to run our Multi-Omics Variational
 autoEncoder (MOVE) framework for integration of omics and clinical variabels
 spanning both categorial and continuous data. Our approach includes training
 ensemble VAE models and using *in silico* perturbation experiments to identify
-cross omics associations. The manuscript has been accepted and we will provide
-the link when it is published.
+cross omics associations. The manuscript has been published in Nature Biotechnology:
+
+> Allesøe, Rosa Lundbye, Agnete Troen Lundgaard, Ricardo Hernández Medina,
+> Alejandro Aguayo-Orozco, Joachim Johansen, Jakob Nybo Nissen,
+> Caroline Brorsson, et al. 2023.
+> “Discovery of Drug-Omics Associations in Type 2 Diabetes with Generative Deep-Learning Models.”
+> Nature Biotechnology, January. https://doi.org/10.1038/s41587-022-01520-x.
 
 We developed the method based on a Type 2 Diabetes cohort from the IMI DIRECT
 project containing 789 newly diagnosed T2D patients. The cohort and data

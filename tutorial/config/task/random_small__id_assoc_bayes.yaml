@@ -4,7 +4,7 @@ defaults:
 
 batch_size: 10
 
-num_refits: 40
+num_refits: 40 # default is 40
 
 target_dataset: random.small.drugs
 target_value: 1

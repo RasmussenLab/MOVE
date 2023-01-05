@@ -79,3 +79,23 @@ def scale(x: np.ndarray) -> tuple[FloatArray, BoolArray]:
     scaled_x = standardize(logx[:, mask_1d], axis=0)
     scaled_x[np.isnan(scaled_x)] = 0
     return scaled_x, mask_1d
+
+
+def feature_stats(x: np.ndarray) -> tuple[FloatArray, FloatArray, FloatArray]:
+    """
+    Read an array of continuous values and extract the
+    minimum, maximum and standard deviation per column (feature).
+
+    Args:
+        x: 2D array with samples in its rows and features in its columns
+
+    Returns:
+        minimum: list with minimum value per feature (column)
+        maximum: list with maximum  " "
+        std: list with std " "
+    """
+
+    minimum = np.nanmin(x, axis=0)
+    maximum = np.nanmax(x, axis=0)
+    std = np.nanstd(x, axis=0)
+    return minimum, maximum, std

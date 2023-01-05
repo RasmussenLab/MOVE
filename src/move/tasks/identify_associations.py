@@ -173,6 +173,8 @@ def _bayes_approach(
 ) -> tuple[Union[IntArray, FloatArray], ...]:
 
     assert task_config.model is not None
+    device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
+
     # Train models
     logger = get_logger(__name__)
     logger.info("Training models")
@@ -197,8 +199,10 @@ def _bayes_approach(
         if model_path.exists():
             logger.debug(f"Re-loading refit {j + 1}/{task_config.num_refits}")
             model.load_state_dict(torch.load(model_path))
+            model.to(device)
         else:
             logger.debug(f"Training refit {j + 1}/{task_config.num_refits}")
+            model.to(device)
             hydra.utils.call(
                 task_config.training_loop,
                 model=model,
@@ -223,20 +227,24 @@ def _bayes_approach(
         mask = feature_mask[:, [i]] | nan_mask  # 2D: N x C
         diff = np.ma.masked_array(mean_diff[i, :, :], mask=mask)  # 2D: N x C
         prob = np.ma.compressed(np.mean(diff > 1e-8, axis=0))  # 1D: C
-        bayes_k[i, :] = np.abs(np.log(prob + 1e-8) - np.log(1 - prob + 1e-8))
+        bayes_k[i, :] = np.log(prob + 1e-8) - np.log(1 - prob + 1e-8)
 
     # Calculate Bayes probabilities
-    bayes_p = np.exp(bayes_k) / (1 + np.exp(bayes_k))  # 2D: N x C
-    sort_ids = np.argsort(bayes_k, axis=None)[::-1]  # 1D: N x C
+    bayes_abs = np.abs(bayes_k)
+    bayes_p = np.exp(bayes_abs) / (1 + np.exp(bayes_abs))  # 2D: N x C
+    sort_ids = np.argsort(bayes_abs, axis=None)[::-1]  # 1D: N x C
     prob = np.take(bayes_p, sort_ids)  # 1D: N x C
     logger.debug(f"Bayes proba range: [{prob[-1]:.3f} {prob[0]:.3f}]")
+
+    # Sort Bayes
+    bayes_k = np.take(bayes_k, sort_ids)  # 1D: N x C
 
     # Calculate FDR
     fdr = np.cumsum(1 - prob) / np.arange(1, prob.size + 1)  # 1D
     idx = np.argmin(np.abs(fdr - task_config.sig_threshold))
     logger.debug(f"FDR range: [{fdr[0]:.3f} {fdr[-1]:.3f}]")
 
-    return sort_ids[:idx], prob[:idx]
+    return sort_ids[:idx], prob[:idx], fdr[:idx], bayes_k[:idx]
 
 
 def _ttest_approach(
@@ -254,6 +262,9 @@ def _ttest_approach(
 ) -> tuple[Union[IntArray, FloatArray], ...]:
 
     from scipy.stats import ttest_rel
+
+    assert task_config.model is not None
+    device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
 
     # Train models
     logger = get_logger(__name__)
@@ -288,8 +299,10 @@ def _ttest_approach(
             if model_path.exists():
                 logger.debug(f"Re-loading refit {j + 1}/{task_config.num_refits}")
                 model.load_state_dict(torch.load(model_path))
+                model.to(device)
             else:
                 logger.debug(f"Training refit {j + 1}/{task_config.num_refits}")
+                model.to(device)
                 hydra.utils.call(
                     task_config.training_loop,
                     model=model,
@@ -385,7 +398,6 @@ def save_results(
 
         logger.info("Writing results")
         results = pd.DataFrame(sig_ids, columns=["feature_a_id", "feature_b_id"])
-        results.sort_values("feature_a_id", inplace=True)
         # Check if the task is for continuous or categorical data
         if task_config.target_value in ContinuousTargetValue:
             target_dataset_idx = config.data.continuous_names.index(
@@ -406,7 +418,7 @@ def save_results(
         results = results.merge(a_df, on="feature_a_id").merge(b_df, on="feature_b_id")
         results["feature_b_dataset"] = pd.cut(
             results["feature_b_id"],
-            bins=np.cumsum([0] + con_shapes),
+            bins=cast(list[int], np.cumsum([0] + con_shapes)),
             right=False,
             labels=config.data.continuous_names,
         )
@@ -463,7 +475,7 @@ def identify_associations(config: MOVEConfig) -> None:
 
     # Creating the baseline dataloader:
     baseline_dataloader = make_dataloader(
-        cat_list, con_list, shuffle=False, batch_size=num_samples
+        cat_list, con_list, shuffle=False, batch_size=task_config.batch_size
     )
 
     # Indentify associations between continuous features:
@@ -504,7 +516,7 @@ def identify_associations(config: MOVEConfig) -> None:
             feature_mask,
         )
 
-        extra_colnames = ["proba"]
+        extra_colnames = ["proba", "fdr", "bayes_k"]
 
     else:
         task_config = cast(IdentifyAssociationsTTestConfig, task_config)

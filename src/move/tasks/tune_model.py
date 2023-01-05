@@ -29,8 +29,6 @@ from move.core.logging import get_logger
 from move.core.typing import BoolArray, FloatArray
 from move.data import io
 from move.data.dataloaders import MOVEDataset, make_dataloader, split_samples
-from move.conf.schema import MOVEConfig, TuneModelConfig
-from move.core.logging import get_logger
 from move.models.vae import VAE
 
 TaskType = Literal["reconstruction", "stability"]

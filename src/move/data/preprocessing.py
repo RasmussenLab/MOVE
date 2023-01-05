@@ -81,7 +81,7 @@ def scale(x: np.ndarray) -> tuple[FloatArray, BoolArray]:
     return scaled_x, mask_1d
 
 
-def feature_stats(x: np.ndarray) -> tuple[FloatArray, FloatArray, FloatArray]:
+def feature_stats(x: ArrayLike) -> tuple[FloatArray, FloatArray, FloatArray]:
     """
     Read an array of continuous values and extract the
     minimum, maximum and standard deviation per column (feature).

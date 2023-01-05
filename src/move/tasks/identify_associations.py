@@ -355,7 +355,6 @@ def _ttest_approach(
 
 def save_results(
     config: MOVEConfig,
-    ContinuousTargetValue: list[str],
     con_shapes: list[int],
     cat_names: list[list[str]],
     con_names: list[list[str]],
@@ -376,7 +375,6 @@ def save_results(
 
     Args:
         config: main config
-        ContinuousTargetValue: list of perturbation types
         con_shapes: tuple with the number of features per continuous dataset
         cat_names: list of lists of names for the categorical features.
                    Each inner list corresponds to a separate dataset.
@@ -399,7 +397,7 @@ def save_results(
         logger.info("Writing results")
         results = pd.DataFrame(sig_ids, columns=["feature_a_id", "feature_b_id"])
         # Check if the task is for continuous or categorical data
-        if task_config.target_value in ContinuousTargetValue:
+        if task_config.target_value in CONTINUOUS_TARGET_VALUE:
             target_dataset_idx = config.data.continuous_names.index(
                 task_config.target_dataset
             )
@@ -445,10 +443,11 @@ def identify_associations(config: MOVEConfig) -> None:
     _validate_task_config(task_config, task_type)
 
     interim_path = Path(config.data.interim_data_path)
-    models_path = interim_path / "models"
 
+    models_path = interim_path / "models"
     if task_config.save_refits:
         models_path.mkdir(exist_ok=True)
+
     output_path = Path(config.data.results_path) / "identify_associations"
     output_path.mkdir(exist_ok=True, parents=True)
 
@@ -539,7 +538,6 @@ def identify_associations(config: MOVEConfig) -> None:
     ###################### RESULTS ################################
     save_results(
         config,
-        CONTINUOUS_TARGET_VALUE,
         con_shapes,
         cat_names,
         con_names,

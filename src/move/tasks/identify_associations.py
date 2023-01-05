@@ -18,7 +18,7 @@ from move.conf.schema import (
     MOVEConfig,
 )
 from move.core.logging import get_logger
-from move.core.typing import BoolArray, FloatArray, IntArray, PathLike
+from move.core.typing import BoolArray, FloatArray, IntArray
 from move.data import io
 from move.data.dataloaders import MOVEDataset, make_dataloader
 from move.data.perturbations import (
@@ -56,7 +56,7 @@ def _validate_task_config(
 
 def prepare_for_categorical_perturbation(
     config: MOVEConfig,
-    interim_path: PathLike,
+    interim_path: Path,
     baseline_dataloader: DataLoader,
     cat_list: list[FloatArray],
 ) -> tuple[list[DataLoader], BoolArray, BoolArray,]:
@@ -117,7 +117,7 @@ def prepare_for_categorical_perturbation(
 
 def prepare_for_continuous_perturbation(
     config: MOVEConfig,
-    output_subpath: PathLike,
+    output_subpath: Path,
     baseline_dataloader: DataLoader,
 ) -> tuple[list[DataLoader], BoolArray, BoolArray,]:
     """
@@ -164,13 +164,13 @@ def _bayes_approach(
     train_dataloader: DataLoader,
     baseline_dataloader: DataLoader,
     dataloaders: list[DataLoader],
-    models_path: PathLike,
+    models_path: Path,
     num_perturbed: int,
     num_samples: int,
     num_continuous: int,
     nan_mask: BoolArray,
     feature_mask: BoolArray,
-) -> tuple[IntArray, FloatArray]:
+) -> tuple[Union[IntArray, FloatArray], ...]:
 
     assert task_config.model is not None
     # Train models
@@ -244,14 +244,14 @@ def _ttest_approach(
     train_dataloader: DataLoader,
     baseline_dataloader: DataLoader,
     dataloaders: list[DataLoader],
-    models_path: PathLike,
-    interim_path: PathLike,
+    models_path: Path,
+    interim_path: Path,
     num_perturbed: int,
     num_samples: int,
     num_continuous: int,
     nan_mask: BoolArray,
     feature_mask: BoolArray,
-) -> tuple[IntArray, FloatArray]:
+) -> tuple[Union[IntArray, FloatArray], ...]:
 
     from scipy.stats import ttest_rel
 
@@ -343,16 +343,16 @@ def _ttest_approach(
 def save_results(
     config: MOVEConfig,
     ContinuousTargetValue: list[str],
-    con_shapes: tuple[int],
-    cat_names: list[str],
-    con_names: list[str],
-    output_path: PathLike,
+    con_shapes: list[int],
+    cat_names: list[list[str]],
+    con_names: list[list[str]],
+    output_path: Path,
     sig_ids,
     extra_cols,
     extra_colnames,
-):
+) -> None:
     """
-    This function saves the obtained associations in a tsv file containing
+    This function saves the obtained associations in a TSV file containing
     the following columns:
         feature_a_id
         feature_b_id
@@ -373,11 +373,6 @@ def save_results(
         sig_ids: ids for the significat features
         extra_cols: extra data when calling the approach function
         extra_colnames: names for the extra data columns
-
-    Returns:
-        "results_sig_assoc.tsv"
-
-
     """
     logger = get_logger(__name__)
     logger.info(f"Significant hits found: {sig_ids.size}")
@@ -404,8 +399,8 @@ def save_results(
             a_df = pd.DataFrame(dict(feature_a_name=cat_names[target_dataset_idx]))
         a_df.index.name = "feature_a_id"
         a_df.reset_index(inplace=True)
-        con_names = reduce(list.__add__, con_names)
-        b_df = pd.DataFrame(dict(feature_b_name=con_names))
+        feature_names = reduce(list.__add__, con_names)
+        b_df = pd.DataFrame(dict(feature_b_name=feature_names))
         b_df.index.name = "feature_b_id"
         b_df.reset_index(inplace=True)
         results = results.merge(a_df, on="feature_a_id").merge(b_df, on="feature_b_id")
@@ -420,7 +415,7 @@ def save_results(
         results.to_csv(output_path / "results_sig_assoc.tsv", sep="\t", index=False)
 
 
-def identify_associations(config: MOVEConfig):
+def identify_associations(config: MOVEConfig) -> None:
     """
     Leads to the execution of the appropriate association
     identification tasks. The function is organized in three

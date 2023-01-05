@@ -170,6 +170,7 @@ def _bayes_approach(
     num_continuous: int,
     nan_mask: BoolArray,
     feature_mask: BoolArray,
+    device: torch.device,
 ) -> tuple[Union[IntArray, FloatArray], ...]:
 
     assert task_config.model is not None
@@ -197,8 +198,10 @@ def _bayes_approach(
         if model_path.exists():
             logger.debug(f"Re-loading refit {j + 1}/{task_config.num_refits}")
             model.load_state_dict(torch.load(model_path))
+            model.to(device)
         else:
             logger.debug(f"Training refit {j + 1}/{task_config.num_refits}")
+            model.to(device)
             hydra.utils.call(
                 task_config.training_loop,
                 model=model,
@@ -251,6 +254,7 @@ def _ttest_approach(
     num_continuous: int,
     nan_mask: BoolArray,
     feature_mask: BoolArray,
+    device: torch.device,
 ) -> tuple[Union[IntArray, FloatArray], ...]:
 
     from scipy.stats import ttest_rel
@@ -437,9 +441,9 @@ def identify_associations(config: MOVEConfig) -> None:
 
     interim_path = Path(config.data.interim_data_path)
     models_path = interim_path / "models"
-
     if task_config.save_refits:
         models_path.mkdir(exist_ok=True)
+
     output_path = Path(config.data.results_path) / "identify_associations"
     output_path.mkdir(exist_ok=True, parents=True)
 
@@ -466,7 +470,7 @@ def identify_associations(config: MOVEConfig) -> None:
 
     # Creating the baseline dataloader:
     baseline_dataloader = make_dataloader(
-        cat_list, con_list, shuffle=False, batch_size=num_samples
+        cat_list, con_list, shuffle=False, batch_size=task_config.batch_size
     )
 
     # Indentify associations between continuous features:
@@ -490,6 +494,9 @@ def identify_associations(config: MOVEConfig) -> None:
     num_perturbed = len(dataloaders) - 1  # P
     logger.debug(f"# perturbed features: {num_perturbed}")
 
+    assert task_config.model is not None
+    device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
+
     ################# APPROACH EVALUATION ##########################
 
     if task_type == "bayes":
@@ -505,6 +512,7 @@ def identify_associations(config: MOVEConfig) -> None:
             num_continuous,
             nan_mask,
             feature_mask,
+            device,
         )
 
         extra_colnames = ["proba"]
@@ -523,6 +531,7 @@ def identify_associations(config: MOVEConfig) -> None:
             num_continuous,
             nan_mask,
             feature_mask,
+            device,
         )
 
         extra_colnames = ["p_value"]

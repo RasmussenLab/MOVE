@@ -12,8 +12,7 @@ results_path: results_cont/     # where result files will be placed
 sample_names: random.small.ids  # names/IDs of each sample, must appear in the
                                 # other datasets
 
-categorical_inputs:  # a list of categorical datasets
-  - name: random.small.drugs
+categorical_inputs: []  # no categorical inputs
 
 continuous_inputs:   # a list of continuous datasets
   - name: random.continuous.proteomics

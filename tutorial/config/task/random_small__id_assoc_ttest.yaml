@@ -4,7 +4,7 @@ defaults:
 
 batch_size: 10  # number of samples per batch in training loop
 
-num_refits: 10 #10 is the default  # number of times to refit (retrain) model
+num_refits: 5 #10 is the default  # number of times to refit (retrain) model
 
 target_dataset: random.small.drugs  # dataset to perturb
 target_value: 1                     # value to change to

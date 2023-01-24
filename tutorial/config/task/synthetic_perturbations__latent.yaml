@@ -1,0 +1,18 @@
+defaults:
+  - analyze_latent
+
+batch_size: 20
+
+feature_names:
+  - 202413_s_at
+  - 208728_s_at
+  - Cytoplasm_Granularity_2_AGP
+
+model:
+  num_hidden:
+    - 600
+  num_latent: 300
+
+training_loop:
+  lr: 1e-4
+  num_epochs: 40

@@ -4,7 +4,7 @@
 
 defaults:
   - override /data: random_continuous
-  - override /task: tune_model
+  - override /task: tune_model_reconstruction
 
 # Configure which hyperarameters to vary
 # This will run and log the metrics of 12 models (combination of 3 hyperparams
@@ -16,6 +16,7 @@ hydra:
   mode: MULTIRUN
   sweeper:
     params:
-      task.batch_size: 10, 50
-      task.model.num_hidden: "[200],[500]"
-      task.training_loop.num_epochs: 40, 60, 100
+      task.batch_size: 10 #10, 20
+      task.model.num_hidden: "[250]"
+      task.model.num_latent:  100, 200, 220 
+      task.training_loop.num_epochs: 200

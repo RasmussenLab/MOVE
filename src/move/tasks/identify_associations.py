@@ -5,8 +5,10 @@ from pathlib import Path
 from typing import Literal, Sized, Union, cast
 
 import hydra
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from scipy.stats import entropy
 import torch
 from omegaconf import OmegaConf
 from torch.utils.data import DataLoader
@@ -27,6 +29,13 @@ from move.data.perturbations import (
 )
 from move.data.preprocessing import one_hot_encode_single
 from move.models.vae import VAE
+from move.visualization.dataset_distributions import (
+    plot_reconstruction_diff,
+    plot_feature_association_graph,
+    plot_value_distributions,
+    plot_feature_mean_median,
+    get_2nd_order_polynomial
+)
 
 TaskType = Literal["bayes", "ttest"]
 CONTINUOUS_TARGET_VALUE = ["minimum", "maximum", "plus_std", "minus_std"]
@@ -160,6 +169,7 @@ def prepare_for_continuous_perturbation(
 
 
 def _bayes_approach(
+    config: MOVEConfig,
     task_config: IdentifyAssociationsBayesConfig,
     train_dataloader: DataLoader,
     baseline_dataloader: DataLoader,
@@ -171,6 +181,22 @@ def _bayes_approach(
     nan_mask: BoolArray,
     feature_mask: BoolArray,
 ) -> tuple[Union[IntArray, FloatArray], ...]:
+
+    plt.figure(figsize=(5,5))
+    x = baseline_dataloader.dataset.con_all.numpy()[:,86]
+    y = baseline_dataloader.dataset.con_all.numpy()[:,240]
+    y_2 = baseline_dataloader.dataset.con_all.numpy()[:,241]
+
+
+    x_pol,y_pol, (a2,a1,a) = get_2nd_order_polynomial(x,y)
+    plt.plot(x,y, marker='.', lw=0, markersize=1, color="red")
+    plt.plot(x,y_2, marker='.', lw=0, markersize=1, color='k', alpha=.3)
+    plt.plot(x_pol,y_pol, color="blue", label="{0:.2f}x^2 {1:.2f}x {2:.2f}".format(a2,a1,a), lw=1)
+    plt.plot(x_pol,-x_pol, lw=1, color="k")
+    plt.xlabel("Feature 1 values")
+    plt.ylabel("Feature 2 values")
+    plt.legend()
+    plt.savefig("Input_data.png", dpi=200)
 
     assert task_config.model is not None
     device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
@@ -214,24 +240,101 @@ def _bayes_approach(
 
         # Calculate baseline reconstruction
         _, baseline_recon = model.reconstruct(baseline_dataloader)
+        min_feat, max_feat = np.zeros((num_perturbed, num_continuous)), np.zeros((num_perturbed, num_continuous))
+        min_baseline, max_baseline = np.min(baseline_recon, axis=0), np.max(baseline_recon, axis=0)
+            
         # Calculate perturb reconstruction => keep track of mean difference
         for i in range(num_perturbed):
             _, perturb_recon = model.reconstruct(dataloaders[i])
             diff = perturb_recon - baseline_recon  # 2D: N x C
             mean_diff[i, :, :] += diff * normalizer
 
+            min_perturb, max_perturb = np.min(perturb_recon, axis=0), np.max(perturb_recon, axis=0)
+            min_feat[i,:], max_feat[i,:] = np.min([min_baseline,min_perturb], axis=0), np.max([max_baseline,max_perturb], axis=0)
+            interest_f = 86
+            if i in [interest_f]:
+                # Bayes alternative:
+                for j in range(num_continuous):
+                    if j in [10,20,50,100,240,241]:
+                        n_bins = 50
+                        hist_base, edges = np.histogram(baseline_recon[:,j], bins = np.linspace(min_feat[i,j],max_feat[i,j],n_bins), density=True)
+                        hist_pert, edges = np.histogram(perturb_recon[:,j], bins = np.linspace(min_feat[i,j],max_feat[i,j],n_bins), density=True)
+                        hist_diff, edges_diff = np.histogram(mean_diff[i,:,j])
+                        hist_base_f, edges_f = np.histogram(baseline_recon[:,interest_f], bins = np.linspace(min_feat[i,i],max_feat[i,i],n_bins))
+                        hist_pert_f, edges_f = np.histogram(perturb_recon[:,interest_f], bins = np.linspace(min_feat[i,i],max_feat[i,i],n_bins))
+                        hist_diff_f, edges_diff_f = np.histogram(mean_diff[i,:,interest_f])
+
+                        plt.figure(figsize=(5,5))
+                        plt.plot((edges[:-1]+edges[1:])/2,np.cumsum(hist_base), color="blue", label="baseline", alpha=.5)
+                        plt.plot((edges[:-1]+edges[1:])/2,np.cumsum(hist_pert), color="red", label=f"Perturbed {i} reconstruct feat_{j}", alpha=.5)
+                        #plt.plot(edges_f[:-1],hist_base_f, color="darkblue", label="baseline f", alpha=.5)
+                        #plt.plot(edges_f[:-1],hist_pert_f, color="darkred", label=f"Perturbed {i} reconstruct feat_{j} f", alpha=.5)
+                        plt.title(f"Cumulative_perturbed_{i}_measuring_{j}")
+                        plt.legend()
+                        plt.savefig(f"Cumulative_perturbed_{i}_measuring_{j}.png")
+
+                        plt.figure(figsize=(5,5))
+                        plt.plot(edges_diff[:-1],hist_diff, color="blue", label="diff", alpha=.5)
+                        plt.plot(edges_diff_f[:-1],hist_diff_f, color="green", label="diff_self", alpha=.5)
+                        plt.plot(np.zeros(50),np.linspace(0,np.max(hist_diff),50), ls= "dashed", color="k")
+                        plt.legend()
+                        plt.title(f"{i}_{j}_diff")
+                        plt.savefig((f"{i}_{j}_diff.png"))
+
+                        plt.figure(figsize=(25,25))
+                        for s in range(num_samples):
+                            plt.arrow(baseline_recon[s,j],s/100,perturb_recon[s,j],0, length_includes_head=True, color=["r" if baseline_recon[s,j]<perturb_recon[s,j] else "b"][0] )
+                        plt.ylabel("Sample (e2)", size=40)
+                        plt.xlabel("Feature_value", size=40)
+                        plt.savefig(f"Changes_pert{i}_on_feat_{j}.png")
+
+                        #Plot correlations
+                        plt.figure(figsize=(5,5))
+                        x = baseline_dataloader.dataset.con_all.numpy()[:,j] #baseline_recon[:,i]
+                        y = baseline_recon[:,j]
+                        x_pol,y_pol, (a2,a1,a) = get_2nd_order_polynomial(x,y)
+
+                        plt.plot(x,y, marker='.', lw=0, markersize=1, color="red")
+                        plt.plot(x,y_2, marker='.', lw=0, markersize=1, color='k', alpha=.3)
+                        plt.plot(x_pol,y_pol, color="blue", label="{0:.2f}x^2 {1:.2f}x {2:.2f}".format(a2,a1,a), lw=1)
+                        plt.plot(x_pol,-x_pol, lw=1, color="k")
+                        plt.xlabel(f"Feature {j} baseline values ")
+                        plt.ylabel(f"Feature {j} baseline  value reconstruction")
+                        plt.legend()
+                        plt.savefig(f"Output_data_{j}.png", dpi=200)
+
     # Calculate Bayes factors
     logger.info("Identifying significant features")
     bayes_k = np.empty((num_perturbed, num_continuous))
+    bayes_mask = np.zeros(np.shape(bayes_k))
     for i in range(num_perturbed):
         mask = feature_mask[:, [i]] | nan_mask  # 2D: N x C
         diff = np.ma.masked_array(mean_diff[i, :, :], mask=mask)  # 2D: N x C
         prob = np.ma.compressed(np.mean(diff > 1e-8, axis=0))  # 1D: C
         bayes_k[i, :] = np.log(prob + 1e-8) - np.log(1 - prob + 1e-8)
+        if task_config.target_value in CONTINUOUS_TARGET_VALUE:
+            bayes_mask[i, :] = baseline_dataloader.dataset.con_all[0,:] - dataloaders[i].dataset.con_all[0,:]
+        
+        interest_f = 86
+        if i in [interest_f]:
+            fig = plot_reconstruction_diff(diff)
+            fig.savefig(f"Pert_{i}_diff.png", dpi = 300)
+            fig_2 = plot_reconstruction_diff(diff, vmin=-2e-8,vmax=2e-8)
+            fig_2.savefig(f"Pert_{i}_trend.png", dpi = 300)
+            fig_3 = plot_value_distributions(diff)
+            fig_3.savefig("Reconstruction_difference_value_distribution.png")
+            fig_4 = plot_feature_mean_median(diff)
+            fig_4.savefig("Feature_mean_median.png")
+
+
+    bayes_mask[bayes_mask != 0] = 1
+    bayes_mask = np.array(bayes_mask, dtype = bool)
+
 
     # Calculate Bayes probabilities
     bayes_abs = np.abs(bayes_k)
     bayes_p = np.exp(bayes_abs) / (1 + np.exp(bayes_abs))  # 2D: N x C
+    bayes_abs[bayes_mask] = np.min(bayes_abs) # Bring feature_i feature_i associations to minimum
     sort_ids = np.argsort(bayes_abs, axis=None)[::-1]  # 1D: N x C
     prob = np.take(bayes_p, sort_ids)  # 1D: N x C
     logger.debug(f"Bayes proba range: [{prob[-1]:.3f} {prob[0]:.3f}]")
@@ -503,6 +606,7 @@ def identify_associations(config: MOVEConfig) -> None:
     if task_type == "bayes":
         task_config = cast(IdentifyAssociationsBayesConfig, task_config)
         sig_ids, *extra_cols = _bayes_approach(
+            config,
             task_config,
             train_dataloader,
             baseline_dataloader,
@@ -546,3 +650,8 @@ def identify_associations(config: MOVEConfig) -> None:
         extra_cols,
         extra_colnames,
     )
+
+    association_df = pd.read_csv(output_path / "results_sig_assoc.tsv", sep="\t")
+    fig = plot_feature_association_graph(association_df, output_path)
+    fig = plot_feature_association_graph(association_df, output_path, layout="spring")
+

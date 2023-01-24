@@ -3,22 +3,22 @@ defaults:
 
 batch_size: 10
 
-num_refits: 40 # default is 40
+num_refits: 2 # default is 40
 
-target_dataset: random.continuous.proteomics
-target_value: maximum
+target_dataset: random.continuous.proteomics #treatment_level_combined_l1k_train
+target_value: plus_std
 save_refits: True
 
 num_latent:
-  - 50
-  - 75
+  - 150
   - 100
-  - 125
+  - 75
+  - 50
 
 model:
   num_hidden:
-    - 200
+    - 200 #600
 
 training_loop:
   lr: 1e-4
-  num_epochs: 50
+  num_epochs: 100 #50

@@ -1,0 +1,39 @@
+
+defaults:
+  - identify_associations_ks_schema
+
+batch_size: 10
+
+num_refits: 2 # default is 40
+sig_threshold: 0.05
+
+target_dataset: random.continuous_basic.proteomics #treatment_level_combined_l1k_train
+target_value: plus_std
+save_refits: True
+
+model:
+  categorical_weights: ${weights:${data.categorical_inputs}}
+  continuous_weights: ${weights:${data.continuous_inputs}}
+  num_hidden:
+    - 8
+    #- 560
+    #- 250 
+    #- 600
+  num_latent: 3 
+  beta: 0.0001
+  dropout: 0.1
+  cuda: false
+
+training_loop:
+  lr: 1e-4
+  num_epochs: 150
+  batch_dilation_steps:
+    - 50
+    - 100
+    - 150
+  kld_warmup_steps:
+    - 15
+    - 20
+    - 25
+  early_stopping: false
+  patience: 0

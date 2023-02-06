@@ -727,8 +727,9 @@ class VAE(nn.Module):
 
         latent = latent.numpy()
         latent_var = latent_var.numpy()
-        cat_recon = cat_recon.numpy()
-        cat_class = cat_class.numpy()
+        if cat_recon is not None:
+            cat_recon = cat_recon.numpy()
+            cat_class = cat_class.numpy()
         con_recon = con_recon.numpy()
 
 

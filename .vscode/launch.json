@@ -12,7 +12,7 @@
             "program": "${workspaceFolder}/src/move/__main__.py",
             "cwd": "${workspaceFolder}/tutorial",
             "console": "integratedTerminal",
-            "args": ["task=random_continuous__id_assoc_bayes","data=random_continuous"],
+            "args": ["task=random_continuous_basic__id_assoc_ks","data=random_continuous_basic"],
             "justMyCode": true
         }
     ]

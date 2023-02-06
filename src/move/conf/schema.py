@@ -180,6 +180,12 @@ class IdentifyAssociationsTTestConfig(IdentifyAssociationsConfig):
 
     num_latent: list[int] = MISSING
 
+@dataclass
+class IdentifyAssociationsKSConfig(IdentifyAssociationsConfig):
+    """Configure the Kolmogorov-Smirnov approach to identify associations."""
+
+    ...
+
 
 @dataclass
 class MOVEConfig:
@@ -232,6 +238,11 @@ cs.store(
     group="task",
     name="identify_associations_ttest_schema",
     node=IdentifyAssociationsTTestConfig,
+)
+cs.store(
+    group="task",
+    name="identify_associations_ks_schema",
+    node=IdentifyAssociationsKSConfig,
 )
 
 # Register custom resolvers

@@ -8,7 +8,7 @@ import hydra
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from scipy.stats import entropy
+from scipy.stats import kstest
 import torch
 from omegaconf import OmegaConf
 from torch.utils.data import DataLoader
@@ -17,6 +17,7 @@ from move.conf.schema import (
     IdentifyAssociationsBayesConfig,
     IdentifyAssociationsConfig,
     IdentifyAssociationsTTestConfig,
+    IdentifyAssociationsKSConfig,
     MOVEConfig,
 )
 from move.core.logging import get_logger
@@ -36,8 +37,10 @@ from move.visualization.dataset_distributions import (
     plot_feature_mean_median,
     get_2nd_order_polynomial
 )
+from move.visualization.latent_space import plot_3D_latent_and_displacement
+from move.visualization.vae_visualization import plot_vae
 
-TaskType = Literal["bayes", "ttest"]
+TaskType = Literal["bayes", "ttest","ks"]
 CONTINUOUS_TARGET_VALUE = ["minimum", "maximum", "plus_std", "minus_std"]
 
 
@@ -49,6 +52,8 @@ def _get_task_type(
         return "bayes"
     if task_type is IdentifyAssociationsTTestConfig:
         return "ttest"
+    if task_type is IdentifyAssociationsKSConfig:
+        return "ks"
     raise ValueError("Unsupported type of task!")
 
 
@@ -182,21 +187,6 @@ def _bayes_approach(
     feature_mask: BoolArray,
 ) -> tuple[Union[IntArray, FloatArray], ...]:
 
-    plt.figure(figsize=(5,5))
-    x = baseline_dataloader.dataset.con_all.numpy()[:,86]
-    y = baseline_dataloader.dataset.con_all.numpy()[:,240]
-    y_2 = baseline_dataloader.dataset.con_all.numpy()[:,241]
-
-
-    x_pol,y_pol, (a2,a1,a) = get_2nd_order_polynomial(x,y)
-    plt.plot(x,y, marker='.', lw=0, markersize=1, color="red")
-    plt.plot(x,y_2, marker='.', lw=0, markersize=1, color='k', alpha=.3)
-    plt.plot(x_pol,y_pol, color="blue", label="{0:.2f}x^2 {1:.2f}x {2:.2f}".format(a2,a1,a), lw=1)
-    plt.plot(x_pol,-x_pol, lw=1, color="k")
-    plt.xlabel("Feature 1 values")
-    plt.ylabel("Feature 2 values")
-    plt.legend()
-    plt.savefig("Input_data.png", dpi=200)
 
     assert task_config.model is not None
     device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
@@ -251,57 +241,136 @@ def _bayes_approach(
 
             min_perturb, max_perturb = np.min(perturb_recon, axis=0), np.max(perturb_recon, axis=0)
             min_feat[i,:], max_feat[i,:] = np.min([min_baseline,min_perturb], axis=0), np.max([max_baseline,max_perturb], axis=0)
-            interest_f = 86
+
+            interest_f = 1
             if i in [interest_f]:
                 # Bayes alternative:
-                for j in range(num_continuous):
-                    if j in [10,20,50,100,240,241]:
+                for k in range(num_continuous):
+                    if k in [5,6]:
                         n_bins = 50
-                        hist_base, edges = np.histogram(baseline_recon[:,j], bins = np.linspace(min_feat[i,j],max_feat[i,j],n_bins), density=True)
-                        hist_pert, edges = np.histogram(perturb_recon[:,j], bins = np.linspace(min_feat[i,j],max_feat[i,j],n_bins), density=True)
-                        hist_diff, edges_diff = np.histogram(mean_diff[i,:,j])
+                        hist_base, edges = np.histogram(baseline_recon[:,k], bins = np.linspace(min_feat[i,k],max_feat[i,k],n_bins), density=True)
+                        hist_pert, edges = np.histogram(perturb_recon[:,k], bins = np.linspace(min_feat[i,k],max_feat[i,k],n_bins), density=True)
+                        hist_diff, edges_diff = np.histogram(mean_diff[i,:,k])
                         hist_base_f, edges_f = np.histogram(baseline_recon[:,interest_f], bins = np.linspace(min_feat[i,i],max_feat[i,i],n_bins))
                         hist_pert_f, edges_f = np.histogram(perturb_recon[:,interest_f], bins = np.linspace(min_feat[i,i],max_feat[i,i],n_bins))
                         hist_diff_f, edges_diff_f = np.histogram(mean_diff[i,:,interest_f])
 
                         plt.figure(figsize=(5,5))
                         plt.plot((edges[:-1]+edges[1:])/2,np.cumsum(hist_base), color="blue", label="baseline", alpha=.5)
-                        plt.plot((edges[:-1]+edges[1:])/2,np.cumsum(hist_pert), color="red", label=f"Perturbed {i} reconstruct feat_{j}", alpha=.5)
+                        plt.plot((edges[:-1]+edges[1:])/2,np.cumsum(hist_pert), color="red", label=f"Perturbed {i} reconstruct feat_{k}", alpha=.5)
                         #plt.plot(edges_f[:-1],hist_base_f, color="darkblue", label="baseline f", alpha=.5)
                         #plt.plot(edges_f[:-1],hist_pert_f, color="darkred", label=f"Perturbed {i} reconstruct feat_{j} f", alpha=.5)
-                        plt.title(f"Cumulative_perturbed_{i}_measuring_{j}")
+                        plt.title(f"Cumulative_perturbed_{i}_measuring_{k}")
                         plt.legend()
-                        plt.savefig(f"Cumulative_perturbed_{i}_measuring_{j}.png")
+                        plt.savefig(f"Cumulative_perturbed_{i}_measuring_{k}.png")
 
                         plt.figure(figsize=(5,5))
                         plt.plot(edges_diff[:-1],hist_diff, color="blue", label="diff", alpha=.5)
                         plt.plot(edges_diff_f[:-1],hist_diff_f, color="green", label="diff_self", alpha=.5)
                         plt.plot(np.zeros(50),np.linspace(0,np.max(hist_diff),50), ls= "dashed", color="k")
                         plt.legend()
-                        plt.title(f"{i}_{j}_diff")
-                        plt.savefig((f"{i}_{j}_diff.png"))
+                        plt.title(f"{i}_{k}_diff")
+                        plt.savefig((f"{i}_{k}_diff.png"))
 
                         plt.figure(figsize=(25,25))
                         for s in range(num_samples):
-                            plt.arrow(baseline_recon[s,j],s/100,perturb_recon[s,j],0, length_includes_head=True, color=["r" if baseline_recon[s,j]<perturb_recon[s,j] else "b"][0] )
+                            plt.arrow(baseline_recon[s,k],s/100,perturb_recon[s,k],0, length_includes_head=True, color=["r" if baseline_recon[s,k]<perturb_recon[s,k] else "b"][0] )
                         plt.ylabel("Sample (e2)", size=40)
                         plt.xlabel("Feature_value", size=40)
-                        plt.savefig(f"Changes_pert{i}_on_feat_{j}.png")
+                        plt.savefig(f"Changes_pert{i}_on_feat_{k}.png")
 
                         #Plot correlations
                         plt.figure(figsize=(5,5))
-                        x = baseline_dataloader.dataset.con_all.numpy()[:,j] #baseline_recon[:,i]
-                        y = baseline_recon[:,j]
+                        x = baseline_dataloader.dataset.con_all.numpy()[:,k] #baseline_recon[:,i]
+                        y = baseline_recon[:,k]
                         x_pol,y_pol, (a2,a1,a) = get_2nd_order_polynomial(x,y)
 
                         plt.plot(x,y, marker='.', lw=0, markersize=1, color="red")
-                        plt.plot(x,y_2, marker='.', lw=0, markersize=1, color='k', alpha=.3)
+                        #plt.plot(x,y_2, marker='.', lw=0, markersize=1, color='k', alpha=.3)
                         plt.plot(x_pol,y_pol, color="blue", label="{0:.2f}x^2 {1:.2f}x {2:.2f}".format(a2,a1,a), lw=1)
                         plt.plot(x_pol,-x_pol, lw=1, color="k")
-                        plt.xlabel(f"Feature {j} baseline values ")
-                        plt.ylabel(f"Feature {j} baseline  value reconstruction")
+                        plt.xlabel(f"Feature {k} baseline values ")
+                        plt.ylabel(f"Feature {k} baseline  value reconstruction")
                         plt.legend()
-                        plt.savefig(f"Output_data_{j}.png", dpi=200)
+                        plt.savefig(f"Output_data_{k}.png", dpi=200)
+
+                        if j==1: #Only for refit 1:
+                            latent, latent_var, *_ = model.latent(baseline_dataloader, kld_weight=1e-5)
+                            print("Latent shape:", latent.shape)
+                            latent_pert, latent_var_pert, *_ = model.latent(dataloaders[i], kld_weight=1e-5)
+                            # Plot latent space:
+                            if config.task.model.num_latent == 3: # The model has a latent layer with 3 nodes:
+                                # use baseline dataloader values to colorcode samples in 3D
+                                for angle in range(0,360,90):
+                                    fig = plot_3D_latent_and_displacement(latent,
+                                                                        latent_pert,
+                                                                        feature_values=baseline_dataloader.dataset.con_all.numpy()[:,k],
+                                                                        feature_name=f"Feature {k}",
+                                                                        show_baseline=False,
+                                                                        show_perturbed=False,
+                                                                        show_arrows=True,
+                                                                        angle=angle)
+                                    fig.savefig(f"3D_latent_movement_{angle}_observed_{k}_arrows.png", dpi=200)
+
+                                    fig = plot_3D_latent_and_displacement(latent,
+                                                                        latent_pert,
+                                                                        feature_values=baseline_dataloader.dataset.con_all.numpy()[:,k],
+                                                                        feature_name=f"Feature {k}",
+                                                                        show_baseline=True,
+                                                                        show_perturbed=False,
+                                                                        show_arrows=False,
+                                                                        angle=angle)
+                                    fig.savefig(f"3D_latent_movement_{angle}_observed_{k}_values.png", dpi=200)
+
+                                    fig = plot_3D_latent_and_displacement(latent,
+                                                                        latent_pert,
+                                                                        feature_values=baseline_dataloader.dataset.con_all.numpy()[:,i],
+                                                                        feature_name=f"Feature {k}",
+                                                                        show_baseline=True,
+                                                                        show_perturbed=False,
+                                                                        show_arrows=False,
+                                                                        angle=angle)
+                                    fig.savefig(f"3D_latent_movement_{angle}_perturbing_{i}_values.png", dpi=200)
+                            # Plot vae:
+                            sample_step = 200
+                            for s in range(0,num_samples,sample_step):
+                                plot_vae_base = plot_vae(models_path,
+                                                        f"model_{task_config.model.num_latent}_{j}.pt",
+                                                        f"VAE_sample_{s}_refit_{j}_baseline",
+                                                        num_input = np.shape(baseline_recon)[1],
+                                                        num_hidden = config.task.model.num_hidden[0],
+                                                        num_latent= config.task.model.num_latent,
+                                                        plot_edges = True,
+                                                        input_sample = baseline_dataloader.dataset.con_all.numpy()[s,:],
+                                                        output_sample = baseline_recon[s,:],
+                                                        mu = latent[s,:],
+                                                        logvar = latent_var[s,:])
+                
+                                plot_vae_pert = plot_vae(models_path,
+                                                        f"model_{task_config.model.num_latent}_{j}.pt",
+                                                        f"VAE_sample_{s}_refit_{j}_pert_{i}",
+                                                        num_input = np.shape(baseline_recon)[1],
+                                                        num_hidden = config.task.model.num_hidden[0],
+                                                        num_latent = config.task.model.num_latent,
+                                                        plot_edges = True,
+                                                        input_sample = dataloaders[i].dataset.con_all.numpy()[s,:],
+                                                        output_sample = perturb_recon[s,:],
+                                                        mu = latent_pert[s,:],
+                                                        logvar = latent_var_pert[s,:])
+
+                                plot_vae_diff = plot_vae(models_path,
+                                                        f"model_{task_config.model.num_latent}_{j}.pt",
+                                                        f"VAE_sample_{s}_refit_{j}_differences",
+                                                        num_input = np.shape(baseline_recon)[1],
+                                                        num_hidden = config.task.model.num_hidden[0],
+                                                        num_latent= config.task.model.num_latent,
+                                                        plot_edges = True,
+                                                        input_sample = np.zeros(np.shape(baseline_recon)[1]),
+                                                        output_sample = perturb_recon[s,:]-baseline_recon[s,:],
+                                                        mu = latent_pert[s,:]-latent[s,:],
+                                                        logvar = latent_var_pert[s,:]-latent_var[s,:])
+
+
 
     # Calculate Bayes factors
     logger.info("Identifying significant features")
@@ -455,6 +524,207 @@ def _ttest_approach(
 
     return sig_ids, sig_pvalues
 
+def _ks_approach(
+    config: MOVEConfig,
+    task_config: IdentifyAssociationsKSConfig,
+    train_dataloader: DataLoader,
+    baseline_dataloader: DataLoader,
+    dataloaders: list[DataLoader],
+    models_path: Path,
+    num_perturbed: int,
+    num_samples: int,
+    num_continuous: int,
+) -> tuple[Union[IntArray, FloatArray], ...]:
+
+
+    assert task_config.model is not None
+    device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
+
+    # Train models
+    logger = get_logger(__name__)
+    logger.info("Training models")
+    mean_diff = np.zeros((num_perturbed, num_samples, num_continuous))
+    stats, stat_signs = np.empty((num_perturbed, num_continuous)), np.empty((num_perturbed, num_continuous))
+    #normalizer = 1 / task_config.num_refits
+
+    # Last appended dataloader is the baseline
+    baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
+
+    for j in range(task_config.num_refits):
+        # Initialize model
+        model: VAE = hydra.utils.instantiate(
+            task_config.model,
+            continuous_shapes=baseline_dataset.con_shapes,
+            categorical_shapes=baseline_dataset.cat_shapes,
+        )
+        if j == 0:
+            logger.debug(f"Model: {model}")
+
+        # Train/reload model
+        model_path = models_path / f"model_{task_config.model.num_latent}_{j}.pt"
+        if model_path.exists():
+            logger.debug(f"Re-loading refit {j + 1}/{task_config.num_refits}")
+            model.load_state_dict(torch.load(model_path))
+            model.to(device)
+        else:
+            logger.debug(f"Training refit {j + 1}/{task_config.num_refits}")
+            model.to(device)
+            hydra.utils.call(
+                task_config.training_loop,
+                model=model,
+                train_dataloader=train_dataloader,
+            )
+            if task_config.save_refits:
+                torch.save(model.state_dict(), model_path)
+        model.eval()
+
+        # Calculate baseline reconstruction
+        _, baseline_recon = model.reconstruct(baseline_dataloader)
+        min_feat, max_feat = np.zeros((num_perturbed, num_continuous)), np.zeros((num_perturbed, num_continuous))
+        min_baseline, max_baseline = np.min(baseline_recon, axis=0), np.max(baseline_recon, axis=0)
+            
+        # Calculate perturb reconstruction
+        for i in range(num_perturbed):
+            _, perturb_recon = model.reconstruct(dataloaders[i])
+            #diff = perturb_recon - baseline_recon  # 2D: N x C
+            #mean_diff[i, :, :] += diff * normalizer
+
+            min_perturb, max_perturb = np.min(perturb_recon, axis=0), np.max(perturb_recon, axis=0)
+            min_feat[i,:], max_feat[i,:] = np.min([min_baseline,min_perturb], axis=0), np.max([max_baseline,max_perturb], axis=0)
+            
+        # Calculate ks factors: measure distance between baseline and perturbed reconstruction distributions per feature (k)
+            for k in range(num_continuous):
+                stats[i,k], *_, stat_signs[i,k] = kstest(perturb_recon[:,k], baseline_recon[:,k])
+
+                interest_f = [1]
+                interest_k = [5,6]
+                if i in interest_f and k in interest_k:
+
+                    # Plotting preliminary results:
+                    n_bins = 50
+                    hist_base, edges = np.histogram(baseline_recon[:,k], bins = np.linspace(min_feat[i,k],max_feat[i,k],n_bins), density=True)
+                    hist_pert, edges = np.histogram(perturb_recon[:,k], bins = np.linspace(min_feat[i,k],max_feat[i,k],n_bins), density=True)
+                    hist_diff, edges_diff = np.histogram(mean_diff[i,:,k])
+                    hist_base_f, edges_f = np.histogram(baseline_recon[:,interest_f], bins = np.linspace(min_feat[i,i],max_feat[i,i],n_bins))
+                    hist_pert_f, edges_f = np.histogram(perturb_recon[:,interest_f], bins = np.linspace(min_feat[i,i],max_feat[i,i],n_bins))
+                    hist_diff_f, edges_diff_f = np.histogram(mean_diff[i,:,interest_f])
+
+                    # Cumulative distribution:
+                    plt.figure(figsize=(5,5))
+                    plt.plot((edges[:-1]+edges[1:])/2,np.cumsum(hist_base), color="blue", label="baseline", alpha=.5)
+                    plt.plot((edges[:-1]+edges[1:])/2,np.cumsum(hist_pert), color="red", label=f"Perturbed {i} reconstruct feat_{k}", alpha=.5)
+                    #plt.plot(edges_f[:-1],hist_base_f, color="darkblue", label="baseline f", alpha=.5)
+                    #plt.plot(edges_f[:-1],hist_pert_f, color="darkred", label=f"Perturbed {i} reconstruct feat_{j} f", alpha=.5)
+                    plt.title(f"Cumulative_perturbed_{i}_measuring_{k}")
+                    plt.legend()
+                    plt.savefig(f"Cumulative_perturbed_{i}_measuring_{k}.png")
+
+                    # Histograms for the differences
+                    plt.figure(figsize=(5,5))
+                    plt.plot(edges_diff[:-1],hist_diff, color="blue", label="diff", alpha=.5)
+                    plt.plot(edges_diff_f[:-1],hist_diff_f, color="green", label="diff_self", alpha=.5)
+                    plt.plot(np.zeros(50),np.linspace(0,np.max(hist_diff),50), ls= "dashed", color="k")
+                    plt.legend()
+                    plt.title(f"{i}_{k}_diff")
+                    plt.savefig((f"{i}_{k}_diff.png"))
+
+                    # Feature changes
+                    plt.figure(figsize=(25,25))
+                    for s in range(num_samples):
+                        plt.arrow(baseline_recon[s,k],s/100,perturb_recon[s,k],0, length_includes_head=True, color=["r" if baseline_recon[s,k]<perturb_recon[s,k] else "b"][0] )
+                    plt.ylabel("Sample (e2)", size=40)
+                    plt.xlabel("Feature_value", size=40)
+                    plt.savefig(f"Changes_pert{i}_on_feat_{k}.png")
+
+                    #Plot correlations
+                    plt.figure(figsize=(5,5))
+                    x = baseline_dataloader.dataset.con_all.numpy()[:,k] #baseline_recon[:,i]
+                    y = baseline_recon[:,k]
+                    x_pol,y_pol, (a2,a1,a) = get_2nd_order_polynomial(x,y)
+
+                    plt.plot(x,y, marker='.', lw=0, markersize=1, color="red")
+                    #plt.plot(x,y_2, marker='.', lw=0, markersize=1, color='k', alpha=.3)
+                    plt.plot(x_pol,y_pol, color="blue", label="{0:.2f}x^2 {1:.2f}x {2:.2f}".format(a2,a1,a), lw=1)
+                    plt.plot(x_pol,-x_pol, lw=1, color="k")
+                    plt.xlabel(f"Feature {k} baseline values ")
+                    plt.ylabel(f"Feature {k} baseline  value reconstruction")
+                    plt.legend()
+                    plt.savefig(f"Output_data_{k}.png", dpi=200)
+
+                    if j==1: #Only for refit 1:
+                        latent, latent_var, *_ = model.latent(baseline_dataloader, kld_weight=1e-5)
+                        print("Latent shape:", latent.shape)
+                        latent_pert, latent_var_pert, *_ = model.latent(dataloaders[i], kld_weight=1e-5)
+                        # Plot latent space:
+                        if config.task.model.num_latent == 3: # The model has a latent layer with 3 nodes:
+                            # use baseline dataloader values to colorcode samples in 3D
+                            for angle in range(0,360,90):
+                                fig = plot_3D_latent_and_displacement(latent,
+                                                                    latent_pert,
+                                                                    feature_values=baseline_dataloader.dataset.con_all.numpy()[:,k],
+                                                                    feature_name=f"Feature {k}",
+                                                                    show_baseline=False,
+                                                                    show_perturbed=False,
+                                                                    show_arrows=True,
+                                                                    angle=angle)
+                                fig.savefig(f"3D_latent_movement_{angle}_observed_{k}_arrows.png", dpi=200)
+
+                                fig = plot_3D_latent_and_displacement(latent,
+                                                                    latent_pert,
+                                                                    feature_values=baseline_dataloader.dataset.con_all.numpy()[:,k],
+                                                                    feature_name=f"Feature {k}",
+                                                                    show_baseline=True,
+                                                                    show_perturbed=False,
+                                                                    show_arrows=False,
+                                                                    angle=angle)
+                                fig.savefig(f"3D_latent_movement_{angle}_observed_{k}_values.png", dpi=200)
+
+                                fig = plot_3D_latent_and_displacement(latent,
+                                                                    latent_pert,
+                                                                    feature_values=baseline_dataloader.dataset.con_all.numpy()[:,i],
+                                                                    feature_name=f"Feature {k}",
+                                                                    show_baseline=True,
+                                                                    show_perturbed=False,
+                                                                    show_arrows=False,
+                                                                    angle=angle)
+                                fig.savefig(f"3D_latent_movement_{angle}_perturbing_{i}_values.png", dpi=200)
+                        # Plot vae:
+                        sample_step = 2000
+                        for s in range(0,num_samples,sample_step):
+                            plot_vae_base = plot_vae(models_path,
+                                                    f"model_{task_config.model.num_latent}_{j}.pt",
+                                                    f"VAE_sample_{s}_refit_{j}_baseline",
+                                                    num_input = np.shape(baseline_recon)[1],
+                                                    num_hidden = config.task.model.num_hidden[0],
+                                                    num_latent= config.task.model.num_latent,
+                                                    plot_edges = True,
+                                                    input_sample = baseline_dataloader.dataset.con_all.numpy()[s,:],
+                                                    output_sample = baseline_recon[s,:],
+                                                    mu = latent[s,:],
+                                                    logvar = latent_var[s,:])
+
+
+    ks_mask = np.zeros(np.shape(stats))
+    for i in range(num_perturbed):
+        if task_config.target_value in CONTINUOUS_TARGET_VALUE:
+            ks_mask[i, :] = baseline_dataloader.dataset.con_all[0,:] - dataloaders[i].dataset.con_all[0,:]
+
+    ks_mask[ks_mask != 0] = 1
+    ks_mask = np.array(ks_mask, dtype = bool)
+
+    # KS-threshold:
+    ks_thr = np.sqrt(-np.log(task_config.sig_threshold/2)*1/(num_samples))
+
+    # Calculate Bayes probabilities
+    stats[ks_mask] == np.min(stats)
+    sort_ids = np.argsort(stats, axis=None)[::-1]  # 1D: N x C
+    ks_distance = np.take(stats, sort_ids)  # 1D: N x C
+    logger.debug(f"KS distance range: [{ks_distance[-1]:.3f} {ks_distance[0]:.3f}]")
+
+    # Return first idx associations: redefine for reasonable threshold
+    
+
+    return sort_ids[sort_ids > ks_thr], ks_distance[sort_ids > ks_thr]
 
 def save_results(
     config: MOVEConfig,
@@ -621,7 +891,7 @@ def identify_associations(config: MOVEConfig) -> None:
 
         extra_colnames = ["proba", "fdr", "bayes_k"]
 
-    else:
+    elif task_type == "ttest":
         task_config = cast(IdentifyAssociationsTTestConfig, task_config)
         sig_ids, *extra_cols = _ttest_approach(
             task_config,
@@ -638,6 +908,22 @@ def identify_associations(config: MOVEConfig) -> None:
         )
 
         extra_colnames = ["p_value"]
+
+    elif task_type == "ks":
+        task_config = cast(IdentifyAssociationsTTestConfig, task_config)
+        sig_ids, *extra_cols = _ks_approach(
+            task_config,
+            train_dataloader,
+            baseline_dataloader,
+            dataloaders,
+            models_path,
+            interim_path,
+            num_perturbed,
+            num_samples,
+            num_continuous,
+        )
+
+        extra_colnames = ["ks_distance"]
 
     ###################### RESULTS ################################
     save_results(

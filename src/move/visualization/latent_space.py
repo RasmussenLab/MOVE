@@ -2,6 +2,7 @@ __all__ = ["plot_latent_space_with_cat", "plot_latent_space_with_con"]
 
 import matplotlib.figure
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 import matplotlib.style
 import numpy as np
 from matplotlib.colors import TwoSlopeNorm
@@ -102,3 +103,70 @@ def plot_latent_space_with_con(
         cbar.ax.set(ylabel=feature_name)
         ax.set(xlabel="dim 0", ylabel="dim 1")
     return fig
+
+def plot_3D_latent_and_displacement(mu_baseline,
+                                    mu_perturbed,
+                                    feature_values, 
+                                    feature_name, 
+                                    show_baseline = True, 
+                                    show_perturbed = True, 
+                                    show_arrows = True, 
+                                    angle=45):
+    """
+    Plot the movement of the samples in the 3D latent space after perturbing one
+    input variable. 
+
+    Args:
+        mu_baseline: 
+            ND array with dimensions n_samples x n_latent_nodes containing 
+            the latent representation of each sample
+        mu_perturbed: 
+            ND array with dimensions n_samples x n_latent_nodes containing 
+            the latent representation of each sample after perturbing the input
+        feature_values: 
+            1D array with feature values to map to a colormap ("bwr"). Each sample is
+            colored according to its value for the feature of interest.
+        feature_name: 
+            name of the feature mapped to a colormap
+        show_baseline: 
+            plot orginal location of the samples in the latent space
+        show_perturbed: 
+            plot final location (after perturbation) of the samples in latent space
+        show_arrows:
+            plot arrows from original to final location of each sample
+        angle: 
+            elevation from dim1-dim2 plane for the visualization of latent space.
+
+    Raises:
+        ValueError: If latent space is not 3-dimensional (3 hidden nodes).
+    Returns:
+        Figure
+    """
+    if [np.shape(mu_baseline)[1],np.shape(mu_perturbed)[1]]  != [3,3]:
+        raise ValueError(" The latent space must be 3-dimensional. Redefine num_latent to 3.")
+    
+    fig = plt.figure(layout="constrained", figsize=(20,20))
+    ax = fig.add_subplot(projection="3d")
+    ax.view_init(30, angle)
+
+    if show_baseline:
+        ax.scatter(mu_baseline[:,0], mu_baseline[:,1], mu_baseline[:,2], marker = ".", c = feature_values, cmap="bwr", label="baseline", lw=.8)
+        ax.set_title(feature_name)
+    if show_perturbed:
+        ax.scatter(mu_perturbed[:,0], mu_perturbed[:,1], mu_perturbed[:,2], marker = ".", color = "lightblue", label="perturbed", lw=.5)
+    if show_arrows:
+        u = mu_perturbed[:,0] - mu_baseline[:,0]
+        v = mu_perturbed[:,1] - mu_baseline[:,1]
+        w = mu_perturbed[:,2] - mu_baseline[:,2]
+
+        max_u, max_v, max_w = np.max(abs(u)), np.max(abs(v)), np.max(abs(w))
+        # Arrow colors will be weighted contributions of red -> dim1, green -> dim2, and blue-> dim3. I.e. purple arrow means movement in dims 1 and 3
+        colors = [(abs(du)/max_u,abs(dv)/max_v,abs(dw)/max_w, .7) for du,dv,dw in zip(u,v,w)]
+        ax.quiver(mu_baseline[:,0], mu_baseline[:,1], mu_baseline[:,2],u,v,w, color= colors, lw=.8, alpha=.8)
+    ax.set_xlabel("Dim 1")
+    ax.set_ylabel("Dim 2")
+    ax.set_zlabel("Dim 3")
+
+    return fig
+
+

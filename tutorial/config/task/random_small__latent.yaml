@@ -4,19 +4,25 @@ defaults:
 batch_size: 10
 
 feature_names:
-  - proteomics_86
-  - metagenomics_15
+  - proteomics_1
+  - proteomics_2
+  - proteomics_3
+  - proteomics_4
+  - proteomics_5
+  - metagenomics_1
+  - metagenomics_4
+  - metagenomics_5
+  - metagenomics_10
   #- drugs_20
   #- metagenomics_174
   #- proteomics_195
 
 model:
   num_hidden:
-    - 560
-   # - 1000
-  num_latent: 35 #150
-  beta: .0000000001
+    - 8
+  num_latent: 3 #150
+  beta: .000001
 
 training_loop:
   lr: 1e-4
-  num_epochs: 450
+  num_epochs: 100

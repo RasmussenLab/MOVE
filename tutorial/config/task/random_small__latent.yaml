@@ -19,10 +19,11 @@ feature_names:
 
 model:
   num_hidden:
-    - 8
-  num_latent: 3 #150
-  beta: .000001
+    - 12
+  num_latent: 8 #150
+  beta: .0001
+  dropout: .1
 
 training_loop:
   lr: 1e-4
-  num_epochs: 100
+  num_epochs: 300

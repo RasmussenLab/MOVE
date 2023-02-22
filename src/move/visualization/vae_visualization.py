@@ -1,4 +1,4 @@
-__all__ = ["visualize_vae"]
+__all__ = ["plot_vae"]
 
 from pathlib import Path
 from typing import Optional
@@ -9,12 +9,9 @@ import matplotlib.figure
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-from mpl_toolkits.mplot3d import Axes3D
 
 import torch
 
-from move.core.typing import FloatArray
-from move.visualization.style import DEFAULT_PLOT_STYLE, style_settings
 
 def plot_vae(path: Path,
              filename: str,
@@ -29,9 +26,28 @@ def plot_vae(path: Path,
              logvar: Optional[torch.Tensor] = None):
 
     """
-    k input node index
-    j hidden node index
-    i latent node index
+    This function is aimed to visualize MOVE's architecture.
+
+    Args:
+        path: path where the trained model with defined weights is to be found
+        filename: name of the model
+        title: title of the figure
+        num_input: number of input nodes
+        num_hidden: number of output nodes
+        num_latent: number of latent nodes 
+        plot_edges: plot edges, i.e. connections with assigned weights between nodes
+        input_sample: array with input values to fill with a mapped color value
+        output_sample : "      " output " "
+        mu: "                  " mean (latent) "     "
+        logvar: "              " log variance  "     "
+
+    Returns:
+        figure 
+
+    Notes: 
+        k: input node index
+        j: hidden node index
+        i: latent node index
     """
     model_weights = torch.load(path / filename)
     G = nx.Graph()
@@ -41,17 +57,6 @@ def plot_vae(path: Path,
     node_distance = 500
     latent_node_distance = 500
     latent_sep = 5*latent_node_distance
-
-    # print(path)
-    # print(filename)
-    # print(title)
-    # print(num_input)
-    # print(num_hidden)
-    # print(num_latent)
-    # print(input_sample)
-    # print(output_sample)
-    # print(mu)
-    # print(logvar)
 
     ########################### Adding nodes to the graph ##############################
     # Bias nodes
@@ -136,16 +141,16 @@ def plot_vae(path: Path,
     color = list(nx.get_node_attributes(G, "color").values())
     edge_color=list(nx.get_edge_attributes(G,"weight").values())
     edge_width = list(nx.get_edge_attributes(G,"weight").values())
-    #print(edge_color)
+
     edge_cmap = matplotlib.colormaps["seismic"]
     node_cmap = matplotlib.colormaps["seismic"]
-    #print(nx.get_edge_attributes(G,"weight"))
+
     abs_max = np.max([abs(np.min(color)),abs(np.max(color))])
     abs_max_edge = np.max([abs(np.min(edge_color)),abs(np.max(edge_color))])
 
     sm_node = cm.ScalarMappable(cmap=node_cmap, norm=matplotlib.colors.Normalize(vmin=-abs_max,vmax=abs_max))
     sm_edge = cm.ScalarMappable(cmap=edge_cmap, norm=matplotlib.colors.Normalize(vmin=-abs_max_edge,vmax=abs_max_edge))
-    #sm_node._A, sm_edge._A = [], []
+
     nx.draw(G, 
             pos=pos,
             with_labels = True,
@@ -166,11 +171,4 @@ def plot_vae(path: Path,
     plt.tight_layout()
     fig.savefig(path / f"{title}.png", format = "png", dpi = 300)
 
-
-#######
-
-#path = Path("/Users/wjq311/Desktop/MOVE/tutorial/results_cont/latent_space")
-#filename = "model.pt"
-
-#plot_vae(path, filename,"Test_vae", num_input=280, num_hidden=100, num_latent=35)
 

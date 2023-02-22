@@ -4,7 +4,7 @@ defaults:
 
 batch_size: 10
 
-num_refits: 2 # default is 40
+num_refits: 3 # default is 40
 sig_threshold: 0.05
 
 target_dataset: random.continuous_basic.proteomics #treatment_level_combined_l1k_train
@@ -15,18 +15,18 @@ model:
   categorical_weights: ${weights:${data.categorical_inputs}}
   continuous_weights: ${weights:${data.continuous_inputs}}
   num_hidden:
-    - 8
+    - 12
     #- 560
     #- 250 
     #- 600
-  num_latent: 3 
-  beta: 0.0001
+  num_latent: 8 
+  beta: 0.1
   dropout: 0.1
   cuda: false
 
 training_loop:
   lr: 1e-4
-  num_epochs: 150
+  num_epochs: 200
   batch_dilation_steps:
     - 50
     - 100
@@ -37,3 +37,8 @@ training_loop:
     - 25
   early_stopping: false
   patience: 0
+
+perturbed_feature_names:
+  - proteomics_3
+target_feature_names:
+  - metagenomics_9

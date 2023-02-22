@@ -97,9 +97,12 @@ def plot_feature_association_graph(association_df, output_path, layout="circular
     if "p_value" in association_df.columns:
         association_df["weight"] = 1- association_df["p_value"]
 
-    else:
+    elif "proba" in association_df.columns:
         association_df["weight"] = association_df["proba"]
         
+    elif "ks_distance" in association_df.columns:
+        association_df["weight"] = association_df["ks_distance"]
+
     fig = plt.figure(figsize=(45,45))
     G = nx.from_pandas_edgelist(association_df,
                                 source="feature_a_name",
@@ -115,7 +118,6 @@ def plot_feature_association_graph(association_df, output_path, layout="circular
         pos = nx.circular_layout(G)
         texts = [plt.text(pos[node][0],pos[node][1],nodes[i],rotation=(i/float(len(nodes)))*360,fontsize=10,horizontalalignment='center',verticalalignment='center') for i,node in enumerate(nodes)]
         with_labels = False
-    #pos = nx.spring_layout(G, weight="weight")
 
     nx.draw(G, 
             pos=pos,
@@ -149,6 +151,53 @@ def plot_feature_mean_median(array: FloatArray, axis=0) ->matplotlib.figure.Figu
     
     return fig
 
+def plot_reconstruction_movement(baseline_recon, perturb_recon, k)->matplotlib.figure.Figure:
+    """
+    Plot, for each sample, the change in value from the unperturbed reconstruction to the perturbed reconstruction.
+    Blue lines are left/negative shifts, red lines are right/positive shifts.
+
+    Args: 
+        baseline_recon: baseline reconstruction array with s samples and k features (s,k).
+        perturb_recon:  perturbed "                                                      " 
+    """
+    # Feature changes
+    fig = plt.figure(figsize=(25,25))
+    for s in range(np.shape(baseline_recon)[0]):
+        plt.arrow(baseline_recon[s,k],s/100,perturb_recon[s,k],0, length_includes_head=True, color=["r" if baseline_recon[s,k]<perturb_recon[s,k] else "b"][0] )
+    plt.ylabel("Sample (e2)", size=40)
+    plt.xlabel("Feature_value", size=40)
+    return fig
+
+def plot_cumulative_distributions(edges,hist_base,hist_pert, title)->matplotlib.figure.Figure:
+
+    # Cumulative distribution:
+    fig = plt.figure(figsize=(7,7))
+    plt.plot((edges[:-1]+edges[1:])/2,np.cumsum(hist_base), color="blue", label="baseline", alpha=.5)
+    plt.plot((edges[:-1]+edges[1:])/2,np.cumsum(hist_pert), color="red", label=f"Perturbed", alpha=.5)
+    #plt.plot(edges_f[:-1],hist_base_f, color="darkblue", label="baseline f", alpha=.5)
+    #plt.plot(edges_f[:-1],hist_pert_f, color="darkred", label=f"Perturbed {i} reconstruct feat_{j} f", alpha=.5)
+    plt.title(f"{title}.png")
+    plt.xlabel("Feature value")
+    plt.ylabel("Cumulative distribution")
+    plt.legend()
+
+    return fig
+
+def plot_correlations(x,y,x_pol,y_pol,a2,a1,a,k):
+
+    #Plot correlations
+    fig = plt.figure(figsize=(3,3))
+    plt.plot(x,y, marker='.', lw=0, markersize=1, color="red")
+    #plt.plot(x,y_2, marker='.', lw=0, markersize=1, color='k', alpha=.3)
+    plt.plot(x_pol,y_pol, color="blue", label="{0:.2f}x^2 {1:.2f}x {2:.2f}".format(a2,a1,a), lw=1)
+    plt.plot(x_pol, x_pol, lw=1, color="k")
+    plt.xlabel(f"Feature {k} baseline values ")
+    plt.ylabel(f"Feature {k} baseline  value reconstruction")
+    plt.legend()
+
+    return fig
+
+
 def get_2nd_order_polynomial(x_array,y_array, n_points=100):
     """ 
     Given a set of x an y values, find the 2nd oder polynomial fitting best the data.
@@ -162,3 +211,5 @@ def get_2nd_order_polynomial(x_array,y_array, n_points=100):
     y_pol = np.array([a2*x*x+a1*x+a for x in x_pol])
 
     return x_pol,y_pol, (a2,a1,a)
+
+

@@ -213,8 +213,6 @@ def tune_model(config: MOVEConfig) -> float:
                 cat_list, cat_recons, config.data.categorical_names
             ):
                 logger.debug(f"Computing accuracy: '{dataset_name}'")
-                logger.debug(f"Shape original input: {cat[mask].shape}")
-                logger.debug(f"Shape reconstruction: {cat_recon.shape}")
                 accuracy = calculate_accuracy(cat[mask], cat_recon)
                 record = _get_record(
                     accuracy,
@@ -229,8 +227,6 @@ def tune_model(config: MOVEConfig) -> float:
                 con_list, con_recons, config.data.continuous_names
             ):
                 logger.debug(f"Computing cosine similarity: '{dataset_name}'")
-                logger.debug(f"Shape original input: {con[mask].shape}")
-                logger.debug(f"Shape reconstruction: {con_recon.shape}")
                 cosine_sim = calculate_cosine_similarity(con[mask], con_recon)
                 record = _get_record(
                     cosine_sim,

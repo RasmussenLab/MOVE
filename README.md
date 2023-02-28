@@ -1,16 +1,19 @@
 # MOVE (Multi-Omics Variational autoEncoder)
 
+:warning: **UPDATE 2023.02.28:** We have zapped a bug affecting the output
+results table. If you're using a version below 1.4.3 of MOVE, we urge you to
+please update to the latest version.
+
 The code in this repository can be used to run our Multi-Omics Variational
 autoEncoder (MOVE) framework for integration of omics and clinical variabels
 spanning both categorial and continuous data. Our approach includes training
 ensemble VAE models and using *in silico* perturbation experiments to identify
-cross omics associations. The manuscript has been published in Nature Biotechnology:
+cross omics associations. The manuscript has been published in Nature
+Biotechnology:
 
-> Allesøe, Rosa Lundbye, Agnete Troen Lundgaard, Ricardo Hernández Medina,
-> Alejandro Aguayo-Orozco, Joachim Johansen, Jakob Nybo Nissen,
-> Caroline Brorsson, et al. 2023.
-> “Discovery of Drug-Omics Associations in Type 2 Diabetes with Generative Deep-Learning Models.”
-> Nature Biotechnology, January. https://doi.org/10.1038/s41587-022-01520-x.
+> Allesøe, R.L., Lundgaard, A.T., Hernández Medina, R. *et al*. Discovery of
+> drug–omics associations in type 2 diabetes with generative deep-learning
+> models. *Nat Biotechnol* (2023). https://doi.org/10.1038/s41587-022-01520-x
 
 We developed the method based on a Type 2 Diabetes cohort from the IMI DIRECT
 project containing 789 newly diagnosed T2D patients. The cohort and data
@@ -101,6 +104,6 @@ dataset and a publicly-available maize rhizosphere microbiome data set.
 
 To cite MOVE, use the following information:
 
-Allesøe, R.L., Lundgaard, A.T., Hernández Medina, R. et al. Discovery of
+Allesøe, R.L., Lundgaard, A.T., Hernández Medina, R. *et al*. Discovery of
 drug–omics associations in type 2 diabetes with generative deep-learning models.
 *Nat Biotechnol* (2023). https://doi.org/10.1038/s41587-022-01520-x

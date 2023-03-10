@@ -31,9 +31,9 @@ outputs/
 *.log
 
 # Tutorial files
-tutorial/interim_data/
-tutorial/processed_data/
-tutorial/results/
+**/interim_data/
+**/processed_data/
+**/results/
 tutorial/maize/data
 
 # Virtual environment

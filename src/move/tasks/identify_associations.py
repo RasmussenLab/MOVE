@@ -245,161 +245,6 @@ def _bayes_approach(
             min_perturb, max_perturb = np.min(perturb_recon, axis=0), np.max(perturb_recon, axis=0)
             min_feat[i,:], max_feat[i,:] = np.min([min_baseline,min_perturb], axis=0), np.max([max_baseline,max_perturb], axis=0)
 
-            # interest_f = 3
-            # if i in [interest_f]:
-            #     # Bayes alternative:
-
-            #     fig_glob, axs_glob = plt.subplots(num_continuous,4, figsize=(5*4,5*num_continuous))
-            #     for k in range(num_continuous):
-            #         if k in range(num_continuous):
-            #             n_bins = 50
-            #             hist_base, edges = np.histogram(baseline_recon[:,k], bins = np.linspace(min_feat[i,k],max_feat[i,k],n_bins), density=True)
-            #             hist_pert, edges = np.histogram(perturb_recon[:,k], bins = np.linspace(min_feat[i,k],max_feat[i,k],n_bins), density=True)
-            #             hist_diff, edges_diff = np.histogram(mean_diff[i,:,k])
-            #             hist_base_f, edges_f = np.histogram(baseline_recon[:,interest_f], bins = np.linspace(min_feat[i,i],max_feat[i,i],n_bins))
-            #             hist_pert_f, edges_f = np.histogram(perturb_recon[:,interest_f], bins = np.linspace(min_feat[i,i],max_feat[i,i],n_bins))
-            #             hist_diff_f, edges_diff_f = np.histogram(mean_diff[i,:,interest_f])
-
-            #             #plt.figure(figsize=(5,5))
-            #             axs_glob[k,0].plot((edges[:-1]+edges[1:])/2,np.cumsum(hist_base), color="blue", label="baseline", alpha=.5)
-            #             axs_glob[k,0].plot((edges[:-1]+edges[1:])/2,np.cumsum(hist_pert), color="red", label=f"Perturbed {i} reconstruct feat_{k}", alpha=.5)
-            #             #plt.plot(edges_f[:-1],hist_base_f, color="darkblue", label="baseline f", alpha=.5)
-            #             #plt.plot(edges_f[:-1],hist_pert_f, color="darkred", label=f"Perturbed {i} reconstruct feat_{j} f", alpha=.5)
-            #             axs_glob[k,0].set_title(f"Cumulative_perturbed_{i}_measuring_{k}_refit_{j}")
-            #             axs_glob[k,0].legend()
-            #             #plt.savefig(f"Cumulative_perturbed_{i}_measuring_{k}_refit_{j}.png")
-
-            #             #plt.figure(figsize=(5,5))
-            #             axs_glob[k,1].plot(edges_diff[:-1],hist_diff, color="blue", label="diff", alpha=.5)
-            #             axs_glob[k,1].plot(edges_diff_f[:-1],hist_diff_f, color="green", label="diff_self", alpha=.5)
-            #             axs_glob[k,1].plot(np.zeros(50),np.linspace(0,np.max(hist_diff),50), ls= "dashed", color="k")
-            #             axs_glob[k,1].legend()
-            #             #plt.title(f"{i}_{k}_diff_refit_{j}")
-            #             #plt.savefig((f"{i}_{k}_diff_refit_{j}.png"))
-
-
-            #             #Plot correlations
-            #             plt.figure(figsize=(5,5))
-            #             x = baseline_dataloader.dataset.con_all.numpy()[:,k] #baseline_recon[:,i]
-            #             y = baseline_recon[:,k]
-            #             x_pol,y_pol, (a2,a1,a) = get_2nd_order_polynomial(x,y)
-
-            #             axs_glob[k,2].plot(x,y, marker='.', lw=0, markersize=1, color="red")
-            #             #plt.plot(x,y_2, marker='.', lw=0, markersize=1, color='k', alpha=.3)
-            #             axs_glob[k,2].plot(x_pol,y_pol, color="blue", label="{0:.2f}x^2 {1:.2f}x {2:.2f}".format(a2,a1,a), lw=1)
-            #             #plt.plot(x_pol,-x_pol, lw=1, color="k")
-            #             axs_glob[k,2].set_xlabel(f"Feature {k} baseline values ")
-            #             axs_glob[k,2].set_ylabel(f"Feature {k} baseline  value reconstruction")
-            #             axs_glob[k,2].set_aspect('equal', 'box')
-            #             axs_glob[k,2].legend()
-            #             #plt.savefig(f"Output_data_{k}_refit_{j}.png", dpi=200)
-
-            #             # plt.figure(figsize=(25,25))
-            #             for s in range(num_samples):
-            #                 axs_glob[k,3].plot(perturb_recon[s,k]-baseline_recon[s,k],s,color=["r" if baseline_recon[s,k]<perturb_recon[s,k] else "b"][0],lw=0, marker='.', s=1)
-            #                 #plt.arrow(baseline_recon[s,k],s/100,perturb_recon[s,k],0, length_includes_head=True, color=["r" if baseline_recon[s,k]<perturb_recon[s,k] else "b"][0], width=1e-4 )
-            #             axs_glob[k,3].set_ylabel("Sample ")
-            #             axs_glob[k,3].set_xlabel("Feature_value")
-            #             axs_glob[k,3].set_xlim(-1,1)
-            #             #plt.savefig(f"Changes_pert{i}_on_feat_{k}_refit_{j}.png")
-
-            #             ##################################
-            #             latent, latent_var, *_ = model.latent(baseline_dataloader, kld_weight=1e-5)
-            #             print("Latent shape:", latent.shape)
-            #             latent_pert, latent_var_pert, *_ = model.latent(dataloaders[i], kld_weight=1e-5)
-            #             # # Plot latent space:
-            #             # if config.task.model.num_latent == 3: # The model has a latent layer with 3 nodes:
-            #             #     # use baseline dataloader values to colorcode samples in 3D
-            #             #     A_az = 30
-            #             #     A_al = 30
-            #             #     pic_num = 0
-            #             #     n_pictures = 100
-            #             #     sample_step = 1
-            #             #     for (azimuth, altitude) in zip(np.linspace(-45,45,n_pictures),np.linspace(15,45,n_pictures)):
-
-            #             #         fig = plot_3D_latent_and_displacement(latent[::sample_step],
-            #             #                                             latent_pert[::sample_step],
-            #             #                                             feature_values=baseline_dataloader.dataset.con_all.numpy()[::sample_step,k],
-            #             #                                             feature_name=f"Feature {k}",
-            #             #                                             show_baseline=False,
-            #             #                                             show_perturbed=False,
-            #             #                                             show_arrows=True,
-            #             #                                             step=1,
-            #             #                                             altitude=altitude,
-            #             #                                             azimuth=azimuth)
-
-            #             #         fig.savefig(f"3D_latent_movement_{pic_num}_arrows.png", dpi=100)
-                                
-            #             #         fig = plot_3D_latent_and_displacement(latent[::sample_step],
-            #             #                                             latent_pert[::sample_step],
-            #             #                                             feature_values=baseline_dataloader.dataset.con_all.numpy()[::sample_step,k],
-            #             #                                             feature_name=f"Feature {k}",
-            #             #                                             show_baseline=True,
-            #             #                                             show_perturbed=False,
-            #             #                                             show_arrows=False,
-            #             #                                             step=1,
-            #             #                                             altitude=altitude,
-            #             #                                             azimuth=azimuth)
-            #             #         fig.savefig(f"3D_latent_movement_{pic_num}_feature_of_interest.png", dpi=100)
-
-            #             #         fig = plot_3D_latent_and_displacement(latent[::sample_step],
-            #             #                                             latent_pert[::sample_step],
-            #             #                                             feature_values=baseline_dataloader.dataset.con_all.numpy()[::sample_step,i+5],
-            #             #                                             feature_name=f"Feature {i+5}",
-            #             #                                             show_baseline=True,
-            #             #                                             show_perturbed=False,
-            #             #                                             show_arrows=False,
-            #             #                                             altitude=altitude,
-            #             #                                             azimuth=azimuth)
-            #             #         fig.savefig(f"3D_latent_movement_{pic_num}_perturbed_feature.png", dpi=100)
-
-            #             #         pic_num += 1
-                        
-            #             #     for plot_type in ["arrows","feature_of_interest","perturbed_feature"]:
-            #             #         frames =[Image.open(f"3D_latent_movement_{pic_num}_{plot_type}.png") for pic_num in range(n_pictures)]#sorted(glob.glob("*3D_latent*"))]
-            #             #         frames[0].save(f"{plot_type}.gif", format="GIF", append_images=frames[1:], save_all=True, duration=75, loop=0)
-
-            #             # # Plot vae:
-            #             # sample_step = 200
-            #             # for s in range(0,num_samples,sample_step):
-            #             #     plot_vae_base = plot_vae(models_path,
-            #             #                             f"model_{task_config.model.num_latent}_{j}.pt",
-            #             #                             f"VAE_sample_{s}_refit_{j}_baseline",
-            #             #                             num_input = np.shape(baseline_recon)[1],
-            #             #                             num_hidden = config.task.model.num_hidden[0],
-            #             #                             num_latent= config.task.model.num_latent,
-            #             #                             plot_edges = True,
-            #             #                             input_sample = baseline_dataloader.dataset.con_all.numpy()[s,:],
-            #             #                             output_sample = baseline_recon[s,:],
-            #             #                             mu = latent[s,:],
-            #             #                             logvar = latent_var[s,:])
-            
-            #             #     plot_vae_pert = plot_vae(models_path,
-            #             #                             f"model_{task_config.model.num_latent}_{j}.pt",
-            #             #                             f"VAE_sample_{s}_refit_{j}_pert_{i}",
-            #             #                             num_input = np.shape(baseline_recon)[1],
-            #             #                             num_hidden = config.task.model.num_hidden[0],
-            #             #                             num_latent = config.task.model.num_latent,
-            #             #                             plot_edges = True,
-            #             #                             input_sample = dataloaders[i].dataset.con_all.numpy()[s,:],
-            #             #                             output_sample = perturb_recon[s,:],
-            #             #                             mu = latent_pert[s,:],
-            #             #                             logvar = latent_var_pert[s,:])
-
-            #             #     plot_vae_diff = plot_vae(models_path,
-            #             #                             f"model_{task_config.model.num_latent}_{j}.pt",
-            #             #                             f"VAE_sample_{s}_refit_{j}_differences",
-            #             #                             num_input = np.shape(baseline_recon)[1],
-            #             #                             num_hidden = config.task.model.num_hidden[0],
-            #             #                             num_latent= config.task.model.num_latent,
-            #             #                             plot_edges = True,
-            #             #                             input_sample = np.zeros(np.shape(baseline_recon)[1]),
-            #             #                             output_sample = perturb_recon[s,:]-baseline_recon[s,:],
-            #             #                             mu = latent_pert[s,:]-latent[s,:],
-            #             #                             logvar = latent_var_pert[s,:]-latent_var[s,:])
-
-
-            #     fig_glob.savefig(f"Global_plots_perturbing_{i}.png", dpi=100)
     # Calculate Bayes factors
     logger.info("Identifying significant features")
     bayes_k = np.empty((num_perturbed, num_continuous))
@@ -412,16 +257,6 @@ def _bayes_approach(
         if task_config.target_value in CONTINUOUS_TARGET_VALUE:
             bayes_mask[i, :] = baseline_dataloader.dataset.con_all[0,:] - dataloaders[i].dataset.con_all[0,:]
         
-        interest_f = 86
-        if i in [interest_f]:
-            fig = plot_reconstruction_diff(diff)
-            fig.savefig(f"Pert_{i}_diff_refit_{j}.png", dpi = 300)
-            fig_3 = plot_value_distributions(diff)
-            fig_3.savefig("Reconstruction_difference_value_distribution.png")
-            fig_4 = plot_feature_mean_median(diff)
-            fig_4.savefig("Feature_mean_median.png")
-
-
     bayes_mask[bayes_mask != 0] = 1
     bayes_mask = np.array(bayes_mask, dtype = bool)
 
@@ -564,11 +399,53 @@ def _ks_approach(
     output_path: Path,
 ) -> tuple[Union[IntArray, FloatArray], ...]:
 
+    """
+    Find associations between continuous features using Kolmogorov-Smirnov distances.
+    When perturbing feature A, this function measures the shift of the reconstructed 
+    distribution for feature B (over samples) from 1) the baseline reconstruction to 2) 
+    the reconstruction when perturbing A.
+
+    If A and B are related the perturbation of A in the input will lead to a change in 
+    feature B's reconstruction, that will be measured by KS distance.
+
+    Associations are then ranked according to KS distance (absolute value).
+
+
+    Args:
+        config: MOVE main configuration.
+        task_config: IdentifyAssociationsKSConfig configuration.
+        train_dataloader: training DataLoader.
+        baseline_dataloader: unperturbed DataLoader.
+        dataloaders: list of DataLoaders where DataLoader[i] is obtained by perturbing feature i
+                     in the target dataset.
+        models_path: path to the models.
+        num_perturbed: number of perturbed features.
+        num_samples: total number of samples
+        num_continuous: number of continuous features (all continuous datasets concatenated).
+        con_names: list of lists where eah inner list contains the feature names of a specific continuous dataset
+        output_path: path where QC summary metrics will be saved.
+
+    Returns:
+        sort_ids: list with flattened IDs of the associations above the significance threshold.
+        ks_distance: Ordered list with signed KS scores. KS scores quantify the direction and 
+                     magnitude of the shift in feature B's reconstruction when perturbing feature A.
+
+
+    !!! Note !!!: 
+    
+    The sign of the KS score can be misleading: negative sign means positive shift.
+    since the cumulative distribution starts growing later and is found below the reference
+    (baseline). Hence:
+    a) with plus_std, negative sign means a positive correlation.
+    b) with minus_std, negative sign means a negative correlation.
+    """
+
 
     assert task_config.model is not None
     device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
     figure_path = output_path / "figures"
     figure_path.mkdir(exist_ok=True, parents=True)
+    visualize_vae = True
 
     # Train models
     logger = get_logger(__name__)
@@ -669,6 +546,79 @@ def _ks_approach(
                     fig.savefig(figure_path / f"Changes_pert_{i}_on_feat_{k}_refit_{j}.png")
 
 
+                    # Latent space:
+                    latent, latent_var, *_ = model.latent(baseline_dataloader, kld_weight=1e-5)
+                    latent_pert, latent_var_pert, *_ = model.latent(dataloaders[i], kld_weight=1e-5)
+                    
+                    # # Plot latent space:
+                    if config.task.model.num_latent == 3: # The model has a latent layer with 3 nodes:
+                        # use baseline dataloader values to colorcode samples in 3D
+                        A_az = 30
+                        A_al = 30
+                        pic_num = 0
+                        n_pictures = 100
+                        sample_step = 1
+                        for (azimuth, altitude) in zip(np.linspace(-45,45,n_pictures),np.linspace(15,45,n_pictures)):
+
+                            fig = plot_3D_latent_and_displacement(latent[::sample_step],
+                                                                latent_pert[::sample_step],
+                                                                feature_values=baseline_dataloader.dataset.con_all.numpy()[::sample_step,k],
+                                                                feature_name=f"Sample movement",
+                                                                show_baseline=False,
+                                                                show_perturbed=False,
+                                                                show_arrows=True,
+                                                                step=1,
+                                                                altitude=altitude,
+                                                                azimuth=azimuth)
+
+                            fig.savefig(figure_path / f"3D_latent_movement_{pic_num}_arrows.png", dpi=100)
+                            
+                            fig = plot_3D_latent_and_displacement(latent[::sample_step],
+                                                                latent_pert[::sample_step],
+                                                                feature_values=baseline_dataloader.dataset.con_all.numpy()[::sample_step,k],
+                                                                feature_name=f"Feature {targ_feat}",
+                                                                show_baseline=True,
+                                                                show_perturbed=False,
+                                                                show_arrows=False,
+                                                                step=1,
+                                                                altitude=altitude,
+                                                                azimuth=azimuth)
+                            fig.savefig(figure_path / f"3D_latent_movement_{pic_num}_feature_of_interest.png", dpi=100)
+
+                            fig = plot_3D_latent_and_displacement(latent[::sample_step],
+                                                                latent_pert[::sample_step],
+                                                                feature_values=baseline_dataloader.dataset.con_all.numpy()[::sample_step,i],
+                                                                feature_name=f"Feature {pert_feat}",
+                                                                show_baseline=True,
+                                                                show_perturbed=False,
+                                                                show_arrows=False,
+                                                                altitude=altitude,
+                                                                azimuth=azimuth)
+                            fig.savefig(figure_path / f"3D_latent_movement_{pic_num}_perturbed_feature.png", dpi=100)
+
+                            pic_num += 1
+                    
+                        for plot_type in ["arrows","feature_of_interest","perturbed_feature"]:
+                            frames =[Image.open(figure_path / f"3D_latent_movement_{pic_num}_{plot_type}.png") for pic_num in range(n_pictures)]#sorted(glob.glob("*3D_latent*"))]
+                            frames[0].save(figure_path / f"{plot_type}.gif", format="GIF", append_images=frames[1:], save_all=True, duration=75, loop=0)
+
+                    # Plot vae:
+                    if visualize_vae:
+                        s = 0 # Visualize sample 0
+                        plot_vae_base = plot_vae(models_path,
+                                                f"model_{task_config.model.num_latent}_{j}.pt",
+                                                f"VAE_sample_{s}_refit_{j}_baseline",
+                                                num_input = np.shape(baseline_recon)[1],
+                                                num_hidden = config.task.model.num_hidden[0],
+                                                num_latent= config.task.model.num_latent,
+                                                plot_edges = True,
+                                                input_sample = baseline_dataloader.dataset.con_all.numpy()[s,:],
+                                                output_sample = baseline_recon[s,:],
+                                                mu = latent[s,:],
+                                                logvar = latent_var[s,:])
+                        visualize_vae = False
+        
+
     # Creating a mask for self associations
     logger.debug("Creating self-association mask")
     for i in range(num_perturbed):
@@ -684,7 +634,7 @@ def _ks_approach(
     # KS-threshold:
     ks_thr = np.sqrt(-np.log(task_config.sig_threshold/2)*1/(num_samples))
     logger.info(f"Suggested absolute KS threshold is: {ks_thr}")
-    
+
     # Sort associations by absolute KS value
     sort_ids = np.argsort(abs(final_stats), axis=None)[::-1]  # 1D: N x C
     ks_distance = np.take(final_stats, sort_ids)  # 1D: N x C
@@ -699,7 +649,7 @@ def _ks_approach(
 
     # Return first idx associations: redefine for reasonable threshold
 
-    return sort_ids, ks_distance
+    return sort_ids[abs(ks_distance)>=ks_thr], ks_distance[abs(ks_distance)>=ks_thr]
 
 def save_results(
     config: MOVEConfig,
@@ -744,6 +694,7 @@ def save_results(
         sig_ids = np.vstack((sig_ids // num_continuous, sig_ids % num_continuous)).T
         logger.info("Writing results")
         results = pd.DataFrame(sig_ids, columns=["feature_a_id", "feature_b_id"])
+
         # Check if the task is for continuous or categorical data
         if task_config.target_value in CONTINUOUS_TARGET_VALUE:
             target_dataset_idx = config.data.continuous_names.index(
@@ -761,7 +712,6 @@ def save_results(
         b_df = pd.DataFrame(dict(feature_b_name=feature_names))
         b_df.index.name = "feature_b_id"
         b_df.reset_index(inplace=True)
-
         # Originally results =  results.merge(a_df, on="feature_a_id").merge(b_df, on="feature_b_id")
         results = results.merge(a_df, on="feature_a_id", how="left").merge(b_df, on="feature_b_id", how="left")
         results["feature_b_dataset"] = pd.cut(

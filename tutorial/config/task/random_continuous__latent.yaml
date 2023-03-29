@@ -1,0 +1,16 @@
+defaults:
+  - analyze_latent
+
+batch_size: 10
+
+feature_names:
+  - proteomics_1
+
+model:
+  num_hidden:
+    - 100
+  num_latent: 50
+
+training_loop:
+  lr: 1e-4
+  num_epochs: 200

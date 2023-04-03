@@ -160,9 +160,13 @@ def analyze_latent(config: MOVEConfig) -> None:
             )
             is_categorical = True
         except KeyError:
-            dataset_index, feature_values = find_feature_values(
-                feature_name, con_names, con_list
-            )
+            try:
+                dataset_index, feature_values = find_feature_values(
+                    feature_name, con_names, con_list
+                )
+            except KeyError:
+                logger.warn(f"Feature '{feature_name}' not found. Skipping plot.")
+                continue
 
         if is_categorical:
             # Convert one-hot encoding to category codes

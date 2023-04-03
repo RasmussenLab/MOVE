@@ -1,5 +1,7 @@
 __all__ = ["plot_latent_space_with_cat", "plot_latent_space_with_con"]
 
+from typing import Any
+
 import matplotlib.figure
 import matplotlib.pyplot as plt
 import matplotlib.style
@@ -20,7 +22,7 @@ def plot_latent_space_with_cat(
     latent_space: FloatArray,
     feature_name: str,
     feature_values: FloatArray,
-    feature_mapping: dict[str, int],
+    feature_mapping: dict[str, Any],
     is_nan: BoolArray,
     style: str = DEFAULT_PLOT_STYLE,
     colormap: str = DEFAULT_QUALITATIVE_PALETTE,

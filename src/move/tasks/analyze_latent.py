@@ -170,11 +170,14 @@ def analyze_latent(config: MOVEConfig) -> None:
             feature_values = np.argmax(feature_values, axis=1)
 
             dataset_name = config.data.categorical_names[dataset_index]
+            feature_mapping = {
+                str(code): category for category, code in mappings[dataset_name].items()
+            }
             fig = viz.plot_latent_space_with_cat(
                 embedding,
                 feature_name,
                 feature_values,
-                mappings[dataset_name],
+                feature_mapping,
                 is_nan,
             )
             fig_df[feature_name] = np.where(is_nan, np.nan, feature_values)

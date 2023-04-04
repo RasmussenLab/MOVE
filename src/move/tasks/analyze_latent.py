@@ -237,8 +237,11 @@ def analyze_latent(config: MOVEConfig) -> None:
         for j, dataloader in enumerate(dataloaders):
             z_perturb = model.project(dataloader)
             diffs[:, j] = np.sum(z_perturb - z, axis=1)
+        feature_mapping = {
+            str(code): category for category, code in mappings[dataset_name].items()
+        }
         fig = viz.plot_categorical_feature_importance(
-            diffs, cat_list[i], cat_names[i], mappings[dataset_name]
+            diffs, cat_list[i], cat_names[i], feature_mapping
         )
         fig_path = str(output_path / f"feat_importance_{dataset_name}.png")
         fig.savefig(fig_path, bbox_inches="tight")

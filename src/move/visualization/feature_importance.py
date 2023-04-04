@@ -86,9 +86,9 @@ def plot_categorical_feature_importance(
             category=feature_values.T[top10_ids, :].ravel()[~is_nan],
         )
     )
-    with style_settings(style), color_cycle(colormap):
+    with style_settings(style):
         fig, ax = plt.subplots(figsize=figsize)
-        sns.stripplot(data=data, x="x", y="y", hue="category", size=1, ax=ax)
+        sns.stripplot(data=data, x="x", y="y", hue="category", size=1, ax=ax, palette=colormap)
         ax.set(xlabel="Impact on latent space", ylabel="Feature")
         # Fix labels in legend
         legend = ax.get_legend()

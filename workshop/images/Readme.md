@@ -1,1 +1,1 @@
-# Images for the data integration folder
+# Images for the data integration workshop

@@ -171,7 +171,7 @@ def analyze_latent(config: MOVEConfig) -> None:
                     feature_name, con_names, con_list
                 )
             except KeyError:
-                logger.warning(f"Feature '{feature_name}' not found in any dataset.")
+                logger.warn(f"Feature '{feature_name}' not found. Skipping plot.")
                 continue
 
         if is_categorical:

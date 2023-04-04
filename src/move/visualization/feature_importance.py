@@ -88,7 +88,7 @@ def plot_categorical_feature_importance(
     )
     with style_settings(style), color_cycle(colormap):
         fig, ax = plt.subplots(figsize=figsize)
-        sns.swarmplot(data=data, x="x", y="y", hue="category", size=1, ax=ax)
+        sns.stripplot(data=data, x="x", y="y", hue="category", size=1, ax=ax)
         ax.set(xlabel="Impact on latent space", ylabel="Feature")
         # Fix labels in legend
         legend = ax.get_legend()
@@ -173,7 +173,7 @@ def plot_continuous_feature_importance(
 
     with style_settings(style):
         fig, ax = plt.subplots(figsize=figsize)
-        sns.swarmplot(
+        sns.stripplot(
             data=data, x="x", y="y", hue="category", ax=ax, palette=palette, size=2
         )
         ax.set(xlabel="Impact on latent space", ylabel="Feature")

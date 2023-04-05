@@ -445,7 +445,8 @@ def _ks_approach(
     device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
     figure_path = output_path / "figures"
     figure_path.mkdir(exist_ok=True, parents=True)
-    visualize_vae = True
+    visualize_vae = False
+    visualize_latent = False
 
     # Train models
     logger = get_logger(__name__)
@@ -546,61 +547,62 @@ def _ks_approach(
                     fig.savefig(figure_path / f"Changes_pert_{i}_on_feat_{k}_refit_{j}.png")
 
 
-                    # Latent space:
-                    latent, latent_var, *_ = model.latent(baseline_dataloader, kld_weight=1e-5)
-                    latent_pert, latent_var_pert, *_ = model.latent(dataloaders[i], kld_weight=1e-5)
-                    
-                    # # Plot latent space:
-                    if config.task.model.num_latent == 3: # The model has a latent layer with 3 nodes:
-                        # use baseline dataloader values to colorcode samples in 3D
-                        A_az = 30
-                        A_al = 30
-                        pic_num = 0
-                        n_pictures = 100
-                        sample_step = 1
-                        for (azimuth, altitude) in zip(np.linspace(-45,45,n_pictures),np.linspace(15,45,n_pictures)):
+                    if visualize_latent:
+                        # Latent space:
+                        latent, latent_var, *_ = model.latent(baseline_dataloader, kld_weight=1e-5)
+                        latent_pert, latent_var_pert, *_ = model.latent(dataloaders[i], kld_weight=1e-5)
+                        
+                        # # Plot latent space:
+                        if config.task.model.num_latent == 3: # The model has a latent layer with 3 nodes:
+                            # use baseline dataloader values to colorcode samples in 3D
+                            A_az = 30
+                            A_al = 30
+                            pic_num = 0
+                            n_pictures = 100
+                            sample_step = 1
+                            for (azimuth, altitude) in zip(np.linspace(-45,45,n_pictures),np.linspace(15,45,n_pictures)):
 
-                            fig = plot_3D_latent_and_displacement(latent[::sample_step],
-                                                                latent_pert[::sample_step],
-                                                                feature_values=baseline_dataloader.dataset.con_all.numpy()[::sample_step,k],
-                                                                feature_name=f"Sample movement",
-                                                                show_baseline=False,
-                                                                show_perturbed=False,
-                                                                show_arrows=True,
-                                                                step=1,
-                                                                altitude=altitude,
-                                                                azimuth=azimuth)
+                                fig = plot_3D_latent_and_displacement(latent[::sample_step],
+                                                                    latent_pert[::sample_step],
+                                                                    feature_values=baseline_dataloader.dataset.con_all.numpy()[::sample_step,k],
+                                                                    feature_name=f"Sample movement",
+                                                                    show_baseline=False,
+                                                                    show_perturbed=False,
+                                                                    show_arrows=True,
+                                                                    step=1,
+                                                                    altitude=altitude,
+                                                                    azimuth=azimuth)
 
-                            fig.savefig(figure_path / f"3D_latent_movement_{pic_num}_arrows.png", dpi=100)
-                            
-                            fig = plot_3D_latent_and_displacement(latent[::sample_step],
-                                                                latent_pert[::sample_step],
-                                                                feature_values=baseline_dataloader.dataset.con_all.numpy()[::sample_step,k],
-                                                                feature_name=f"Feature {targ_feat}",
-                                                                show_baseline=True,
-                                                                show_perturbed=False,
-                                                                show_arrows=False,
-                                                                step=1,
-                                                                altitude=altitude,
-                                                                azimuth=azimuth)
-                            fig.savefig(figure_path / f"3D_latent_movement_{pic_num}_feature_of_interest.png", dpi=100)
+                                fig.savefig(figure_path / f"3D_latent_movement_{pic_num}_arrows.png", dpi=100)
+                                
+                                fig = plot_3D_latent_and_displacement(latent[::sample_step],
+                                                                    latent_pert[::sample_step],
+                                                                    feature_values=baseline_dataloader.dataset.con_all.numpy()[::sample_step,k],
+                                                                    feature_name=f"Feature {targ_feat}",
+                                                                    show_baseline=True,
+                                                                    show_perturbed=False,
+                                                                    show_arrows=False,
+                                                                    step=1,
+                                                                    altitude=altitude,
+                                                                    azimuth=azimuth)
+                                fig.savefig(figure_path / f"3D_latent_movement_{pic_num}_feature_of_interest.png", dpi=100)
 
-                            fig = plot_3D_latent_and_displacement(latent[::sample_step],
-                                                                latent_pert[::sample_step],
-                                                                feature_values=baseline_dataloader.dataset.con_all.numpy()[::sample_step,i],
-                                                                feature_name=f"Feature {pert_feat}",
-                                                                show_baseline=True,
-                                                                show_perturbed=False,
-                                                                show_arrows=False,
-                                                                altitude=altitude,
-                                                                azimuth=azimuth)
-                            fig.savefig(figure_path / f"3D_latent_movement_{pic_num}_perturbed_feature.png", dpi=100)
+                                fig = plot_3D_latent_and_displacement(latent[::sample_step],
+                                                                    latent_pert[::sample_step],
+                                                                    feature_values=baseline_dataloader.dataset.con_all.numpy()[::sample_step,i],
+                                                                    feature_name=f"Feature {pert_feat}",
+                                                                    show_baseline=True,
+                                                                    show_perturbed=False,
+                                                                    show_arrows=False,
+                                                                    altitude=altitude,
+                                                                    azimuth=azimuth)
+                                fig.savefig(figure_path / f"3D_latent_movement_{pic_num}_perturbed_feature.png", dpi=100)
 
-                            pic_num += 1
-                    
-                        for plot_type in ["arrows","feature_of_interest","perturbed_feature"]:
-                            frames =[Image.open(figure_path / f"3D_latent_movement_{pic_num}_{plot_type}.png") for pic_num in range(n_pictures)]#sorted(glob.glob("*3D_latent*"))]
-                            frames[0].save(figure_path / f"{plot_type}.gif", format="GIF", append_images=frames[1:], save_all=True, duration=75, loop=0)
+                                pic_num += 1
+                        
+                            for plot_type in ["arrows","feature_of_interest","perturbed_feature"]:
+                                frames =[Image.open(figure_path / f"3D_latent_movement_{pic_num}_{plot_type}.png") for pic_num in range(n_pictures)]#sorted(glob.glob("*3D_latent*"))]
+                                frames[0].save(figure_path / f"{plot_type}.gif", format="GIF", append_images=frames[1:], save_all=True, duration=75, loop=0)
 
                     # Plot vae:
                     if visualize_vae:

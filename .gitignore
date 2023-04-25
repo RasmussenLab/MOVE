@@ -43,3 +43,6 @@ virtualvenv/
 # docs files
 docs/build/
 docs/source/_templates/
+
+# VS Code settings
+.vscode

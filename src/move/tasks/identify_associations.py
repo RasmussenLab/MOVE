@@ -303,8 +303,6 @@ def identify_associations(config: MOVEConfig):
         b_df = pd.DataFrame(dict(feature_b_name=con_names))
         b_df.index.name = "feature_b_id"
         b_df.reset_index(inplace=True)
-        results = (
-            results
             .merge(a_df, on="feature_a_id", how="left")
             .merge(b_df, on="feature_b_id", how="left")
         )

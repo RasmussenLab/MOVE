@@ -208,10 +208,11 @@ def tune_model(config: MOVEConfig) -> float:
                 batch_size=task_config.batch_size,
             )
             cat_recons, con_recons = model.reconstruct(dataloader)
-            con_recons = np.split(con_recons, model.continuous_shapes[:-1], axis=1)
+            con_recons = np.split(con_recons, np.cumsum(model.continuous_shapes[:-1]), axis=1)
             for cat, cat_recon, dataset_name in zip(
                 cat_list, cat_recons, config.data.categorical_names
             ):
+                logger.debug(f"Computing accuracy: '{dataset_name}'")
                 accuracy = calculate_accuracy(cat[mask], cat_recon)
                 record = _get_record(
                     accuracy,
@@ -225,6 +226,7 @@ def tune_model(config: MOVEConfig) -> float:
             for con, con_recon, dataset_name in zip(
                 con_list, con_recons, config.data.continuous_names
             ):
+                logger.debug(f"Computing cosine similarity: '{dataset_name}'")
                 cosine_sim = calculate_cosine_similarity(con[mask], con_recon)
                 record = _get_record(
                     cosine_sim,

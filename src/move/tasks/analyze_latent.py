@@ -1,5 +1,6 @@
 __all__ = ["analyze_latent"]
 
+import re
 from pathlib import Path
 from typing import Sized, cast
 
@@ -180,11 +181,14 @@ def analyze_latent(config: MOVEConfig) -> None:
             feature_values = np.argmax(feature_values, axis=1)
 
             dataset_name = config.data.categorical_names[dataset_index]
+            feature_mapping = {
+                str(code): category for category, code in mappings[dataset_name].items()
+            }
             fig = viz.plot_latent_space_with_cat(
                 embedding,
                 feature_name,
                 feature_values,
-                mappings[dataset_name],
+                feature_mapping,
                 is_nan,
             )
             fig_df[feature_name] = np.where(is_nan, np.nan, feature_values)
@@ -195,7 +199,9 @@ def analyze_latent(config: MOVEConfig) -> None:
             )
             fig_df[feature_name] = np.where(feature_values == 0, np.nan, feature_values)
 
-        fig_path = str(output_path / f"latent_space_{feature_name}.png")
+        # Remove non-alpha characters
+        safe_feature_name = re.sub(r"[^\w\s]", "", feature_name)
+        fig_path = str(output_path / f"latent_space_{safe_feature_name}.png")
         fig.savefig(fig_path, bbox_inches="tight")
 
     fig_df.to_csv(output_path / "latent_space.tsv", sep="\t")
@@ -234,8 +240,11 @@ def analyze_latent(config: MOVEConfig) -> None:
         for j, dataloader in enumerate(dataloaders):
             z_perturb = model.project(dataloader)
             diffs[:, j] = np.sum(z_perturb - z, axis=1)
+        feature_mapping = {
+            str(code): category for category, code in mappings[dataset_name].items()
+        }
         fig = viz.plot_categorical_feature_importance(
-            diffs, cat_list[i], cat_names[i], mappings[dataset_name]
+            diffs, cat_list[i], cat_names[i], feature_mapping
         )
         fig_path = str(output_path / f"feat_importance_{dataset_name}.png")
         fig.savefig(fig_path, bbox_inches="tight")

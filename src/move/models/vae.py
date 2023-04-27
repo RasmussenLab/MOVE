@@ -388,7 +388,7 @@ class VAE(nn.Module):
             # Mean square error loss for continauous
             loss = nn.MSELoss(reduction="sum")
             # set missing data to 0 to remove any loss these would provide
-            con_out[con_in == 0] == 0
+            con_out[con_in == 0] = 0
 
             # include different weights for each omics dataset
             if self.continuous_weights is not None:

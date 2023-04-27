@@ -18,6 +18,7 @@ def get_logger(name: str):
     if "." in name:
         name = name.split(".")[-1]
 
+    logging.captureWarnings(True)
     logger = logging.getLogger(name)
 
     if not logger.hasHandlers():

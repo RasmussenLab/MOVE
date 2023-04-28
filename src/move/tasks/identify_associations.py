@@ -12,6 +12,7 @@ from PIL import Image
 from scipy.stats import ks_2samp, pearsonr
 import torch
 from omegaconf import OmegaConf
+from os.path import exists
 from torch.utils.data import DataLoader
 
 from move.conf.schema import (
@@ -447,17 +448,19 @@ def _ks_approach(
     figure_path.mkdir(exist_ok=True, parents=True)
     visualize_vae = True
 
-    # Train models
-    logger = get_logger(__name__)
-    logger.info("Training models")
+    # Data containers
     stats = np.empty((task_config.num_refits,num_perturbed, num_continuous))
     stat_signs = np.empty_like(stats)
     rec_corr, slope = np.empty((task_config.num_refits, num_continuous)), np.empty((task_config.num_refits, num_continuous))
     ks_mask = np.zeros((num_perturbed, num_continuous))
+    latent_matrix = np.empty((num_samples,task_config.model.num_latent,len(dataloaders)))
 
     # Last appended dataloader is the baseline
     baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
 
+    # Train models
+    logger = get_logger(__name__)
+    logger.info("Training models")
     for j in range(task_config.num_refits): # Train num_refits models
 
         # Initialize model
@@ -512,13 +515,23 @@ def _ks_approach(
                 fig = plot_correlations(x,y,x_pol,y_pol,a2,a1,a,k)
                 fig.savefig(figure_path / f"Input_vs_reconstruction_correlation_feature_{k}_refit_{j}.png", dpi=50)
 
-            
         ################## Calculate perturbed reconstruction and shifts #############################
         logger.debug("Computing KS scores")
+
+        # Save original latent space for first refit:
+        if j == 0:
+            latent = model.project(baseline_dataloader)
+            latent_matrix[:,:,-1] = latent
+
         for i,pert_feat in enumerate(perturbed_names):
             _, perturb_recon = model.reconstruct(dataloaders[i])
             min_perturb, max_perturb = np.min(perturb_recon, axis=0), np.max(perturb_recon, axis=0)
             min_feat[i,:], max_feat[i,:] = np.min([min_baseline,min_perturb], axis=0), np.max([max_baseline,max_perturb], axis=0)
+
+            # Save latent representation for perturbed samples
+            if j == 0:
+                latent_pert = model.project(dataloaders[i])
+                latent_matrix[:,:,i] = latent_pert
 
             for k,targ_feat in enumerate(feature_names):
                 # Calculate ks factors: measure distance between baseline and perturbed 
@@ -544,80 +557,10 @@ def _ks_approach(
                     # Feature changes:
                     fig = plot_reconstruction_movement(baseline_recon, perturb_recon, k)
                     fig.savefig(figure_path / f"Changes_pert_{i}_on_feat_{k}_refit_{j}.png")
-
-
-                    # Latent space:
-                    latent, latent_var, *_ = model.latent(baseline_dataloader, kld_weight=1e-5)
-                    latent_pert, latent_var_pert, *_ = model.latent(dataloaders[i], kld_weight=1e-5)
-                    
-                    # # Plot latent space:
-                    if config.task.model.num_latent == 3: # The model has a latent layer with 3 nodes:
-                        # use baseline dataloader values to colorcode samples in 3D
-                        A_az = 30
-                        A_al = 30
-                        pic_num = 0
-                        n_pictures = 100
-                        sample_step = 1
-                        for (azimuth, altitude) in zip(np.linspace(-45,45,n_pictures),np.linspace(15,45,n_pictures)):
-
-                            fig = plot_3D_latent_and_displacement(latent[::sample_step],
-                                                                latent_pert[::sample_step],
-                                                                feature_values=baseline_dataloader.dataset.con_all.numpy()[::sample_step,k],
-                                                                feature_name=f"Sample movement",
-                                                                show_baseline=False,
-                                                                show_perturbed=False,
-                                                                show_arrows=True,
-                                                                step=1,
-                                                                altitude=altitude,
-                                                                azimuth=azimuth)
-
-                            fig.savefig(figure_path / f"3D_latent_movement_{pic_num}_arrows.png", dpi=100)
-                            
-                            fig = plot_3D_latent_and_displacement(latent[::sample_step],
-                                                                latent_pert[::sample_step],
-                                                                feature_values=baseline_dataloader.dataset.con_all.numpy()[::sample_step,k],
-                                                                feature_name=f"Feature {targ_feat}",
-                                                                show_baseline=True,
-                                                                show_perturbed=False,
-                                                                show_arrows=False,
-                                                                step=1,
-                                                                altitude=altitude,
-                                                                azimuth=azimuth)
-                            fig.savefig(figure_path / f"3D_latent_movement_{pic_num}_feature_of_interest.png", dpi=100)
-
-                            fig = plot_3D_latent_and_displacement(latent[::sample_step],
-                                                                latent_pert[::sample_step],
-                                                                feature_values=baseline_dataloader.dataset.con_all.numpy()[::sample_step,i],
-                                                                feature_name=f"Feature {pert_feat}",
-                                                                show_baseline=True,
-                                                                show_perturbed=False,
-                                                                show_arrows=False,
-                                                                altitude=altitude,
-                                                                azimuth=azimuth)
-                            fig.savefig(figure_path / f"3D_latent_movement_{pic_num}_perturbed_feature.png", dpi=100)
-
-                            pic_num += 1
-                    
-                        for plot_type in ["arrows","feature_of_interest","perturbed_feature"]:
-                            frames =[Image.open(figure_path / f"3D_latent_movement_{pic_num}_{plot_type}.png") for pic_num in range(n_pictures)]#sorted(glob.glob("*3D_latent*"))]
-                            frames[0].save(figure_path / f"{plot_type}.gif", format="GIF", append_images=frames[1:], save_all=True, duration=75, loop=0)
-
-                    # Plot vae:
-                    if visualize_vae:
-                        s = 0 # Visualize sample 0
-                        plot_vae_base = plot_vae(models_path,
-                                                f"model_{task_config.model.num_latent}_{j}.pt",
-                                                f"VAE_sample_{s}_refit_{j}_baseline",
-                                                num_input = np.shape(baseline_recon)[1],
-                                                num_hidden = config.task.model.num_hidden[0],
-                                                num_latent= config.task.model.num_latent,
-                                                plot_edges = True,
-                                                input_sample = baseline_dataloader.dataset.con_all.numpy()[s,:],
-                                                output_sample = baseline_recon[s,:],
-                                                mu = latent[s,:],
-                                                logvar = latent_var[s,:])
-                        visualize_vae = False
-        
+    
+    # Save latent space matrix:
+    np.save(output_path / "latent_location.npy", latent_matrix)
+    np.save(output_path / "perturbed_features_list.npy", np.array(perturbed_names))
 
     # Creating a mask for self associations
     logger.debug("Creating self-association mask")
@@ -647,7 +590,7 @@ def _ks_approach(
     qc_df["reconstruction_correlation"] = np.nanmean(rec_corr, axis=0)
     qc_df.to_csv(output_path / f"QC_summary_KS.tsv", sep="\t", index=False)
 
-    # Return first idx associations: redefine for reasonable threshold
+    # Return first idx associations: redefined for reasonable threshold
 
     return sort_ids[abs(ks_distance)>=ks_thr], ks_distance[abs(ks_distance)>=ks_thr]
 
@@ -866,7 +809,8 @@ def identify_associations(config: MOVEConfig) -> None:
         extra_colnames,
     )
 
-    association_df = pd.read_csv(output_path / f"results_sig_assoc_{task_type}.tsv", sep="\t")
-    fig = plot_feature_association_graph(association_df, output_path)
-    fig = plot_feature_association_graph(association_df, output_path, layout="spring")
+    if exists(output_path / f"results_sig_assoc_{task_type}.tsv"):
+        association_df = pd.read_csv(output_path / f"results_sig_assoc_{task_type}.tsv", sep="\t")
+        fig = plot_feature_association_graph(association_df, output_path)
+        fig = plot_feature_association_graph(association_df, output_path, layout="spring")
 

@@ -14,6 +14,7 @@ import torch
 
 
 def plot_vae(path: Path,
+             savepath: Path,
              filename: str,
              title: str,
              num_input: int,
@@ -54,8 +55,8 @@ def plot_vae(path: Path,
 
     # Position of the layers:
     layer_distance = 10
-    node_distance = 500
-    latent_node_distance = 500
+    node_distance = 550
+    latent_node_distance = 550
     latent_sep = 5*latent_node_distance
 
     ########################### Adding nodes to the graph ##############################
@@ -129,12 +130,6 @@ def plot_vae(path: Path,
                 for k in range(values.shape[0]): # output
                     G.add_edge(f"out_bias",f"output_{k}", weight=values.numpy()[k])
 
-    k_interest = [86, 240]
-    for k in range(num_input):
-        for j in range(num_hidden):
-            if k not in k_interest:
-                G.remove_edge(f'input_{k}',f'encoder_hidden_{j}')
-
 
     fig = plt.figure(figsize=(60,60))
     pos = nx.get_node_attributes(G,"pos")
@@ -166,9 +161,9 @@ def plot_vae(path: Path,
             vmax=abs_max
             )
 
-    plt.colorbar(sm_node, label="Node value", shrink = .2)
+    #plt.colorbar(sm_node, label="Node value", shrink = .2)
     plt.colorbar(sm_edge, label="Edge value", shrink = .2)
     plt.tight_layout()
-    fig.savefig(path / f"{title}.png", format = "png", dpi = 300)
+    fig.savefig(savepath / f"{title}.png", format = "png", dpi = 200)
 
 

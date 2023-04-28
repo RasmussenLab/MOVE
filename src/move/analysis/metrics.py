@@ -30,7 +30,7 @@ def calculate_accuracy(
     y_pred = np.ma.masked_array(reconstruction, mask=is_nan)
 
     num_features = np.ma.count(y_true, axis=1)
-    scores = np.ma.compressed(np.sum(y_true == y_pred, axis=1)) / num_features
+    scores = np.ma.filled(np.sum(y_true == y_pred, axis=1)) / num_features
 
     return scores
 

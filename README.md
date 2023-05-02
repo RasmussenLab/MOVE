@@ -1,8 +1,7 @@
 # MOVE (Multi-Omics Variational autoEncoder)
 
-:warning: **UPDATE 2023.02.28:** We have zapped a bug affecting the output
-results table. If you're using a version below 1.4.3 of MOVE, we urge you to
-please update to the latest version.
+[![PyPI version](https://badge.fury.io/py/move-dl.svg)](https://badge.fury.io/py/move-dl)
+[![Documentation Status](https://readthedocs.org/projects/move-dl/badge/?version=latest)](https://move-dl.readthedocs.io/?badge=latest)
 
 The code in this repository can be used to run our Multi-Omics Variational
 autoEncoder (MOVE) framework for integration of omics and clinical variabels

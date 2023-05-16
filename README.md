@@ -76,8 +76,12 @@ MOVE has five-six steps:
 ## How to run MOVE
 
 Please refer to our [**documentation**](https://move-dl.readthedocs.io/) for
-examples and tutorials on how to run MOVE.
+examples and [tutorials](https://move-dl.readthedocs.io/tutorial/index.html) 
+on how to run MOVE.
 
+Additionally, you can copy 
+[this notebook](https://colab.research.google.com/drive/1RFWNsuGymCmppPsElBvDuA9zRbGskKmi?usp=sharing) 
+and follow its instructions to get familiar with our pipeline.
 
 # Data sets
 

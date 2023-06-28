@@ -2,18 +2,18 @@ __all__ = ["plot_latent_space_with_cat", "plot_latent_space_with_con"]
 
 from typing import Any
 
+import matplotlib.cm as cm
 import matplotlib.figure
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
 import matplotlib.style
 import numpy as np
-from matplotlib.colors import TwoSlopeNorm, Normalize
+from matplotlib.colors import Normalize, TwoSlopeNorm
 
 from move.core.typing import BoolArray, FloatArray
 from move.visualization.style import (
     DEFAULT_DIVERGING_PALETTE,
-    DEFAULT_QUALITATIVE_PALETTE,
     DEFAULT_PLOT_STYLE,
+    DEFAULT_QUALITATIVE_PALETTE,
     color_cycle,
     style_settings,
 )
@@ -106,39 +106,42 @@ def plot_latent_space_with_con(
         ax.set(xlabel="dim 0", ylabel="dim 1")
     return fig
 
-def plot_3D_latent_and_displacement(mu_baseline,
-                                    mu_perturbed,
-                                    feature_values, 
-                                    feature_name, 
-                                    show_baseline = True, 
-                                    show_perturbed = True, 
-                                    show_arrows = True,
-                                    step=1,
-                                    altitude=30, 
-                                    azimuth=45):
+
+def plot_3D_latent_and_displacement(
+    mu_baseline,
+    mu_perturbed,
+    feature_values,
+    feature_name,
+    show_baseline=True,
+    show_perturbed=True,
+    show_arrows=True,
+    step=1,
+    altitude=30,
+    azimuth=45,
+):
     """
     Plot the movement of the samples in the 3D latent space after perturbing one
-    input variable. 
+    input variable.
 
     Args:
-        mu_baseline: 
-            ND array with dimensions n_samples x n_latent_nodes containing 
+        mu_baseline:
+            ND array with dimensions n_samples x n_latent_nodes containing
             the latent representation of each sample
-        mu_perturbed: 
-            ND array with dimensions n_samples x n_latent_nodes containing 
+        mu_perturbed:
+            ND array with dimensions n_samples x n_latent_nodes containing
             the latent representation of each sample after perturbing the input
-        feature_values: 
+        feature_values:
             1D array with feature values to map to a colormap ("bwr"). Each sample is
             colored according to its value for the feature of interest.
-        feature_name: 
+        feature_name:
             name of the feature mapped to a colormap
-        show_baseline: 
+        show_baseline:
             plot orginal location of the samples in the latent space
-        show_perturbed: 
+        show_perturbed:
             plot final location (after perturbation) of the samples in latent space
         show_arrows:
             plot arrows from original to final location of each sample
-        angle: 
+        angle:
             elevation from dim1-dim2 plane for the visualization of latent space.
 
     Raises:
@@ -146,39 +149,71 @@ def plot_3D_latent_and_displacement(mu_baseline,
     Returns:
         Figure
     """
-    if [np.shape(mu_baseline)[1],np.shape(mu_perturbed)[1]]  != [3,3]:
-        raise ValueError(" The latent space must be 3-dimensional. Redefine num_latent to 3.")
-    
-    fig = plt.figure(layout="constrained", figsize=(10,10))
+    if [np.shape(mu_baseline)[1], np.shape(mu_perturbed)[1]] != [3, 3]:
+        raise ValueError(
+            " The latent space must be 3-dimensional. Redefine num_latent to 3."
+        )
+
+    fig = plt.figure(layout="constrained", figsize=(10, 10))
     ax = fig.add_subplot(projection="3d")
     ax.view_init(altitude, azimuth)
 
-
     if show_baseline:
         vmin, vmax = np.min(feature_values[::step]), np.max(feature_values[::step])
-        abs_max = np.max([abs(vmin),abs(vmax)])
-        ax.scatter(mu_baseline[::step,0], mu_baseline[::step,1], mu_baseline[::step,2], marker = ".", c = feature_values[::step], s=10, lw=0, cmap="seismic", vmin = -2, vmax=2)
+        abs_max = np.max([abs(vmin), abs(vmax)])
+        ax.scatter(
+            mu_baseline[::step, 0],
+            mu_baseline[::step, 1],
+            mu_baseline[::step, 2],
+            marker=".",
+            c=feature_values[::step],
+            s=10,
+            lw=0,
+            cmap="seismic",
+            vmin=-2,
+            vmax=2,
+        )
         ax.set_title(feature_name)
-        fig.colorbar(cm.ScalarMappable(cmap="seismic", norm=Normalize(-2,2)), ax=ax) #Normalize(min(feature_values[::step]),max(feature_values[::step]))), ax=ax)
+        fig.colorbar(
+            cm.ScalarMappable(cmap="seismic", norm=Normalize(-2, 2)), ax=ax
+        )  # Normalize(min(feature_values[::step]),max(feature_values[::step]))), ax=ax)
     if show_perturbed:
-        ax.scatter(mu_perturbed[::step,0], mu_perturbed[::step,1], mu_perturbed[::step,2], marker = ".", color = "lightblue", label="perturbed", lw=.5)
+        ax.scatter(
+            mu_perturbed[::step, 0],
+            mu_perturbed[::step, 1],
+            mu_perturbed[::step, 2],
+            marker=".",
+            color="lightblue",
+            label="perturbed",
+            lw=0.5,
+        )
     if show_arrows:
-        u = mu_perturbed[::step,0] - mu_baseline[::step,0]
-        v = mu_perturbed[::step,1] - mu_baseline[::step,1]
-        w = mu_perturbed[::step,2] - mu_baseline[::step,2]
+        u = mu_perturbed[::step, 0] - mu_baseline[::step, 0]
+        v = mu_perturbed[::step, 1] - mu_baseline[::step, 1]
+        w = mu_perturbed[::step, 2] - mu_baseline[::step, 2]
 
-        module = np.sqrt(u*u+v*v+w*w)
+        module = np.sqrt(u * u + v * v + w * w)
 
         max_u, max_v, max_w = np.max(abs(u)), np.max(abs(v)), np.max(abs(w))
         # Arrow colors will be weighted contributions of red -> dim1, green -> dim2, and blue-> dim3. I.e. purple arrow means movement in dims 1 and 3
-        colors = [(abs(du)/max_u,abs(dv)/max_v,abs(dw)/max_w, .7) for du,dv,dw in zip(u,v,w)]
-        ax.quiver(mu_baseline[::step,0], mu_baseline[::step,1], mu_baseline[::step,2],u,v,w, color= colors, lw=.8, ) #alpha=(1-module/np.max(module))**6, arrow_length_ratio=0)   
-        #help(ax.quiver)
+        colors = [
+            (abs(du) / max_u, abs(dv) / max_v, abs(dw) / max_w, 0.7)
+            for du, dv, dw in zip(u, v, w)
+        ]
+        ax.quiver(
+            mu_baseline[::step, 0],
+            mu_baseline[::step, 1],
+            mu_baseline[::step, 2],
+            u,
+            v,
+            w,
+            color=colors,
+            lw=0.8,
+        )  # alpha=(1-module/np.max(module))**6, arrow_length_ratio=0)
+        # help(ax.quiver)
     ax.set_xlabel("Dim 1")
     ax.set_ylabel("Dim 2")
     ax.set_zlabel("Dim 3")
-    #ax.set_axis_off()
+    # ax.set_axis_off()
 
     return fig
-
-

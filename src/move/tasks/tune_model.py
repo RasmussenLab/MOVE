@@ -208,7 +208,9 @@ def tune_model(config: MOVEConfig) -> float:
                 batch_size=task_config.batch_size,
             )
             cat_recons, con_recons = model.reconstruct(dataloader)
-            con_recons = np.split(con_recons, np.cumsum(model.continuous_shapes[:-1]), axis=1)
+            con_recons = np.split(
+                con_recons, np.cumsum(model.continuous_shapes[:-1]), axis=1
+            )
             for cat, cat_recon, dataset_name in zip(
                 cat_list, cat_recons, config.data.categorical_names
             ):

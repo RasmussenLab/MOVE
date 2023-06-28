@@ -180,13 +180,14 @@ class IdentifyAssociationsTTestConfig(IdentifyAssociationsConfig):
 
     num_latent: list[int] = MISSING
 
+
 @dataclass
 class IdentifyAssociationsKSConfig(IdentifyAssociationsConfig):
     """Configure the Kolmogorov-Smirnov approach to identify associations.
-    
+
     Args:
-        feature_names: 
-            Names of the features for which we """
+        feature_names:
+            Names of the features for which we"""
 
     perturbed_feature_names: list[str] = field(default_factory=list)
     target_feature_names: list[str] = field(default_factory=list)

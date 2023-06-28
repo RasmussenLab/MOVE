@@ -1,6 +1,7 @@
 __all__ = ["identify_associations"]
 
 from functools import reduce
+from os.path import exists
 from pathlib import Path
 from typing import Literal, Sized, Union, cast
 
@@ -8,18 +9,17 @@ import hydra
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from PIL import Image
-from scipy.stats import ks_2samp, pearsonr
 import torch
 from omegaconf import OmegaConf
-from os.path import exists
+from PIL import Image
+from scipy.stats import ks_2samp, pearsonr
 from torch.utils.data import DataLoader
 
 from move.conf.schema import (
     IdentifyAssociationsBayesConfig,
     IdentifyAssociationsConfig,
-    IdentifyAssociationsTTestConfig,
     IdentifyAssociationsKSConfig,
+    IdentifyAssociationsTTestConfig,
     MOVEConfig,
 )
 from move.core.logging import get_logger
@@ -33,20 +33,21 @@ from move.data.perturbations import (
 from move.data.preprocessing import one_hot_encode_single
 from move.models.vae import VAE
 from move.visualization.dataset_distributions import (
-    plot_reconstruction_diff,
-    plot_feature_association_graph,
-    plot_value_distributions,
-    plot_feature_mean_median,
     get_2nd_order_polynomial,
-    plot_reconstruction_movement,
+    plot_correlations,
     plot_cumulative_distributions,
-    plot_correlations
+    plot_feature_association_graph,
+    plot_feature_mean_median,
+    plot_reconstruction_diff,
+    plot_reconstruction_movement,
+    plot_value_distributions,
 )
 from move.visualization.latent_space import plot_3D_latent_and_displacement
 from move.visualization.vae_visualization import plot_vae
 
-TaskType = Literal["bayes", "ttest","ks"]
+TaskType = Literal["bayes", "ttest", "ks"]
 CONTINUOUS_TARGET_VALUE = ["minimum", "maximum", "plus_std", "minus_std"]
+
 
 def _get_task_type(
     task_config: IdentifyAssociationsConfig,
@@ -191,7 +192,6 @@ def _bayes_approach(
     feature_mask: BoolArray,
 ) -> tuple[Union[IntArray, FloatArray], ...]:
 
-
     assert task_config.model is not None
     device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
 
@@ -234,8 +234,12 @@ def _bayes_approach(
 
         # Calculate baseline reconstruction
         _, baseline_recon = model.reconstruct(baseline_dataloader)
-        min_feat, max_feat = np.zeros((num_perturbed, num_continuous)), np.zeros((num_perturbed, num_continuous))
-        min_baseline, max_baseline = np.min(baseline_recon, axis=0), np.max(baseline_recon, axis=0)
+        min_feat, max_feat = np.zeros((num_perturbed, num_continuous)), np.zeros(
+            (num_perturbed, num_continuous)
+        )
+        min_baseline, max_baseline = np.min(baseline_recon, axis=0), np.max(
+            baseline_recon, axis=0
+        )
 
         # Calculate perturb reconstruction => keep track of mean difference
         for i in range(num_perturbed):
@@ -243,8 +247,12 @@ def _bayes_approach(
             diff = perturb_recon - baseline_recon  # 2D: N x C
             mean_diff[i, :, :] += diff * normalizer
 
-            min_perturb, max_perturb = np.min(perturb_recon, axis=0), np.max(perturb_recon, axis=0)
-            min_feat[i,:], max_feat[i,:] = np.min([min_baseline,min_perturb], axis=0), np.max([max_baseline,max_perturb], axis=0)
+            min_perturb, max_perturb = np.min(perturb_recon, axis=0), np.max(
+                perturb_recon, axis=0
+            )
+            min_feat[i, :], max_feat[i, :] = np.min(
+                [min_baseline, min_perturb], axis=0
+            ), np.max([max_baseline, max_perturb], axis=0)
 
     # Calculate Bayes factors
     logger.info("Identifying significant features")
@@ -256,16 +264,20 @@ def _bayes_approach(
         prob = np.ma.compressed(np.mean(diff > 1e-8, axis=0))  # 1D: C
         bayes_k[i, :] = np.log(prob + 1e-8) - np.log(1 - prob + 1e-8)
         if task_config.target_value in CONTINUOUS_TARGET_VALUE:
-            bayes_mask[i, :] = baseline_dataloader.dataset.con_all[0,:] - dataloaders[i].dataset.con_all[0,:]
+            bayes_mask[i, :] = (
+                baseline_dataloader.dataset.con_all[0, :]
+                - dataloaders[i].dataset.con_all[0, :]
+            )
 
     bayes_mask[bayes_mask != 0] = 1
-    bayes_mask = np.array(bayes_mask, dtype = bool)
-
+    bayes_mask = np.array(bayes_mask, dtype=bool)
 
     # Calculate Bayes probabilities
     bayes_abs = np.abs(bayes_k)
     bayes_p = np.exp(bayes_abs) / (1 + np.exp(bayes_abs))  # 2D: N x C
-    bayes_abs[bayes_mask] = np.min(bayes_abs) # Bring feature_i feature_i associations to minimum
+    bayes_abs[bayes_mask] = np.min(
+        bayes_abs
+    )  # Bring feature_i feature_i associations to minimum
     sort_ids = np.argsort(bayes_abs, axis=None)[::-1]  # 1D: N x C
     prob = np.take(bayes_p, sort_ids)  # 1D: N x C
     logger.debug(f"Bayes proba range: [{prob[-1]:.3f} {prob[0]:.3f}]")
@@ -386,6 +398,7 @@ def _ttest_approach(
 
     return sig_ids, sig_pvalues
 
+
 def _ks_approach(
     config: MOVEConfig,
     task_config: IdentifyAssociationsKSConfig,
@@ -441,7 +454,6 @@ def _ks_approach(
     b) with minus_std, negative sign means a negative correlation.
     """
 
-
     assert task_config.model is not None
     device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
     figure_path = output_path / "figures"
@@ -449,11 +461,15 @@ def _ks_approach(
     visualize_vae = True
 
     # Data containers
-    stats = np.empty((task_config.num_refits,num_perturbed, num_continuous))
+    stats = np.empty((task_config.num_refits, num_perturbed, num_continuous))
     stat_signs = np.empty_like(stats)
-    rec_corr, slope = np.empty((task_config.num_refits, num_continuous)), np.empty((task_config.num_refits, num_continuous))
+    rec_corr, slope = np.empty((task_config.num_refits, num_continuous)), np.empty(
+        (task_config.num_refits, num_continuous)
+    )
     ks_mask = np.zeros((num_perturbed, num_continuous))
-    latent_matrix = np.empty((num_samples,task_config.model.num_latent,len(dataloaders)))
+    latent_matrix = np.empty(
+        (num_samples, task_config.model.num_latent, len(dataloaders))
+    )
 
     # Last appended dataloader is the baseline
     baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
@@ -461,7 +477,7 @@ def _ks_approach(
     # Train models
     logger = get_logger(__name__)
     logger.info("Training models")
-    for j in range(task_config.num_refits): # Train num_refits models
+    for j in range(task_config.num_refits):  # Train num_refits models
 
         # Initialize model
         model: VAE = hydra.utils.instantiate(
@@ -492,28 +508,41 @@ def _ks_approach(
 
         # Calculate baseline reconstruction
         _, baseline_recon = model.reconstruct(baseline_dataloader)
-        min_feat, max_feat = np.zeros((num_perturbed, num_continuous)), np.zeros((num_perturbed, num_continuous))
-        min_baseline, max_baseline = np.min(baseline_recon, axis=0), np.max(baseline_recon, axis=0)
+        min_feat, max_feat = np.zeros((num_perturbed, num_continuous)), np.zeros(
+            (num_perturbed, num_continuous)
+        )
+        min_baseline, max_baseline = np.min(baseline_recon, axis=0), np.max(
+            baseline_recon, axis=0
+        )
 
         ############ QC of feature's reconstruction ##############################
         logger.debug("Calculating quality control of the feature reconstructions")
         # Correlation and slope for each feature's reconstruction
         feature_names = reduce(list.__add__, con_names)
-        target_dataset_idx = config.data.continuous_names.index(task_config.target_dataset)
+        target_dataset_idx = config.data.continuous_names.index(
+            task_config.target_dataset
+        )
         perturbed_names = con_names[target_dataset_idx]
 
         for k in range(num_continuous):
-            x = baseline_dataloader.dataset.con_all.numpy()[:,k] #baseline_recon[:,i]
-            y = baseline_recon[:,k]
-            x_pol,y_pol, (a2,a1,a) = get_2nd_order_polynomial(x,y)
-            slope[j,k] = a1
-            rec_corr[j,k] = pearsonr(x,y).statistic
+            x = baseline_dataloader.dataset.con_all.numpy()[:, k]  # baseline_recon[:,i]
+            y = baseline_recon[:, k]
+            x_pol, y_pol, (a2, a1, a) = get_2nd_order_polynomial(x, y)
+            slope[j, k] = a1
+            rec_corr[j, k] = pearsonr(x, y).statistic
 
-            if feature_names[k] in task_config.perturbed_feature_names or feature_names[k] in task_config.target_feature_names:
+            if (
+                feature_names[k] in task_config.perturbed_feature_names
+                or feature_names[k] in task_config.target_feature_names
+            ):
 
-                #Plot correlations
-                fig = plot_correlations(x,y,x_pol,y_pol,a2,a1,a,k)
-                fig.savefig(figure_path / f"Input_vs_reconstruction_correlation_feature_{k}_refit_{j}.png", dpi=50)
+                # Plot correlations
+                fig = plot_correlations(x, y, x_pol, y_pol, a2, a1, a, k)
+                fig.savefig(
+                    figure_path
+                    / f"Input_vs_reconstruction_correlation_feature_{k}_refit_{j}.png",
+                    dpi=50,
+                )
 
         ################## Calculate perturbed reconstruction and shifts #############################
         logger.debug("Computing KS scores")
@@ -521,42 +550,64 @@ def _ks_approach(
         # Save original latent space for first refit:
         if j == 0:
             latent = model.project(baseline_dataloader)
-            latent_matrix[:,:,-1] = latent
+            latent_matrix[:, :, -1] = latent
 
-        for i,pert_feat in enumerate(perturbed_names):
+        for i, pert_feat in enumerate(perturbed_names):
             _, perturb_recon = model.reconstruct(dataloaders[i])
-            min_perturb, max_perturb = np.min(perturb_recon, axis=0), np.max(perturb_recon, axis=0)
-            min_feat[i,:], max_feat[i,:] = np.min([min_baseline,min_perturb], axis=0), np.max([max_baseline,max_perturb], axis=0)
+            min_perturb, max_perturb = np.min(perturb_recon, axis=0), np.max(
+                perturb_recon, axis=0
+            )
+            min_feat[i, :], max_feat[i, :] = np.min(
+                [min_baseline, min_perturb], axis=0
+            ), np.max([max_baseline, max_perturb], axis=0)
 
             # Save latent representation for perturbed samples
             if j == 0:
                 latent_pert = model.project(dataloaders[i])
-                latent_matrix[:,:,i] = latent_pert
+                latent_matrix[:, :, i] = latent_pert
 
-            for k,targ_feat in enumerate(feature_names):
+            for k, targ_feat in enumerate(feature_names):
                 # Calculate ks factors: measure distance between baseline and perturbed
                 # reconstruction distributions per feature (k)
-                res = ks_2samp(perturb_recon[:,k], baseline_recon[:,k])
-                stats[j,i,k] = res.statistic
-                stat_signs[j,i,k] = res.statistic_sign
+                res = ks_2samp(perturb_recon[:, k], baseline_recon[:, k])
+                stats[j, i, k] = res.statistic
+                stat_signs[j, i, k] = res.statistic_sign
 
-                if pert_feat in task_config.perturbed_feature_names and targ_feat in task_config.target_feature_names:
+                if (
+                    pert_feat in task_config.perturbed_feature_names
+                    and targ_feat in task_config.target_feature_names
+                ):
 
                     # Plotting preliminary results:
                     n_bins = 50
-                    hist_base, edges = np.histogram(baseline_recon[:,k], bins = np.linspace(min_feat[i,k],max_feat[i,k],n_bins), density=True)
-                    hist_pert, edges = np.histogram(perturb_recon[:,k], bins = np.linspace(min_feat[i,k],max_feat[i,k],n_bins), density=True)
+                    hist_base, edges = np.histogram(
+                        baseline_recon[:, k],
+                        bins=np.linspace(min_feat[i, k], max_feat[i, k], n_bins),
+                        density=True,
+                    )
+                    hist_pert, edges = np.histogram(
+                        perturb_recon[:, k],
+                        bins=np.linspace(min_feat[i, k], max_feat[i, k], n_bins),
+                        density=True,
+                    )
 
                     # Cumulative distribution:
-                    fig = plot_cumulative_distributions(edges,
-                                                        hist_base,
-                                                        hist_pert,
-                                                        f"Cumulative_perturbed_{i}_measuring_{k}_stats_{stats[j,i,k]}")
-                    fig.savefig(figure_path / f"Cumulative_refit_{j}_perturbed_{i}_measuring_{k}_stats_{stats[j,i,k]}.png")
+                    fig = plot_cumulative_distributions(
+                        edges,
+                        hist_base,
+                        hist_pert,
+                        f"Cumulative_perturbed_{i}_measuring_{k}_stats_{stats[j,i,k]}",
+                    )
+                    fig.savefig(
+                        figure_path
+                        / f"Cumulative_refit_{j}_perturbed_{i}_measuring_{k}_stats_{stats[j,i,k]}.png"
+                    )
 
                     # Feature changes:
                     fig = plot_reconstruction_movement(baseline_recon, perturb_recon, k)
-                    fig.savefig(figure_path / f"Changes_pert_{i}_on_feat_{k}_refit_{j}.png")
+                    fig.savefig(
+                        figure_path / f"Changes_pert_{i}_on_feat_{k}_refit_{j}.png"
+                    )
 
     # Save latent space matrix:
     np.save(output_path / "latent_location.npy", latent_matrix)
@@ -566,33 +617,38 @@ def _ks_approach(
     logger.debug("Creating self-association mask")
     for i in range(num_perturbed):
         if task_config.target_value in CONTINUOUS_TARGET_VALUE:
-            ks_mask[i,:] = baseline_dataloader.dataset.con_all[0,:] - dataloaders[i].dataset.con_all[0,:]
+            ks_mask[i, :] = (
+                baseline_dataloader.dataset.con_all[0, :]
+                - dataloaders[i].dataset.con_all[0, :]
+            )
     ks_mask[ks_mask != 0] = 1
-    ks_mask = np.array(ks_mask, dtype = bool)
+    ks_mask = np.array(ks_mask, dtype=bool)
 
     # Take the median of KS values (with sign) over refits.
-    final_stats = np.nanmedian(stats*stat_signs, axis = 0)
-    final_stats[ks_mask] = 0. #Assign 0 to all masked values which will bring them to the end of the ranking
+    final_stats = np.nanmedian(stats * stat_signs, axis=0)
+    final_stats[
+        ks_mask
+    ] = 0.0  # Assign 0 to all masked values which will bring them to the end of the ranking
 
     # KS-threshold:
-    ks_thr = np.sqrt(-np.log(task_config.sig_threshold/2)*1/(num_samples))
+    ks_thr = np.sqrt(-np.log(task_config.sig_threshold / 2) * 1 / (num_samples))
     logger.info(f"Suggested absolute KS threshold is: {ks_thr}")
 
     # Sort associations by absolute KS value
     sort_ids = np.argsort(abs(final_stats), axis=None)[::-1]  # 1D: N x C
     ks_distance = np.take(final_stats, sort_ids)  # 1D: N x C
 
-
     # Writing Quality control csv file. Mean slope and correlation over refits as qc metrics.
     logger.info("Writing QC file")
     qc_df = pd.DataFrame({"Feature names": feature_names})
-    qc_df["slope"] = np.nanmean(slope, axis = 0)
+    qc_df["slope"] = np.nanmean(slope, axis=0)
     qc_df["reconstruction_correlation"] = np.nanmean(rec_corr, axis=0)
     qc_df.to_csv(output_path / f"QC_summary_KS.tsv", sep="\t", index=False)
 
     # Return first idx associations: redefined for reasonable threshold
 
-    return sort_ids[abs(ks_distance)>=ks_thr], ks_distance[abs(ks_distance)>=ks_thr]
+    return sort_ids[abs(ks_distance) >= ks_thr], ks_distance[abs(ks_distance) >= ks_thr]
+
 
 def save_results(
     config: MOVEConfig,
@@ -655,10 +711,8 @@ def save_results(
         b_df = pd.DataFrame(dict(feature_b_name=feature_names))
         b_df.index.name = "feature_b_id"
         b_df.reset_index(inplace=True)
-        results = (
-            results
-            .merge(a_df, on="feature_a_id", how="left")
-            .merge(b_df, on="feature_b_id", how="left")
+        results = results.merge(a_df, on="feature_a_id", how="left").merge(
+            b_df, on="feature_b_id", how="left"
         )
         results["feature_b_dataset"] = pd.cut(
             results["feature_b_id"],
@@ -668,7 +722,9 @@ def save_results(
         )
         for col, colname in zip(extra_cols, extra_colnames):
             results[colname] = col
-        results.to_csv(output_path / f"results_sig_assoc_{task_type}.tsv", sep="\t", index=False)
+        results.to_csv(
+            output_path / f"results_sig_assoc_{task_type}.tsv", sep="\t", index=False
+        )
 
 
 def identify_associations(config: MOVEConfig) -> None:
@@ -813,6 +869,10 @@ def identify_associations(config: MOVEConfig) -> None:
     )
 
     if exists(output_path / f"results_sig_assoc_{task_type}.tsv"):
-        association_df = pd.read_csv(output_path / f"results_sig_assoc_{task_type}.tsv", sep="\t")
+        association_df = pd.read_csv(
+            output_path / f"results_sig_assoc_{task_type}.tsv", sep="\t"
+        )
         fig = plot_feature_association_graph(association_df, output_path)
-        fig = plot_feature_association_graph(association_df, output_path, layout="spring")
+        fig = plot_feature_association_graph(
+            association_df, output_path, layout="spring"
+        )

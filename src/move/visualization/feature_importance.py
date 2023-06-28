@@ -12,8 +12,8 @@ from matplotlib.colors import TwoSlopeNorm
 from move.core.typing import FloatArray
 from move.visualization.style import (
     DEFAULT_DIVERGING_PALETTE,
-    DEFAULT_QUALITATIVE_PALETTE,
     DEFAULT_PLOT_STYLE,
+    DEFAULT_QUALITATIVE_PALETTE,
     color_cycle,
     style_settings,
 )
@@ -88,7 +88,9 @@ def plot_categorical_feature_importance(
     )
     with style_settings(style):
         fig, ax = plt.subplots(figsize=figsize)
-        sns.stripplot(data=data, x="x", y="y", hue="category", size=1, ax=ax, palette=colormap)
+        sns.stripplot(
+            data=data, x="x", y="y", hue="category", size=1, ax=ax, palette=colormap
+        )
         ax.set(xlabel="Impact on latent space", ylabel="Feature")
         # Fix labels in legend
         legend = ax.get_legend()

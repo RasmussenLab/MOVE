@@ -36,6 +36,11 @@ outputs/
 **/results/
 tutorial/maize/data
 
+# Supplementary files
+supplementary_files/*.png
+supplementary_files/*.tsv
+supplementary_files/*.txt
+
 # Virtual environment
 venv/
 virtualvenv/

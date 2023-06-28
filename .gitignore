@@ -46,3 +46,6 @@ docs/source/_templates/
 
 # VS Code settings
 .vscode
+
+# macOS
+.DS_Store

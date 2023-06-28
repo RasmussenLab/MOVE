@@ -1,5 +1,6 @@
 __all__ = ["analyze_latent"]
 
+import re
 from pathlib import Path
 from typing import Sized, cast
 
@@ -198,7 +199,9 @@ def analyze_latent(config: MOVEConfig) -> None:
             )
             fig_df[feature_name] = np.where(feature_values == 0, np.nan, feature_values)
 
-        fig_path = str(output_path / f"latent_space_{feature_name}.png")
+        # Remove non-alpha characters
+        safe_feature_name = re.sub(r"[^\w\s]", "", feature_name)
+        fig_path = str(output_path / f"latent_space_{safe_feature_name}.png")
         fig.savefig(fig_path, bbox_inches="tight")
 
     fig_df.to_csv(output_path / "latent_space.tsv", sep="\t")

@@ -22,7 +22,10 @@ def calculate_accuracy(
     if reconstruction.ndim != 2:
         raise ValueError("Expected reconstruction to have two dimensions.")
     if original_input[:, :, 0].shape != reconstruction.shape:
-        raise ValueError("Original input and reconstruction shapes do not match.")
+        raise ValueError(
+            f"Original input {original_input.shape} and reconstruction "
+            f"{reconstruction.shape} shapes do not match."
+        )
 
     is_nan = original_input.sum(axis=2) == 0
     original_input = np.argmax(original_input, axis=2)  # 3D => 2D
@@ -30,7 +33,7 @@ def calculate_accuracy(
     y_pred = np.ma.masked_array(reconstruction, mask=is_nan)
 
     num_features = np.ma.count(y_true, axis=1)
-    scores = np.ma.filled(np.sum(y_true == y_pred, axis=1)) / num_features
+    scores = np.ma.filled(np.sum(y_true == y_pred, axis=1) / num_features, 0)
 
     return scores
 
@@ -50,7 +53,10 @@ def calculate_cosine_similarity(
     if any((original_input.ndim != 2, reconstruction.ndim != 2)):
         raise ValueError("Expected both inputs to have two dimensions.")
     if original_input.shape != reconstruction.shape:
-        raise ValueError("Original input and reconstruction shapes do not match.")
+        raise ValueError(
+            f"Original input {original_input.shape} and reconstruction "
+            f"{reconstruction.shape} shapes do not match."
+        )
 
     is_nan = original_input == 0
     x = np.ma.masked_array(original_input, mask=is_nan)

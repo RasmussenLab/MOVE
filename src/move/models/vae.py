@@ -1,7 +1,7 @@
 __all__ = ["VAE"]
 
 import logging
-from typing import Optional, cast
+from typing import Optional, Callable
 
 import torch
 from torch import nn, optim
@@ -107,8 +107,6 @@ class VAE(nn.Module):
 
         # Activation functions
         self.relu = nn.LeakyReLU()
-        self.softplus = nn.Softplus()
-        self.sigmoid = nn.Sigmoid()
         self.log_softmax = nn.LogSoftmax(dim=1)
         self.dropoutlayer = nn.Dropout(p=self.dropout)
 
@@ -309,7 +307,7 @@ class VAE(nn.Module):
         return cat_errors
 
     def calculate_con_error(
-        self, con_in: torch.Tensor, con_out: torch.Tensor, loss: torch.nn.modules.loss
+        self, con_in: torch.Tensor, con_out: torch.Tensor, loss: Callable[[torch.Tensor, torch.Tensor], torch.Tensor]
     ) -> torch.Tensor:
         """
         Calculates errors (MSE) for continuous data reconstructions
@@ -324,15 +322,15 @@ class VAE(nn.Module):
         """
         batch_size = con_in.shape[0]
         total_shape = 0
-        con_errors = []
+        con_errors_list: list[torch.Tensor] = []
         for s in self.continuous_shapes:
             c_in = con_in[:, total_shape : (s + total_shape - 1)]
             c_re = con_out[:, total_shape : (s + total_shape - 1)]
             error = loss(c_re, c_in) / batch_size
-            con_errors.append(error)
+            con_errors_list.append(error)
             total_shape += s
 
-        con_errors = torch.stack(con_errors)
+        con_errors = torch.stack(con_errors_list)
         con_errors = con_errors / torch.Tensor(self.continuous_shapes).to(self.device)
         MSE = torch.sum(con_errors * torch.Tensor(self.continuous_weights).to(self.device))
         return MSE
@@ -386,7 +384,7 @@ class VAE(nn.Module):
             # Mean square error loss for continauous
             loss = nn.MSELoss(reduction="sum")
             # set missing data to 0 to remove any loss these would provide
-            con_out[con_in == 0] == 0
+            con_out[con_in == 0] = 0
 
             # include different weights for each omics dataset
             if self.continuous_weights is not None:
@@ -411,7 +409,7 @@ class VAE(nn.Module):
         epoch: int,
         lrate: float,
         kld_w: float,
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> tuple[float, float, float, float]:
         """
         One iteration of VAE
 
@@ -429,9 +427,6 @@ class VAE(nn.Module):
                 KLD loss on train set during the training of the epoch
         """
         self.train()
-        train_loss = 0
-        log_interval = 50
-
         optimizer = optim.Adam(self.parameters(), lr=lrate)
 
         epoch_loss = 0
@@ -450,6 +445,8 @@ class VAE(nn.Module):
                 tensor = cat
             elif self.num_continuous > 0:
                 tensor = con
+            else:
+                assert False, "Must have at least 1 categorial or 1 continuous feature"
 
             optimizer.zero_grad()
 
@@ -694,6 +691,8 @@ class VAE(nn.Module):
                 tensor = cat
             elif self.num_continuous > 0:
                 tensor = con
+            else:
+                assert False, "Must have at least 1 categorial or 1 continuous feature"
 
             # Evaluate
             cat_out, con_out, mu, logvar = self(tensor)

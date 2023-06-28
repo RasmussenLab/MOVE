@@ -236,7 +236,7 @@ def _bayes_approach(
         _, baseline_recon = model.reconstruct(baseline_dataloader)
         min_feat, max_feat = np.zeros((num_perturbed, num_continuous)), np.zeros((num_perturbed, num_continuous))
         min_baseline, max_baseline = np.min(baseline_recon, axis=0), np.max(baseline_recon, axis=0)
-            
+
         # Calculate perturb reconstruction => keep track of mean difference
         for i in range(num_perturbed):
             _, perturb_recon = model.reconstruct(dataloaders[i])
@@ -257,7 +257,7 @@ def _bayes_approach(
         bayes_k[i, :] = np.log(prob + 1e-8) - np.log(1 - prob + 1e-8)
         if task_config.target_value in CONTINUOUS_TARGET_VALUE:
             bayes_mask[i, :] = baseline_dataloader.dataset.con_all[0,:] - dataloaders[i].dataset.con_all[0,:]
-        
+
     bayes_mask[bayes_mask != 0] = 1
     bayes_mask = np.array(bayes_mask, dtype = bool)
 
@@ -402,11 +402,11 @@ def _ks_approach(
 
     """
     Find associations between continuous features using Kolmogorov-Smirnov distances.
-    When perturbing feature A, this function measures the shift of the reconstructed 
-    distribution for feature B (over samples) from 1) the baseline reconstruction to 2) 
+    When perturbing feature A, this function measures the shift of the reconstructed
+    distribution for feature B (over samples) from 1) the baseline reconstruction to 2)
     the reconstruction when perturbing A.
 
-    If A and B are related the perturbation of A in the input will lead to a change in 
+    If A and B are related the perturbation of A in the input will lead to a change in
     feature B's reconstruction, that will be measured by KS distance.
 
     Associations are then ranked according to KS distance (absolute value).
@@ -428,12 +428,12 @@ def _ks_approach(
 
     Returns:
         sort_ids: list with flattened IDs of the associations above the significance threshold.
-        ks_distance: Ordered list with signed KS scores. KS scores quantify the direction and 
+        ks_distance: Ordered list with signed KS scores. KS scores quantify the direction and
                      magnitude of the shift in feature B's reconstruction when perturbing feature A.
 
 
-    !!! Note !!!: 
-    
+    !!! Note !!!:
+
     The sign of the KS score can be misleading: negative sign means positive shift.
     since the cumulative distribution starts growing later and is found below the reference
     (baseline). Hence:
@@ -534,7 +534,7 @@ def _ks_approach(
                 latent_matrix[:,:,i] = latent_pert
 
             for k,targ_feat in enumerate(feature_names):
-                # Calculate ks factors: measure distance between baseline and perturbed 
+                # Calculate ks factors: measure distance between baseline and perturbed
                 # reconstruction distributions per feature (k)
                 res = ks_2samp(perturb_recon[:,k], baseline_recon[:,k])
                 stats[j,i,k] = res.statistic
@@ -549,7 +549,7 @@ def _ks_approach(
 
                     # Cumulative distribution:
                     fig = plot_cumulative_distributions(edges,
-                                                        hist_base,  
+                                                        hist_base,
                                                         hist_pert,
                                                         f"Cumulative_perturbed_{i}_measuring_{k}_stats_{stats[j,i,k]}")
                     fig.savefig(figure_path / f"Cumulative_refit_{j}_perturbed_{i}_measuring_{k}_stats_{stats[j,i,k]}.png")
@@ -557,7 +557,7 @@ def _ks_approach(
                     # Feature changes:
                     fig = plot_reconstruction_movement(baseline_recon, perturb_recon, k)
                     fig.savefig(figure_path / f"Changes_pert_{i}_on_feat_{k}_refit_{j}.png")
-    
+
     # Save latent space matrix:
     np.save(output_path / "latent_location.npy", latent_matrix)
     np.save(output_path / "perturbed_features_list.npy", np.array(perturbed_names))
@@ -655,8 +655,11 @@ def save_results(
         b_df = pd.DataFrame(dict(feature_b_name=feature_names))
         b_df.index.name = "feature_b_id"
         b_df.reset_index(inplace=True)
-        # Originally results =  results.merge(a_df, on="feature_a_id").merge(b_df, on="feature_b_id")
-        results = results.merge(a_df, on="feature_a_id", how="left").merge(b_df, on="feature_b_id", how="left")
+        results = (
+            results
+            .merge(a_df, on="feature_a_id", how="left")
+            .merge(b_df, on="feature_b_id", how="left")
+        )
         results["feature_b_dataset"] = pd.cut(
             results["feature_b_id"],
             bins=cast(list[int], np.cumsum([0] + con_shapes)),
@@ -813,4 +816,3 @@ def identify_associations(config: MOVEConfig) -> None:
         association_df = pd.read_csv(output_path / f"results_sig_assoc_{task_type}.tsv", sep="\t")
         fig = plot_feature_association_graph(association_df, output_path)
         fig = plot_feature_association_graph(association_df, output_path, layout="spring")
-

@@ -90,7 +90,6 @@ def concat_cat_list(
         cat_shapes.append(cat_shape)
         cat_flat.append(cat.reshape(cat.shape[0], -1))
     cat_all = np.concatenate(cat_flat, axis=1)
-    mask = cat_all.sum(axis=1) > 5  # True if row sum is greater than 5
     return cat_shapes, cat_all
 
 
@@ -110,7 +109,6 @@ def concat_con_list(
     """
     con_shapes = [con.shape[1] for con in con_list]
     con_all: FloatArray = np.concatenate(con_list, axis=1)
-    mask = con_all.sum(axis=1) != 0  # True if row sum is not zero
     return con_shapes, con_all
 
 

@@ -57,7 +57,7 @@ def one_hot_encode_single(mapping: dict[str, int], value: Optional[str]) -> IntA
     Returns:
         2D array
     """
-    encoded_value = np.zeros((1, len(mapping)))
+    encoded_value = np.zeros((1, len(mapping)), dtype=int)
     if not pd.isna(value):
         code = mapping[str(value)]
         encoded_value[0, code] = 1

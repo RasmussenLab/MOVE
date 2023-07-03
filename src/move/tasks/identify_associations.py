@@ -6,13 +6,11 @@ from pathlib import Path
 from typing import Literal, Sized, Union, cast
 
 import hydra
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
 from omegaconf import OmegaConf
-from PIL import Image
-from scipy.stats import ks_2samp, pearsonr
+from scipy.stats import ks_2samp, pearsonr  # type: ignore
 from torch.utils.data import DataLoader
 
 from move.conf.schema import (
@@ -27,6 +25,7 @@ from move.core.typing import BoolArray, FloatArray, IntArray
 from move.data import io
 from move.data.dataloaders import MOVEDataset, make_dataloader
 from move.data.perturbations import (
+    ContinuousPerturbationType,
     perturb_categorical_data,
     perturb_continuous_data_extended,
 )
@@ -37,13 +36,8 @@ from move.visualization.dataset_distributions import (
     plot_correlations,
     plot_cumulative_distributions,
     plot_feature_association_graph,
-    plot_feature_mean_median,
-    plot_reconstruction_diff,
     plot_reconstruction_movement,
-    plot_value_distributions,
 )
-from move.visualization.latent_space import plot_3D_latent_and_displacement
-from move.visualization.vae_visualization import plot_vae
 
 TaskType = Literal["bayes", "ttest", "ks"]
 CONTINUOUS_TARGET_VALUE = ["minimum", "maximum", "plus_std", "minus_std"]
@@ -144,14 +138,20 @@ def prepare_for_continuous_perturbation(
     for further continuous association analysis.
 
     Args:
-        config: main configuration file.
-        output_subpath: path where the output plots for continuous
-                        analysis are saved.
-        baseline_dataloader: reference dataloader that will be perturbed.
+        config:
+            main configuration file.
+        output_subpath:
+            path where the output plots for continuous analysis are saved.
+        baseline_dataloader:
+            reference dataloader that will be perturbed.
+
     Returns:
-        dataloaders: list with all dataloaders, including baseline appended last.
-        nan_mask: mask for Nans
-        feature_mask: same as nan_mask, in this case.
+        dataloaders:
+            list with all dataloaders, including baseline appended last.
+        nan_mask:
+            mask for NaNs
+        feature_mask:
+            same as `nan_mask`, in this case.
     """
 
     # Read original data and create perturbed datasets
@@ -162,7 +162,7 @@ def prepare_for_continuous_perturbation(
         baseline_dataloader,
         config.data.continuous_names,
         task_config.target_dataset,
-        task_config.target_value,
+        cast(ContinuousPerturbationType, task_config.target_value),
         output_subpath,
     )
     dataloaders.append(baseline_dataloader)
@@ -458,7 +458,6 @@ def _ks_approach(
     device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
     figure_path = output_path / "figures"
     figure_path.mkdir(exist_ok=True, parents=True)
-    visualize_vae = True
 
     # Data containers
     stats = np.empty((task_config.num_refits, num_perturbed, num_continuous))
@@ -508,12 +507,10 @@ def _ks_approach(
 
         # Calculate baseline reconstruction
         _, baseline_recon = model.reconstruct(baseline_dataloader)
-        min_feat, max_feat = np.zeros((num_perturbed, num_continuous)), np.zeros(
-            (num_perturbed, num_continuous)
-        )
-        min_baseline, max_baseline = np.min(baseline_recon, axis=0), np.max(
-            baseline_recon, axis=0
-        )
+        min_feat = np.zeros((num_perturbed, num_continuous))
+        max_feat = np.zeros((num_perturbed, num_continuous))
+        min_baseline = np.min(baseline_recon, axis=0)
+        max_baseline = np.max(baseline_recon, axis=0)
 
         ############ QC of feature's reconstruction ##############################
         logger.debug("Calculating quality control of the feature reconstructions")
@@ -554,12 +551,10 @@ def _ks_approach(
 
         for i, pert_feat in enumerate(perturbed_names):
             _, perturb_recon = model.reconstruct(dataloaders[i])
-            min_perturb, max_perturb = np.min(perturb_recon, axis=0), np.max(
-                perturb_recon, axis=0
-            )
-            min_feat[i, :], max_feat[i, :] = np.min(
-                [min_baseline, min_perturb], axis=0
-            ), np.max([max_baseline, max_perturb], axis=0)
+            min_perturb = np.min(perturb_recon, axis=0)
+            max_perturb = np.max(perturb_recon, axis=0)
+            min_feat[i, :] = np.min([min_baseline, min_perturb], axis=0)
+            max_feat[i, :] = np.max([max_baseline, max_perturb], axis=0)
 
             # Save latent representation for perturbed samples
             if j == 0:
@@ -626,9 +621,7 @@ def _ks_approach(
 
     # Take the median of KS values (with sign) over refits.
     final_stats = np.nanmedian(stats * stat_signs, axis=0)
-    final_stats[
-        ks_mask
-    ] = 0.0  # Assign 0 to all masked values which will bring them to the end of the ranking
+    final_stats[ks_mask] = 0.0 # Zero all masked values, placing them at end of the ranking
 
     # KS-threshold:
     ks_thr = np.sqrt(-np.log(task_config.sig_threshold / 2) * 1 / (num_samples))
@@ -856,6 +849,9 @@ def identify_associations(config: MOVEConfig) -> None:
 
         extra_colnames = ["ks_distance"]
 
+    else:
+        raise ValueError()
+
     ###################### RESULTS ################################
     save_results(
         config,
@@ -872,7 +868,7 @@ def identify_associations(config: MOVEConfig) -> None:
         association_df = pd.read_csv(
             output_path / f"results_sig_assoc_{task_type}.tsv", sep="\t"
         )
-        fig = plot_feature_association_graph(association_df, output_path)
-        fig = plot_feature_association_graph(
+        plot_feature_association_graph(association_df, output_path)
+        plot_feature_association_graph(
             association_df, output_path, layout="spring"
         )

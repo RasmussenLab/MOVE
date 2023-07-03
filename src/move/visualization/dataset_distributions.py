@@ -5,7 +5,6 @@ import matplotlib.figure
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-from mpl_toolkits.mplot3d import Axes3D
 
 from move.core.typing import FloatArray
 from move.visualization.style import DEFAULT_PLOT_STYLE, style_settings

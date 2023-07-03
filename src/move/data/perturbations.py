@@ -1,7 +1,7 @@
 __all__ = ["perturb_categorical_data", "perturb_continuous_data"]
 
 from pathlib import Path
-from typing import Optional, cast
+from typing import Literal, Optional, cast
 
 import numpy as np
 import torch
@@ -10,6 +10,9 @@ from torch.utils.data import DataLoader
 from move.data.dataloaders import MOVEDataset
 from move.data.preprocessing import feature_stats
 from move.visualization.dataset_distributions import plot_value_distributions
+
+
+ContinuousPerturbationType = Literal["minimum", "maximum", "plus_std", "minus_std"]
 
 
 def perturb_categorical_data(
@@ -120,7 +123,7 @@ def perturb_continuous_data_extended(
     baseline_dataloader: DataLoader,
     con_dataset_names: list[str],
     target_dataset_name: str,
-    perturbation_type: str,
+    perturbation_type: ContinuousPerturbationType,
     output_subpath: Optional[Path] = None,
 ) -> list[DataLoader]:
 
@@ -166,7 +169,7 @@ def perturb_continuous_data_extended(
         min_feat_val_list, max_feat_val_list, std_feat_val_list = feature_stats(
             target_dataset
         )
-        if perturbation_type == "minimum":  #
+        if perturbation_type == "minimum":
             target_dataset[:, i] = torch.FloatTensor([min_feat_val_list[i]])
         elif perturbation_type == "maximum":
             target_dataset[:, i] = torch.FloatTensor([max_feat_val_list[i]])

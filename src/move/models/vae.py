@@ -546,7 +546,7 @@ class VAE(nn.Module):
             cat_target_tmp = torch.argmax(cat_target_tmp.detach(), dim=2)
             cat_target_tmp[cat_in_tmp.sum(dim=2) == 0] = -1
             cat_target[
-                :, shape_1 : (cat_shape[1] + shape_1)
+                :, shape_1 : (cat_shape[0] + shape_1)
             ] = cat_target_tmp  # .numpy()
 
             # Get reconstructed categorical data

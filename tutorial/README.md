@@ -4,7 +4,7 @@
 
 We have provided a tutorial. In this first tutorial, we inspect datasets 
 reporting whether 500 fictitious individuals have taken one of 20 imaginary
-drugs. We have included a pair of pretend omics datasets, with measurements
+drugs. We have included a pair of simulated omics datasets, with measurements
 for each sample (individual). All these measurements were generated randomly,
 but we have added 200 associations between different pairs of drugs and omics
 features. Let us find them with MOVE!
@@ -146,10 +146,11 @@ reconstructing our input data and generating an informative latent space. Run:
 >>> move-dl data=random_small task=random_small__latent
 ```
 
-:arrow_up: This command will create four types of plot:
+:arrow_up: This command will create four types of plot in the `results/latent_space` folder:
 
-- Loss curve shows the overall loss, KLD term, binary cross-entropy term, and
-sum of squared errors term over number of training epochs.
+- Loss curve shows the overall loss and each of it's three components:
+  Kullback-Leiber-Divergence (KLD) term, binary cross-entropy term,
+  and sum of squared errors term over number of training epochs.
 - Reconstructions metrics boxplot shows a score (accuracy or cosine similarity
 for categorical and continuous datasets, respectively) per reconstructed
 dataset.
@@ -171,7 +172,8 @@ and the omics features. Run:
 >>> move-dl data=random_small task=random_small__id_assoc_ttest
 ```
 
-:arrow_up: This command will create a `results_sig_assoc.tsv` file, listing
+:arrow_up: This command will create a `results_sig_assoc.tsv` 
+file in `results/identify_asscociations`, listing
 each pair of associated features and the corresponding median p-value for such
 association. There should be ~120 associations found.
 

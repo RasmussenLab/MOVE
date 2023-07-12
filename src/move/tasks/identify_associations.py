@@ -13,6 +13,8 @@ from omegaconf import OmegaConf
 from scipy.stats import ks_2samp, pearsonr  # type: ignore
 from torch.utils.data import DataLoader
 
+from move.analysis.metrics import get_2nd_order_polynomial
+
 from move.conf.schema import (
     IdentifyAssociationsBayesConfig,
     IdentifyAssociationsConfig,
@@ -32,7 +34,6 @@ from move.data.perturbations import (
 from move.data.preprocessing import one_hot_encode_single
 from move.models.vae import VAE
 from move.visualization.dataset_distributions import (
-    get_2nd_order_polynomial,
     plot_correlations,
     plot_cumulative_distributions,
     plot_feature_association_graph,
@@ -476,6 +477,12 @@ def _ks_approach(
     # Train models
     logger = get_logger(__name__)
     logger.info("Training models")
+
+    target_dataset_idx = config.data.continuous_names.index(
+        task_config.target_dataset
+    )
+    perturbed_names = con_names[target_dataset_idx]
+
     for j in range(task_config.num_refits):  # Train num_refits models
 
         # Initialize model
@@ -516,10 +523,6 @@ def _ks_approach(
         logger.debug("Calculating quality control of the feature reconstructions")
         # Correlation and slope for each feature's reconstruction
         feature_names = reduce(list.__add__, con_names)
-        target_dataset_idx = config.data.continuous_names.index(
-            task_config.target_dataset
-        )
-        perturbed_names = con_names[target_dataset_idx]
 
         for k in range(num_continuous):
             x = baseline_dataloader.dataset.con_all.numpy()[:, k]  # baseline_recon[:,i]

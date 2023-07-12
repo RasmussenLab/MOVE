@@ -115,9 +115,9 @@ def plot_3D_latent_and_displacement(
     show_baseline=True,
     show_perturbed=True,
     show_arrows=True,
-    step=1,
-    altitude=30,
-    azimuth=45,
+    step: int=1,
+    altitude: int=30,
+    azimuth: int=45,
 ):
     """
     Plot the movement of the samples in the 3D latent space after perturbing one

@@ -36,7 +36,7 @@ def plot_value_distributions(
     """
     vmin, vmax = np.nanmin(feature_values), np.nanmax(feature_values)
     with style_settings(style):
-        fig = plt.figure(layout="constrained")
+        fig = plt.figure(layout="constrained", figsize=(7, 7))
         ax = fig.add_subplot(projection="3d")
         x_val = np.linspace(vmin, vmax, nbins)
         y_val = np.arange(np.shape(feature_values)[1])
@@ -69,7 +69,7 @@ def plot_reconstruction_diff(
             vmin = np.min(diff_array)
         elif vmax == None:
             vmax = np.max(diff_array)
-        fig = plt.figure(layout="constrained", figsize=(10, 10))
+        fig = plt.figure(layout="constrained", figsize=(7, 7))
         plt.imshow(diff_array, cmap=colormap, vmin=vmin, vmax=vmax)
         plt.xlabel("Feature")
         plt.ylabel("Sample")
@@ -252,7 +252,7 @@ def plot_correlations(x, y, x_pol, y_pol, a2, a1, a, k, style: str = DEFAULT_PLO
     """
     with style_settings(style):
         # Plot correlations
-        fig = plt.figure(figsize=(3, 3))
+        fig = plt.figure(figsize=(7, 7))
         plt.plot(x, y, marker=".", lw=0, markersize=1, color="red")
         plt.plot(
             x_pol,

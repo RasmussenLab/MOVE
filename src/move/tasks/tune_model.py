@@ -196,7 +196,7 @@ def tune_model(config: MOVEConfig) -> float:
         model.eval()
         logger.info("Reconstructing")
         logger.info("Computing reconstruction metrics")
-        label = [hp.split("=") for hp in hydra_config.job.override_dirname.split(",")]
+        label = [hp.split("=") for hp in hydra_config.job.override_dirname.split(";")]
         records = []
         splits = zip(["train", "test"], [split_mask, ~split_mask])
         for split_name, mask in splits:

@@ -78,7 +78,7 @@ def fetch(dataset_name: DATASET_NAME, destination: Path) -> Path:
 
 def prepare_data(savedir: Path) -> None:
     """Downloads the maize datasets and formats them for MOVE.
-    
+
     Args:
         savedir: directory to save the data in
     """

@@ -20,6 +20,7 @@ hydra:
   job:
     config:
       override_dirname:
+        item_sep: ";"
         exclude_keys:
           - experiment
 

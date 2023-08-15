@@ -1,7 +1,7 @@
 __all__ = ["VAE"]
 
 import logging
-from typing import Optional, Callable
+from typing import Callable, Optional
 
 import torch
 from torch import nn, optim
@@ -307,7 +307,10 @@ class VAE(nn.Module):
         return cat_errors
 
     def calculate_con_error(
-        self, con_in: torch.Tensor, con_out: torch.Tensor, loss: Callable[[torch.Tensor, torch.Tensor], torch.Tensor]
+        self,
+        con_in: torch.Tensor,
+        con_out: torch.Tensor,
+        loss: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
     ) -> torch.Tensor:
         """
         Calculates errors (MSE) for continuous data reconstructions
@@ -725,8 +728,9 @@ class VAE(nn.Module):
 
         latent = latent.numpy()
         latent_var = latent_var.numpy()
-        cat_recon = cat_recon.numpy()
-        cat_class = cat_class.numpy()
+        if cat_recon is not None:
+            cat_recon = cat_recon.numpy()
+            cat_class = cat_class.numpy()
         con_recon = con_recon.numpy()
 
         assert row == num_samples

@@ -1,53 +1,112 @@
-__all__ = ["encode_data"]
+__all__ = ["EncodeData"]
 
 from pathlib import Path
+from typing import TypedDict
 
 import numpy as np
+import torch
 
-from move.conf.schema import DataConfig
 from move.core.logging import get_logger
+from move.core.typing import PathLike
 from move.data import io, preprocessing
+from move.tasks.base import Task
 
 
-def encode_data(config: DataConfig):
-    """Encodes categorical and continuous datasets specified in configuration.
-    Categorical data is one-hot encoded, whereas continuous data is z-score
-    normalized.
+class InputConfig(TypedDict):
+    """Dictionary containing name of dataset and name of preprocessing
+    operation to apply to it."""
+
+    name: str
+    preprocessing: preprocessing.PreprocessingOpName
+
+
+class EncodeData(Task):
+    """Encode discrete and continuous datasets. By default, discrete data is
+    one-hot encoded, whereas continuous data is z-score normalized.
 
     Args:
-        config: data configuration
+        raw_data_path:
+            Path to raw data
+        interim_data_path:
+            Path where pre-processed data will be saved
+        sample_names_filename:
+            Filename of file containing names given to each sample
+        discrete_inputs:
+            List of configs for each discrete dataset. Each config is a dict
+            containing keys 'name' and 'preprocessing'
+        continuous_inputs:
+            Same as `discrete_inputs`, but for continuous datasets
     """
-    logger = get_logger(__name__)
-    logger.info("Beginning task: encode data")
 
-    raw_data_path = Path(config.raw_data_path)
-    raw_data_path.mkdir(exist_ok=True)
-    interim_data_path = Path(config.interim_data_path)
-    interim_data_path.mkdir(exist_ok=True, parents=True)
+    mappings: dict[str, dict[str, int]]
 
-    sample_names = io.read_names(raw_data_path / f"{config.sample_names}.txt")
+    def __init__(
+        self,
+        raw_data_path: PathLike,
+        interim_data_path: PathLike,
+        sample_names_filename: str,
+        discrete_inputs: list[InputConfig],
+        continuous_inputs: list[InputConfig],
+    ) -> None:
+        self.logger = get_logger(__name__)
+        self.raw_data_path = Path(raw_data_path)
+        self.interim_data_path = Path(interim_data_path)
+        self.sample_names_filepath = self.raw_data_path / f"{sample_names_filename}.txt"
+        self.discrete_inputs = discrete_inputs
+        self.continuous_inputs = continuous_inputs
+        self.mappings = {}
 
-    mappings = {}
-    for dataset_name in config.categorical_names:
-        logger.info(f"Encoding '{dataset_name}'")
-        filepath = raw_data_path / f"{dataset_name}.tsv"
-        names, values = io.read_tsv(filepath, sample_names)
-        values, mapping = preprocessing.one_hot_encode(values)
-        mappings[dataset_name] = mapping
-        io.dump_names(interim_data_path / f"{dataset_name}.txt", names)
-        np.save(interim_data_path / f"{dataset_name}.npy", values)
-    if mappings:
-        io.dump_mappings(interim_data_path / "mappings.json", mappings)
+    def encode_datasets(
+        self,
+        input_configs: list[InputConfig],
+        default_op_name: preprocessing.PreprocessingOpName,
+    ) -> None:
+        """Read TSV files containing datasets and run pre-processing operations.
 
-    for input_config in config.continuous_inputs:
-        scale = not hasattr(input_config, "scale") or input_config.scale
-        action_name = "Encoding" if scale else "Reading"
-        logger.info(f"{action_name} '{input_config.name}'")
-        filepath = raw_data_path / f"{input_config.name}.tsv"
-        names, values = io.read_tsv(filepath, sample_names)
-        if scale:
-            values, mask_1d = preprocessing.scale(values)
-            names = names[mask_1d]
-            logger.debug(f"Columns with zero variance: {np.sum(~mask_1d)}")
-        io.dump_names(interim_data_path / f"{input_config.name}.txt", names)
-        np.save(interim_data_path / f"{input_config.name}.npy", values)
+        Args:
+            input_configs:
+                List of configs, each with a dataset file name and operation
+                name. Valid operation names are 'none', 'one_hot_encoding', and
+                'standardization'
+            default_op_name:
+                Default operation if no operation in config
+        """
+        for config in input_configs:
+            print(type(config))
+            op_name: preprocessing.PreprocessingOpName = getattr(
+                config, "preprocessing", default_op_name
+            )
+            action_name = "Reading" if op_name == "none" else "Encoding"
+            dataset_name = getattr(config, "name")
+            self.logger.info(f"{action_name} '{dataset_name}'")
+            dataset_path = self.raw_data_path / f"{dataset_name}.tsv"
+            feature_names_path = self.interim_data_path / f"{dataset_name}.txt"
+            tensor_path = self.interim_data_path / f"{dataset_name}.pt"
+            if tensor_path.exists():
+                self.logger.warning(
+                    f"File '{tensor_path.name}' already exists. It will be "
+                    "overwritten."
+                )
+            feature_names, values = io.read_tsv(dataset_path, self.sample_names)
+            if op_name == "standardization":
+                values, mask_1d = preprocessing.scale(values)
+                feature_names = feature_names[mask_1d]
+                self.logger.debug(f"Columns with zero variance: {np.sum(~mask_1d)}")
+            elif op_name == "one_hot_encoding":
+                values, mapping = preprocessing.one_hot_encode(values)
+                self.mappings[dataset_name] = mapping
+            io.dump_names(feature_names_path, feature_names)
+            tensor = torch.from_numpy(values).float()
+            torch.save(tensor, tensor_path)
+
+    def run(self) -> None:
+        """Encode data."""
+
+        self.logger.info("Beginning task: encode data")
+        self.raw_data_path.mkdir(exist_ok=True)
+        self.interim_data_path.mkdir(exist_ok=True, parents=True)
+        self.sample_names = io.read_names(self.sample_names_filepath)
+        self.encode_datasets(self.discrete_inputs, "one_hot_encoding")
+        self.encode_datasets(self.continuous_inputs, "standardization")
+        if self.mappings:
+            io.dump_mappings(self.interim_data_path / "mappings.json", self.mappings)

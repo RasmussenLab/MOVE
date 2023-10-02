@@ -1,0 +1,12 @@
+defaults:
+  - encode_data_schema
+
+_target_: move.tasks.encode_data.EncodeData
+
+raw_data_path: ${data.raw_data_path}
+interim_data_path: ${data.interim_data_path}
+
+sample_names_filename: ${data.sample_names}
+
+discrete_inputs: ${data.categorical_inputs}
+continuous_inputs: ${data.continuous_inputs}

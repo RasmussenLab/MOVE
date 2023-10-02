@@ -15,6 +15,7 @@ from typing import Any, Optional
 from hydra.core.config_store import ConfigStore
 from omegaconf import MISSING, OmegaConf
 
+from move.data.preprocessing import PreprocessingOpName
 from move.models.vae import VAE
 from move.training.training_loop import training_loop
 
@@ -27,10 +28,17 @@ def get_fully_qualname(sth: Any) -> str:
 class InputConfig:
     name: str
     weight: int = 1
+    preprocessing: PreprocessingOpName = "none"
+
+
+@dataclass
+class DiscreteInputConfig(InputConfig):
+    preprocessing: PreprocessingOpName = "one_hot_encoding"
+
 
 @dataclass
 class ContinuousInputConfig(InputConfig):
-    scale: bool = True
+    preprocessing: PreprocessingOpName = "standardization"
 
 
 @dataclass
@@ -40,7 +48,7 @@ class DataConfig:
     results_path: str = MISSING
     sample_names: str = MISSING
     categorical_inputs: list[InputConfig] = MISSING
-    continuous_inputs: list[ContinuousInputConfig] = MISSING
+    continuous_inputs: list[InputConfig] = MISSING
     categorical_names: list[str] = MISSING
     continuous_names: list[str] = MISSING
     categorical_weights: list[int] = MISSING
@@ -80,7 +88,24 @@ class TrainingLoopConfig:
 
 @dataclass
 class TaskConfig:
-    """Configuration for a MOVE task.
+    """Configure a MOVE task."""
+
+
+@dataclass
+class EncodeDataConfig(TaskConfig):
+    """Configure data encoding."""
+
+    _target_: str
+    raw_data_path: str
+    interim_data_path: str
+    sample_names_filename: str
+    discrete_inputs: list[dict[str, Any]]
+    continuous_inputs: list[dict[str, Any]]
+
+
+@dataclass
+class ModelTaskConfig(TaskConfig):
+    """Configure a MOVE task involving a training loop.
 
     Attributes:
         batch_size: Number of samples in a training batch.
@@ -94,16 +119,7 @@ class TaskConfig:
 
 
 @dataclass
-class EncodeDataConfig(TaskConfig):
-    """Configuration for a data-encoding task."""
-
-    batch_size = None
-    model = None
-    training_loop = None
-
-
-@dataclass
-class TuneModelConfig(TaskConfig):
+class TuneModelConfig(ModelTaskConfig):
     """Configure the "tune model" task."""
 
     ...
@@ -124,19 +140,20 @@ class TuneModelReconstructionConfig(TuneModelConfig):
 
 
 @dataclass
-class AnalyzeLatentConfig(TaskConfig):
+class AnalyzeLatentConfig(ModelTaskConfig):
     """Configure the "analyze latents" task.
 
     Attributes:
         feature_names:
-            Names of features to visualize."""
+            Names of features to visualize.
+    """
 
     feature_names: list[str] = field(default_factory=list)
     reducer: dict[str, Any] = MISSING
 
 
 @dataclass
-class IdentifyAssociationsConfig(TaskConfig):
+class IdentifyAssociationsConfig(ModelTaskConfig):
     """Configure the "identify associations" task.
 
     Attributes:
@@ -208,7 +225,7 @@ cs = ConfigStore.instance()
 cs.store(name="config_schema", node=MOVEConfig)
 cs.store(
     group="task",
-    name="encode_data",
+    name="encode_data_schema",
     node=EncodeDataConfig,
 )
 cs.store(

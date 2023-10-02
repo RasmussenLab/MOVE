@@ -1,6 +1,6 @@
 __all__ = ["one_hot_encode", "one_hot_encode_single", "scale"]
 
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 import numpy as np
 import pandas as pd
@@ -8,6 +8,9 @@ from numpy.typing import ArrayLike
 from sklearn.preprocessing import scale as standardize
 
 from move.core.typing import BoolArray, FloatArray, IntArray
+
+
+PreprocessingOpName = Literal["one_hot_encoding", "standardization", "none"]
 
 
 def _category_name(value: Any) -> str:

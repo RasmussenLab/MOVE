@@ -13,6 +13,7 @@ from move.conf.schema import (
     TuneModelConfig,
 )
 from move.core.logging import get_logger
+from move.tasks.base import Task
 
 
 @hydra.main(
@@ -33,7 +34,8 @@ def main(config: MOVEConfig) -> None:
         logger = get_logger("move")
         logger.info("No task specified.")
     elif task_type is EncodeDataConfig:
-        move.tasks.encode_data(config.data)
+        task: Task = hydra.utils.instantiate(config.task)
+        task.run()
     elif issubclass(task_type, TuneModelConfig):
         move.tasks.tune_model(config)
     elif task_type is AnalyzeLatentConfig:

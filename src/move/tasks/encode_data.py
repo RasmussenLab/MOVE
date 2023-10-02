@@ -14,7 +14,7 @@ from move.tasks.base import Task
 
 class InputConfig(TypedDict):
     """Dictionary containing name of dataset and name of preprocessing
-    operation to apply to it."""
+    operation to apply to it"""
 
     name: str
     preprocessing: preprocessing.PreprocessingOpName
@@ -72,7 +72,6 @@ class EncodeData(Task):
                 Default operation if no operation in config
         """
         for config in input_configs:
-            print(type(config))
             op_name: preprocessing.PreprocessingOpName = getattr(
                 config, "preprocessing", default_op_name
             )
@@ -80,14 +79,15 @@ class EncodeData(Task):
             dataset_name = getattr(config, "name")
             self.logger.info(f"{action_name} '{dataset_name}'")
             dataset_path = self.raw_data_path / f"{dataset_name}.tsv"
-            feature_names_path = self.interim_data_path / f"{dataset_name}.txt"
-            tensor_path = self.interim_data_path / f"{dataset_name}.pt"
-            if tensor_path.exists():
+            enc_data_path = self.interim_data_path / f"{dataset_name}.pt"
+            if enc_data_path.exists():
                 self.logger.warning(
-                    f"File '{tensor_path.name}' already exists. It will be "
+                    f"File '{enc_data_path.name}' already exists. It will be "
                     "overwritten."
                 )
+            # Read and encode data
             feature_names, values = io.read_tsv(dataset_path, self.sample_names)
+            mapping = None
             if op_name == "standardization":
                 values, mask_1d = preprocessing.scale(values)
                 feature_names = feature_names[mask_1d]
@@ -95,9 +95,16 @@ class EncodeData(Task):
             elif op_name == "one_hot_encoding":
                 values, mapping = preprocessing.one_hot_encode(values)
                 self.mappings[dataset_name] = mapping
-            io.dump_names(feature_names_path, feature_names)
             tensor = torch.from_numpy(values).float()
-            torch.save(tensor, tensor_path)
+            # Save data
+            data = {
+                "dataset_name": dataset_name,
+                "tensor": tensor,
+                "feature_names": feature_names.tolist(),
+            }
+            if mapping:
+                data["mapping"] = mapping
+            torch.save(data, enc_data_path)
 
     def run(self) -> None:
         """Encode data."""
@@ -108,5 +115,3 @@ class EncodeData(Task):
         self.sample_names = io.read_names(self.sample_names_filepath)
         self.encode_datasets(self.discrete_inputs, "one_hot_encoding")
         self.encode_datasets(self.continuous_inputs, "standardization")
-        if self.mappings:
-            io.dump_mappings(self.interim_data_path / "mappings.json", self.mappings)

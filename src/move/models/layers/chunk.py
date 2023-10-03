@@ -2,7 +2,7 @@ __all__ = ["Chunk", "SplitOutput"]
 
 import itertools
 import operator
-from typing import Union, Optional
+from typing import Any, Union, Optional
 
 import torch
 from torch import nn
@@ -32,6 +32,9 @@ class Chunk(nn.Module):
         super().__init__()
         self.chunks = chunks
         self.dim = dim
+
+    def __call__(self, *args: Any, **kwds: Any) -> tuple[torch.Tensor, ...]:
+        return super().__call__(*args, **kwds)
 
     def forward(self, input: torch.Tensor) -> tuple[torch.Tensor, ...]:
         if self.chunks == 1:
@@ -107,6 +110,9 @@ class SplitOutput(nn.Module):
                 for shape in self.continuous_dataset_shapes
             ]
         )
+
+    def __call__(self, *args: Any, **kwds: Any) -> SplitData:
+        return super().__call__(*args, **kwds)
 
     @classmethod
     def from_move_dataset(cls, move_dataset: MoveDataset) -> "SplitOutput":

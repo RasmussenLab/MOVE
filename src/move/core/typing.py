@@ -8,7 +8,7 @@ __all__ = [
 ]
 
 import os
-from typing import Union, TypedDict
+from typing import TypedDict, Union
 
 import numpy as np
 import torch

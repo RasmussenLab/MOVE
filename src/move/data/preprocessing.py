@@ -9,7 +9,6 @@ from sklearn.preprocessing import scale as standardize
 
 from move.core.typing import BoolArray, FloatArray, IntArray
 
-
 PreprocessingOpName = Literal["one_hot_encoding", "standardization", "none"]
 
 

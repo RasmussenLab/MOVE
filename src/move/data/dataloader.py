@@ -1,6 +1,6 @@
 __all__ = ["MoveDataLoader"]
 
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import DataLoader, Dataset
 
 from move.data.dataset import MoveDataset
 

@@ -1,7 +1,7 @@
 __all__ = ["VAE"]
 
 import logging
-from typing import Optional, Callable
+from typing import Callable, Optional
 
 import torch
 from torch import nn, optim

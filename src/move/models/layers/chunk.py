@@ -2,12 +2,12 @@ __all__ = ["Chunk", "SplitOutput"]
 
 import itertools
 import operator
-from typing import Any, Union, Optional
+from typing import Any, Optional, Union
 
 import torch
 from torch import nn
 
-from move.data.dataset import DiscreteDataset, ContinuousDataset, MoveDataset
+from move.data.dataset import ContinuousDataset, DiscreteDataset, MoveDataset
 
 DiscreteData = list[torch.Tensor]
 ContinuousData = list[torch.Tensor]

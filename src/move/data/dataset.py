@@ -3,7 +3,7 @@ __all__ = ["DiscreteDataset", "ContinuousDataset", "MoveDataset"]
 import operator
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Literal, Optional, NoReturn, Union, cast
+from typing import Literal, NoReturn, Optional, Union, cast
 
 import torch
 from torch.utils.data import Dataset

@@ -48,10 +48,8 @@ class EncodeData(Task):
         discrete_inputs: list[InputConfig],
         continuous_inputs: list[InputConfig],
     ) -> None:
-        self.logger = get_logger(__name__)
-        self.raw_data_path = Path(raw_data_path)
-        self.interim_data_path = Path(interim_data_path)
-        self.sample_names_filepath = self.raw_data_path / f"{sample_names_filename}.txt"
+        super().__init__(Path(raw_data_path), Path(interim_data_path))
+        self.sample_names_filepath = self.input_path / f"{sample_names_filename}.txt"
         self.discrete_inputs = discrete_inputs
         self.continuous_inputs = continuous_inputs
         self.mappings = {}
@@ -78,8 +76,8 @@ class EncodeData(Task):
             action_name = "Reading" if op_name == "none" else "Encoding"
             dataset_name = getattr(config, "name")
             self.logger.info(f"{action_name} '{dataset_name}'")
-            dataset_path = self.raw_data_path / f"{dataset_name}.tsv"
-            enc_data_path = self.interim_data_path / f"{dataset_name}.pt"
+            dataset_path = self.input_path / f"{dataset_name}.tsv"
+            enc_data_path = self.output_path / f"{dataset_name}.pt"
             if enc_data_path.exists():
                 self.logger.warning(
                     f"File '{enc_data_path.name}' already exists. It will be "
@@ -108,10 +106,7 @@ class EncodeData(Task):
 
     def run(self) -> None:
         """Encode data."""
-
         self.logger.info("Beginning task: encode data")
-        self.raw_data_path.mkdir(exist_ok=True)
-        self.interim_data_path.mkdir(exist_ok=True, parents=True)
         self.sample_names = io.read_names(self.sample_names_filepath)
         self.encode_datasets(self.discrete_inputs, "one_hot_encoding")
         self.encode_datasets(self.continuous_inputs, "standardization")

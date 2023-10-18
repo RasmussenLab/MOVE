@@ -41,10 +41,10 @@ class Vae(nn.Module):
 
     def __init__(
         self,
-        disc_shapes: list[tuple[int, int]],
-        cont_shapes: list[int],
-        disc_weights: Optional[list[float]] = None,
-        cont_weights: Optional[list[float]] = None,
+        discrete_shapes: list[tuple[int, int]],
+        continuous_shapes: list[int],
+        discrete_weights: Optional[list[float]] = None,
+        continuous_weights: Optional[list[float]] = None,
         num_hidden: list[int] = [200, 200],
         num_latent: int = 20,
         kld_weight: float = 0.01,
@@ -70,35 +70,39 @@ class Vae(nn.Module):
             raise ValueError("Dropout rate must be between [0, 1).")
         self.dropout_rate = dropout_rate
 
-        if disc_shapes is None and cont_shapes is None:
+        if discrete_shapes is None and continuous_shapes is None:
             raise ValueError("Shapes of input datasets must be provided.")
 
-        self.disc_shapes = disc_shapes
+        self.disc_shapes = discrete_shapes
         self.disc_split_sizes = []
         self.num_disc_features = 0
         self.disc_weights = [1.0] * len(self.disc_shapes)
-        if disc_shapes is not None:
-            (*shapes_1d,) = itertools.starmap(operator.mul, disc_shapes)
+        if discrete_shapes is not None:
+            (*shapes_1d,) = itertools.starmap(operator.mul, discrete_shapes)
             *self.disc_split_sizes, _ = itertools.accumulate(shapes_1d)
             self.num_disc_features = sum(shapes_1d)
-            if disc_weights is not None:
-                if len(disc_shapes) != len(disc_weights):
-                    raise ShapeAndWeightMismatch(len(disc_shapes), len(disc_weights))
-                self.disc_weights = disc_weights
+            if discrete_weights is not None:
+                if len(discrete_shapes) != len(discrete_weights):
+                    raise ShapeAndWeightMismatch(
+                        len(discrete_shapes), len(discrete_weights)
+                    )
+                self.disc_weights = discrete_weights
 
-        self.cont_shapes = cont_shapes
+        self.cont_shapes = continuous_shapes
         self.cont_split_sizes = []
         self.num_cont_features = 0
         self.cont_weights = [1.0] * len(self.disc_shapes)
-        if cont_shapes is not None:
+        if continuous_shapes is not None:
             *self.cont_split_sizes, _ = itertools.accumulate(
-                [shape * self.output_args for shape in cont_shapes]
+                [shape * self.output_args for shape in continuous_shapes]
             )
-            self.num_cont_features = sum(cont_shapes)
-            if cont_weights is not None:
-                if len(cont_shapes) != len(cont_weights):
-                    raise ShapeAndWeightMismatch(len(cont_shapes), len(cont_weights))
-                self.cont_weights = cont_weights
+            self.num_cont_features = sum(continuous_shapes)
+            if continuous_weights is not None:
+                if len(continuous_shapes) != len(continuous_weights):
+                    raise ShapeAndWeightMismatch(
+                        len(continuous_shapes), len(continuous_weights)
+                    )
+                self.cont_weights = continuous_weights
 
         self.in_features = self.num_disc_features + self.num_cont_features
 

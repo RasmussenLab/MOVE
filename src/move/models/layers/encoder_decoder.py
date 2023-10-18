@@ -1,6 +1,6 @@
 __all__ = ["Encoder", "Decoder"]
 
-from typing import Any, Sequence, Union, overload, cast
+from typing import Any, Sequence, Union, cast, overload
 
 import torch
 from torch import nn
@@ -40,6 +40,8 @@ def build_network(
 
 
 class Encoder(nn.Sequential):
+    num_args: int
+
     def __init__(
         self,
         input_dim: int,
@@ -50,7 +52,13 @@ class Encoder(nn.Sequential):
         activation_fun_name: str = "LeakyReLU",
     ) -> None:
         self.num_args = embedding_args
-        layers = build_network(input_dim, compress_dims, embedding_dim * embedding_args, dropout_rate, activation_fun_name)
+        layers = build_network(
+            input_dim,
+            compress_dims,
+            embedding_dim * embedding_args,
+            dropout_rate,
+            activation_fun_name
+        )
         layers.append(Chunk(embedding_args))
         super().__init__(*layers)
 
@@ -63,7 +71,6 @@ class Decoder(Encoder):
         embedding_dim: int,
         compress_dims: Sequence[int],
         output_dim: int,
-        output_args: int = 1,
         dropout_rate: float = 0.0,
         activation_fun_name: str = "LeakyReLU",
     ) -> None:
@@ -71,7 +78,7 @@ class Decoder(Encoder):
             embedding_dim,
             compress_dims,
             output_dim,
-            output_args,
+            1,
             dropout_rate,
             activation_fun_name
         )

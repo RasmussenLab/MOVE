@@ -2,19 +2,17 @@ __all__ = []
 
 import csv
 import math
-from pathlib import Path
-from typing import Optional, Literal, Any, cast
+from typing import Literal, Optional, cast
 
 import hydra
 import pandas as pd
 import torch
 from torch.optim import Optimizer
-from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import _LRScheduler as LRScheduler
 
 import move.visualization as viz
-from move.models.vae_new import Vae, LossDict
 from move.data.dataloader import MoveDataLoader
+from move.models.vae import LossDict, Vae
 from move.tasks.base import SubTask
 
 AnnealingFunction = Literal["linear", "cosine", "sigmoid", "stairs"]

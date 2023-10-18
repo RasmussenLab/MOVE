@@ -89,8 +89,8 @@ class DiscreteDataset(NamedDataset):
     ):
         if tensor.dim() != 3:
             raise ValueError("Discrete datasets must have three dimensions.")
-        _, *dims = tensor.shape
-        self.original_shape = tuple(dims)
+        *_, dim0, dim1 = tensor.shape
+        self.original_shape = (dim0, dim1)
         self.mapping = mapping
         flattened_tensor = torch.flatten(tensor, start_dim=1)
         super().__init__(flattened_tensor, dataset_name, feature_names)
@@ -205,6 +205,22 @@ class MoveDataset(Dataset):
             for dataset in self.datasets
             if isinstance(dataset, ContinuousDataset)
         )
+
+    @property
+    def discrete_shapes(self) -> list[tuple[int, int]]:
+        return [
+            dataset.original_shape
+            for dataset in self.datasets
+            if isinstance(dataset, DiscreteDataset)
+        ]
+
+    @property
+    def continuous_shapes(self) -> list[int]:
+        return [
+            dataset.num_features
+            for dataset in self.datasets
+            if isinstance(dataset, ContinuousDataset)
+        ]
 
     @classmethod
     def load(

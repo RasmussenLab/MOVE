@@ -5,6 +5,7 @@ from collections.abc import Sequence
 import matplotlib.figure
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 from move.visualization.style import (
     DEFAULT_PLOT_STYLE,
@@ -21,6 +22,7 @@ def plot_loss_curves(
     labels: Sequence[str] = LOSS_LABELS,
     style: str = DEFAULT_PLOT_STYLE,
     colormap: str = DEFAULT_QUALITATIVE_PALETTE,
+    xlabel: str = "Epochs",
 ) -> matplotlib.figure.Figure:
     """Plot one or more loss curves.
 
@@ -40,5 +42,5 @@ def plot_loss_curves(
         for loss, label in zip(losses, labels):
             ax.plot(epochs, loss, label=label, linestyle="-")
         ax.legend()
-        ax.set(xlabel="Epochs", ylabel="Loss")
+        ax.set(xlabel=xlabel, ylabel="Loss")
     return fig

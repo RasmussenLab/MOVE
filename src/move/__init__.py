@@ -7,5 +7,5 @@ __all__ = ["conf", "data", "models", "training_loop", "VAE"]
 HYDRA_VERSION_BASE = "1.2"
 
 from move import conf, data, models
-from move.models.vae import VAE
+from move.models.vae_legacy import VAE
 from move.training.training_loop import training_loop

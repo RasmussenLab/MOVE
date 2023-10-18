@@ -1,8 +1,11 @@
+__all__ = []
+
 from typing import Optional
 
 from torch.utils.data import DataLoader
 
-from move.models.vae import VAE
+from move.models.vae_legacy import VAE
+
 
 TrainingLoopOutput = tuple[list[float], list[float], list[float], list[float], float]
 

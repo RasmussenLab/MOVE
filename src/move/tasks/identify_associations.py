@@ -22,7 +22,7 @@ from move.data import io
 from move.data.dataloaders import MOVEDataset, make_dataloader
 from move.data.perturbations import perturb_categorical_data
 from move.data.preprocessing import one_hot_encode_single
-from move.models.vae import VAE
+from move.models.vae_legacy import VAE
 
 TaskType = Literal["bayes", "ttest"]
 
@@ -210,7 +210,6 @@ def identify_associations(config: MOVEConfig):
 
         for k, num_latent in enumerate(task_config.num_latent):
             for j in range(task_config.num_refits):
-
                 # Initialize model
                 model: VAE = hydra.utils.instantiate(
                     task_config.model,
@@ -303,10 +302,8 @@ def identify_associations(config: MOVEConfig):
         b_df = pd.DataFrame(dict(feature_b_name=con_names))
         b_df.index.name = "feature_b_id"
         b_df.reset_index(inplace=True)
-        results = (
-            results
-            .merge(a_df, on="feature_a_id", how="left")
-            .merge(b_df, on="feature_b_id", how="left")
+        results = results.merge(a_df, on="feature_a_id", how="left").merge(
+            b_df, on="feature_b_id", how="left"
         )
         results["feature_b_dataset"] = pd.cut(
             cast(IntArray, results["feature_b_id"].values),

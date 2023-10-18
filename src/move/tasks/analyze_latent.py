@@ -25,7 +25,7 @@ from move.data.perturbations import (
     perturb_continuous_data,
 )
 from move.data.preprocessing import one_hot_encode_single
-from move.models.vae import VAE
+from move.models.vae_legacy import VAE
 from move.training.training_loop import TrainingLoopOutput
 
 

@@ -29,7 +29,7 @@ from move.core.logging import get_logger
 from move.core.typing import BoolArray, FloatArray
 from move.data import io
 from move.data.dataloaders import MOVEDataset, make_dataloader, split_samples
-from move.models.vae import VAE
+from move.models.vae_legacy import VAE
 
 TaskType = Literal["reconstruction", "stability"]
 
@@ -208,7 +208,9 @@ def tune_model(config: MOVEConfig) -> float:
                 batch_size=task_config.batch_size,
             )
             cat_recons, con_recons = model.reconstruct(dataloader)
-            con_recons = np.split(con_recons, np.cumsum(model.continuous_shapes[:-1]), axis=1)
+            con_recons = np.split(
+                con_recons, np.cumsum(model.continuous_shapes[:-1]), axis=1
+            )
             for cat, cat_recon, dataset_name in zip(
                 cat_list, cat_recons, config.data.categorical_names
             ):

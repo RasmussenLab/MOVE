@@ -12,7 +12,7 @@ from torch.optim.lr_scheduler import _LRScheduler as LRScheduler
 
 import move.visualization as viz
 from move.data.dataloader import MoveDataLoader
-from move.models.vae import LossDict, Vae
+from move.models.base import LossDict, BaseVae
 from move.tasks.base import SubTask
 
 AnnealingFunction = Literal["linear", "cosine", "sigmoid", "stairs"]
@@ -131,7 +131,7 @@ class TrainingLoop(SubTask):
 
     def train(
         self,
-        model: Vae,
+        model: BaseVae,
         train_dataloader: MoveDataLoader,
     ):
         """Train a VAE model.

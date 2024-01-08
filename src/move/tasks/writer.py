@@ -1,7 +1,7 @@
 __all__ = ["CsvWriter"]
 
 import csv
-from typing import Any, Sequence, Mapping
+from typing import Any, Mapping, Sequence
 
 
 class CsvWriter(csv.DictWriter):

@@ -8,11 +8,13 @@ import hydra
 from move.conf.schema import VAEConfig
 from move.core.typing import PathLike
 from move.data import MoveDataLoader, MoveDataset
-from move.tasks.base import Task
+from move.tasks.base import ParentTask
 from move.training.loop import TrainingLoop
 
 
-class TrainModel(Task):
+class TrainModel(ParentTask):
+    """Train a single model"""
+
     results_subdir: str = "train_model"
 
     def __init__(
@@ -26,8 +28,8 @@ class TrainModel(Task):
         training_loop_config,
     ) -> None:
         super().__init__(
-            input_path=Path(interim_data_path),
-            output_path=Path(results_path) / self.results_subdir,
+            input_dir=interim_data_path,
+            output_dir=Path(results_path) / self.results_subdir,
         )
         self.discrete_dataset_names = discrete_dataset_names
         self.continuous_dataset_names = continuous_dataset_names
@@ -37,7 +39,7 @@ class TrainModel(Task):
 
     def make_dataloader(self, **kwargs) -> MoveDataLoader:
         dataset = MoveDataset.load(
-            self.input_path, self.discrete_dataset_names, self.continuous_dataset_names
+            self.input_dir, self.discrete_dataset_names, self.continuous_dataset_names
         )
         return MoveDataLoader(dataset, **kwargs)
 
@@ -53,6 +55,6 @@ class TrainModel(Task):
         )
         # Train
         training_loop: TrainingLoop = hydra.utils.instantiate(self.training_loop_config)
-        training_loop.set_parent(self)
-        training_loop.train(model, dataloader)
+        training_loop.parent = self
+        training_loop.run(model, dataloader)
         training_loop.plot()

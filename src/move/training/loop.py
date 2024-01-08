@@ -13,13 +13,13 @@ from torch.optim.lr_scheduler import _LRScheduler as LRScheduler
 import move.visualization as viz
 from move.data.dataloader import MoveDataLoader
 from move.models.base import LossDict, BaseVae
-from move.tasks.base import SubTask, SubTaskWritesCsv
+from move.tasks.base import Task, CsvWriterMixin
 
 AnnealingFunction = Literal["linear", "cosine", "sigmoid", "stairs"]
 AnnealingSchedule = Literal["monotonic", "cyclical"]
 
 
-class TrainingLoop(SubTaskWritesCsv):
+class TrainingLoop(Task, CsvWriterMixin):
     max_steps: int
     global_step: int
 
@@ -103,14 +103,17 @@ class TrainingLoop(SubTaskWritesCsv):
             data = pd.read_csv(self.csv_filepath)
             losses = [data[key].to_list() for key in LossDict.__annotations__.keys()]
             fig = viz.plot_loss_curves(losses, xlabel="Step")
-            fig_path = str(self.parent.output_path / "loss_curve.png")
+            fig_path = str(self.parent.output_dir / "loss_curve.png")
             fig.savefig(fig_path, bbox_inches="tight")
+
+    def run(self, model: BaseVae, train_dataloader: MoveDataLoader) -> None:
+        return self.train(model, train_dataloader)
 
     def train(
         self,
         model: BaseVae,
         train_dataloader: MoveDataLoader,
-    ):
+    ) -> None:
         """Train a VAE model.
 
         Args:
@@ -122,7 +125,7 @@ class TrainingLoop(SubTaskWritesCsv):
         self.global_step = 0
         if self.parent:
             self.init_csv_writer(
-                self.parent.output_path / "loss_curve.csv",
+                self.parent.output_dir / "loss_curve.csv",
                 fieldnames=["epoch", "step"] + list(LossDict.__annotations__.keys()),
             )
 

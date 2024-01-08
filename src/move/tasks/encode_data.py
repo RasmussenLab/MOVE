@@ -9,7 +9,7 @@ import torch
 from move.core.logging import get_logger
 from move.core.typing import PathLike
 from move.data import io, preprocessing
-from move.tasks.base import Task
+from move.tasks.base import ParentTask
 
 
 class InputConfig(TypedDict):
@@ -20,15 +20,15 @@ class InputConfig(TypedDict):
     preprocessing: preprocessing.PreprocessingOpName
 
 
-class EncodeData(Task):
+class EncodeData(ParentTask):
     """Encode discrete and continuous datasets. By default, discrete data is
     one-hot encoded, whereas continuous data is z-score normalized.
 
     Args:
         raw_data_path:
-            Path to raw data
+            Directory where "raw data" is stored
         interim_data_path:
-            Path where pre-processed data will be saved
+            Directory where pre-processed data will be saved
         sample_names_filename:
             Filename of file containing names given to each sample
         discrete_inputs:
@@ -48,8 +48,8 @@ class EncodeData(Task):
         discrete_inputs: list[InputConfig],
         continuous_inputs: list[InputConfig],
     ) -> None:
-        super().__init__(Path(raw_data_path), Path(interim_data_path))
-        self.sample_names_filepath = self.input_path / f"{sample_names_filename}.txt"
+        super().__init__(raw_data_path, interim_data_path)
+        self.sample_names_filepath = self.input_dir / f"{sample_names_filename}.txt"
         self.discrete_inputs = discrete_inputs
         self.continuous_inputs = continuous_inputs
         self.mappings = {}
@@ -76,8 +76,8 @@ class EncodeData(Task):
             action_name = "Reading" if op_name == "none" else "Encoding"
             dataset_name = getattr(config, "name")
             self.logger.info(f"{action_name} '{dataset_name}'")
-            dataset_path = self.input_path / f"{dataset_name}.tsv"
-            enc_data_path = self.output_path / f"{dataset_name}.pt"
+            dataset_path = self.input_dir / f"{dataset_name}.tsv"
+            enc_data_path = self.output_dir / f"{dataset_name}.pt"
             if enc_data_path.exists():
                 self.logger.warning(
                     f"File '{enc_data_path.name}' already exists. It will be "

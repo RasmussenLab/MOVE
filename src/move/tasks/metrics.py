@@ -6,14 +6,17 @@ import pandas as pd
 import torch
 
 import move.visualization as viz
-from move.analysis.metrics import calculate_accuracy, calculate_cosine_similarity
+from move.analysis.metrics import (
+    calculate_accuracy,
+    calculate_cosine_similarity,
+)
 from move.data.dataloader import MoveDataLoader
-from move.data.dataset import DiscreteDataset, ContinuousDataset
+from move.data.dataset import ContinuousDataset, DiscreteDataset
 from move.models.base import BaseVae
-from move.tasks.base import SubTaskWritesCsv
+from move.tasks.base import CsvWriterMixin, Task
 
 
-class ComputeAccuracyMetrics(SubTaskWritesCsv):
+class ComputeAccuracyMetrics(Task, CsvWriterMixin):
     """Compute accuracy metrics between original input and reconstruction (use
     cosine similarity for continuous dataset reconstructions)."""
 
@@ -31,7 +34,7 @@ class ComputeAccuracyMetrics(SubTaskWritesCsv):
 
     def run(self) -> None:
         if self.parent:
-            csv_filepath = self.parent.output_path / self.filename
+            csv_filepath = self.parent.output_dir / self.filename
             colnames = ["sample_name"] + self.dataloader.dataset.names
             self.init_csv_writer(
                 csv_filepath, fieldnames=colnames, extrasaction="ignore"

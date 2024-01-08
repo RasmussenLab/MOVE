@@ -22,17 +22,17 @@ class LatentSpaceAnalysis(MoveTask):
         **kwargs
     ) -> None:
         super().__init__(
-            input_path=Path(interim_data_path),
-            output_path=Path(results_path) / self.results_subdir,
+            input_dir=interim_data_path,
+            output_dir=Path(results_path) / self.results_subdir,
             **kwargs
         )
         self.compute_accuracy_metrics = compute_accuracy_metrics
 
-    def run(self, *args, **kwargs) -> Any:
+    def run(self) -> Any:
         train_dataloader = self.make_dataloader()
 
         model = self.init_model(train_dataloader)
-        model_path = self.output_path / "model.pt"
+        model_path = self.output_dir / "model.pt"
 
         if model_path.exists():
             self.logger.debug("Re-loading model")
@@ -48,5 +48,5 @@ class LatentSpaceAnalysis(MoveTask):
 
         if self.compute_accuracy_metrics:
             subtask = ComputeAccuracyMetrics(model, train_dataloader)
-            subtask.set_parent(self)
+            subtask.parent = self
             subtask.run()

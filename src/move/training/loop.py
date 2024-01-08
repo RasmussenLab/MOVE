@@ -13,18 +13,15 @@ from torch.optim.lr_scheduler import _LRScheduler as LRScheduler
 import move.visualization as viz
 from move.data.dataloader import MoveDataLoader
 from move.models.base import LossDict, BaseVae
-from move.tasks.base import SubTask
+from move.tasks.base import SubTask, SubTaskWritesCsv
 
 AnnealingFunction = Literal["linear", "cosine", "sigmoid", "stairs"]
 AnnealingSchedule = Literal["monotonic", "cyclical"]
 
 
-class TrainingLoop(SubTask):
+class TrainingLoop(SubTaskWritesCsv):
     max_steps: int
     global_step: int
-    buffer: list[dict[str, float]]
-    buffer_size: int = 1000
-    csv_writer: csv.DictWriter
 
     def __init__(
         self,
@@ -42,8 +39,6 @@ class TrainingLoop(SubTask):
         self.annealing_function = annealing_function
         self.annealing_schedule = annealing_schedule
         self.current_epoch = 0
-        self.csv_file = None
-        self.buffer = []
 
     def _repr_html_(self) -> str:
         return ""
@@ -92,37 +87,19 @@ class TrainingLoop(SubTask):
         Args:
             loss_dict: Dict containing ELBO loss components
         """
-        if self.csv_file:
-            csv_row: dict[str, float] = {
-                "epoch": self.current_epoch,
-                "step": self.global_step,
-            }
-            for key, value in loss_dict.items():
-                if isinstance(value, torch.Tensor):
-                    csv_row[key] = value.item()
-                else:
-                    csv_row[key] = cast(float, value)
-            self.buffer.append(csv_row)
-            # Flush
-            if len(self.buffer) >= self.buffer_size:
-                self.csv_writer.writerows(self.buffer)
-                self.buffer.clear()
-
-    def _init_csv_writer(self) -> None:
-        """Initialize the CSV writer if there is an output path."""
-        if self.parent:
-            self.csv_filepath = self.parent.output_path / "loss_curve.csv"
-            if self.csv_filepath.exists() and self.parent:
-                self.parent.logger.info(
-                    f"File '{self.csv_filepath}' already exists. It be overwritten."
-                )
-            self.csv_file = open(self.csv_filepath, "w", newline="")
-            colnames = ["epoch", "step"] + list(LossDict.__annotations__.keys())
-            self.csv_writer = csv.DictWriter(self.csv_file, colnames)
-            self.csv_writer.writeheader()
+        csv_row: dict[str, float] = {
+            "epoch": self.current_epoch,
+            "step": self.global_step,
+        }
+        for key, value in loss_dict.items():
+            if isinstance(value, torch.Tensor):
+                csv_row[key] = value.item()
+            else:
+                csv_row[key] = cast(float, value)
+        self.add_row_to_buffer(csv_row)
 
     def plot(self) -> None:
-        if self.parent:
+        if self.parent and self.csv_filepath:
             data = pd.read_csv(self.csv_filepath)
             losses = [data[key].to_list() for key in LossDict.__annotations__.keys()]
             fig = viz.plot_loss_curves(losses, xlabel="Step")
@@ -143,7 +120,11 @@ class TrainingLoop(SubTask):
         num_batches = len(train_dataloader)
         self.max_steps = self.max_epochs * num_batches
         self.global_step = 0
-        self._init_csv_writer()
+        if self.parent:
+            self.init_csv_writer(
+                self.parent.output_path / "loss_curve.csv",
+                fieldnames=["epoch", "step"] + list(LossDict.__annotations__.keys()),
+            )
 
         optimizer: Optimizer = hydra.utils.instantiate(
             self.optimizer_config, params=model.parameters()
@@ -187,7 +168,4 @@ class TrainingLoop(SubTask):
                 lr_scheduler.step()
             self.current_epoch += 1
 
-        if self.csv_file:
-            if self.buffer:
-                self.csv_writer.writerows(self.buffer)
-            self.csv_file.close()
+        self.close_csv_writer()

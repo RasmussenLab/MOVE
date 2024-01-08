@@ -8,12 +8,16 @@ __all__ = [
 ]
 
 import os
-from typing import TypedDict, Union
+from typing import Literal, TypedDict, Union
 
 import numpy as np
 import torch
 from numpy.typing import NDArray
 
+LoggingLevel = Union[
+    int,
+    Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+]
 PathLike = Union[str, os.PathLike]
 
 BoolArray = NDArray[np.bool_]

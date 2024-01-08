@@ -69,7 +69,7 @@ class Task(ABC):
         raise NotImplementedError()
 
 
-class ParentTask(Task, InputDirMixin, OutputDirMixin):
+class ParentTask(InputDirMixin, OutputDirMixin, Task):
     """A simple task with an input and output directory. This task may have
     children (sub-tasks).
 

@@ -19,7 +19,7 @@ AnnealingFunction = Literal["linear", "cosine", "sigmoid", "stairs"]
 AnnealingSchedule = Literal["monotonic", "cyclical"]
 
 
-class TrainingLoop(Task, CsvWriterMixin):
+class TrainingLoop(CsvWriterMixin, Task):
     max_steps: int
     global_step: int
 

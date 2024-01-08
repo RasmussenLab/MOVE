@@ -16,7 +16,7 @@ from move.models.base import BaseVae
 from move.tasks.base import CsvWriterMixin, Task
 
 
-class ComputeAccuracyMetrics(Task, CsvWriterMixin):
+class ComputeAccuracyMetrics(CsvWriterMixin, Task):
     """Compute accuracy metrics between original input and reconstruction (use
     cosine similarity for continuous dataset reconstructions)."""
 

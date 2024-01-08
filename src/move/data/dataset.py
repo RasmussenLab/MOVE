@@ -11,6 +11,7 @@ from torch.utils.data import Dataset
 from move.core.typing import EncodedData
 
 DataType = Literal["continuous", "discrete"]
+Index = Union[int, tuple[str, int], tuple[int, int]]
 
 
 class NamedDataset(Dataset, ABC):
@@ -221,6 +222,10 @@ class MoveDataset(Dataset):
             for dataset in self.datasets
             if isinstance(dataset, ContinuousDataset)
         ]
+
+    @property
+    def names(self) -> list[str]:
+        return [dataset.name for dataset in self.datasets]
 
     @classmethod
     def load(

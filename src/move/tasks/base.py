@@ -166,10 +166,34 @@ CsvRow = dict[str, float]
 class CsvWriterMixin(SubTaskMixin):
     """Mixin class to designate a sub-task that has its own CSV writer."""
 
-    csv_file: Optional[TextIOWrapper] = None
     csv_filepath: Optional[Path] = None
-    csv_writer: Optional[CsvWriter] = None
     buffer_size = 1000
+
+    @property
+    def can_write(self) -> bool:
+        return (
+            self._csv_writer is not None
+            and self._csv_file is not None
+            and not self._csv_file.closed
+        )
+
+    @property
+    def csv_file(self) -> TextIOWrapper:
+        value = getattr(self, "_csv_file", None)
+        assert value is not None
+        return value
+
+    @csv_file.setter
+    def csv_file(self, value: Optional[TextIOWrapper]) -> None:
+        self._csv_file = value
+
+    @property
+    def csv_writer(self) -> CsvWriter:
+        return getattr(self, "_csv_writer")
+
+    @csv_writer.setter
+    def csv_writer(self, value: Optional[CsvWriter]) -> None:
+        self._csv_writer = value
 
     @property
     def row_buffer(self) -> list[CsvRow]:
@@ -191,8 +215,13 @@ class CsvWriterMixin(SubTaskMixin):
 
         Args:
             cols: Column name to values dictionary."""
-        if self.csv_file and self.csv_writer:
+        if self.can_write:
             self.csv_writer.writecols(cols)
+
+    def write_row(self, row: list[Any]) -> None:
+        """Directly write a row to CSV file."""
+        if self.can_write:
+            self.csv_writer.writer.writerow(row)
 
     def add_row_to_buffer(self, csv_row: CsvRow) -> None:
         """Add row to buffer and flush buffer if it has reached its limit.
@@ -200,7 +229,7 @@ class CsvWriterMixin(SubTaskMixin):
         Args:
             csv_row: Header names to values dictionary, representing a row
         """
-        if self.csv_file and self.csv_writer:
+        if self.can_write:
             self.row_buffer.append(csv_row)
             # Flush
             if len(self.row_buffer) >= self.buffer_size:
@@ -209,8 +238,8 @@ class CsvWriterMixin(SubTaskMixin):
 
     def close_csv_writer(self) -> None:
         """Close file and flush"""
-        if self.csv_file and self.csv_writer:
-            if self.row_buffer:
+        if self.can_write:
+            if len(self.row_buffer) > 0:
                 self.csv_writer.writerows(self.row_buffer)
                 self.row_buffer.clear()
             self.csv_file.close()

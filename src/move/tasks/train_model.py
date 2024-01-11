@@ -10,6 +10,7 @@ from move.conf.schema import VAEConfig, TrainingLoopConfig
 from move.core.exceptions import FILE_EXISTS_WARNING
 from move.core.typing import PathLike
 from move.data import MoveDataLoader, MoveDataset
+from move.models.base import BaseVae
 from move.tasks.base import ParentTask
 from move.training.loop import TrainingLoop
 
@@ -54,7 +55,7 @@ class TrainModel(ParentTask):
         dataloader = self.make_dataloader(
             batch_size=self.batch_size, shuffle=True, drop_last=True
         )
-        model = hydra.utils.instantiate(
+        model: BaseVae = hydra.utils.instantiate(
             self.model_config,
             discrete_shapes=dataloader.dataset.discrete_shapes,
             continuous_shapes=dataloader.dataset.continuous_shapes,
@@ -65,4 +66,4 @@ class TrainModel(ParentTask):
         training_loop.run(model, dataloader)
         training_loop.plot()
         # Save model
-        torch.save(model.state_dict(), model_path)
+        model.save(model_path)

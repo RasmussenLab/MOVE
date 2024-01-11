@@ -1,10 +1,16 @@
 __all__ = ["BaseVae"]
 
+import inspect
 from abc import ABC, abstractmethod
-from typing import Any, TypedDict
+from pathlib import Path
+from typing import Any, Type, TypedDict, TypeVar, cast, OrderedDict
 
 import torch
 from torch import nn
+
+from move.models.layers.chunk import SplitOutput
+
+T = TypeVar("T", bound="BaseVae")
 
 
 class VaeOutput(TypedDict):
@@ -21,11 +27,17 @@ class LossDict(TypedDict):
     kl_weight: float
 
 
+class SerializedModel(TypedDict):
+    config: dict[str, Any]
+    state_dict: OrderedDict[str, torch.Tensor]
+
+
 class BaseVae(nn.Module, ABC):
     embedding_args: int = 2
     output_args: int = 1
     encoder: nn.Module
     decoder: nn.Module
+    split_output: SplitOutput
 
     def __call__(self, *args: Any, **kwds: Any) -> VaeOutput:
         return super().__call__(*args, **kwds)
@@ -57,3 +69,20 @@ class BaseVae(nn.Module, ABC):
     def reconstruct(self, batch: torch.Tensor) -> torch.Tensor:
         """Create reconstruction."""
         ...
+
+    @classmethod
+    def reload(cls: Type[T], model_path: Path) -> T:
+        """Reload a model from its serialized config and state dict."""
+        model_dict = cast(SerializedModel, torch.load(model_path))
+        model = cls(**model_dict["config"])
+        model.load_state_dict(model_dict["state_dict"])
+        return model
+
+    def save(self, model_path: Path) -> None:
+        """Save the serialized config and state dict of the model to disk."""
+        argnames = inspect.signature(self.__init__).parameters.keys()
+        model = SerializedModel(
+            config={argname: getattr(self, argname) for argname in argnames},
+            state_dict=self.state_dict(),
+        )
+        torch.save(model, model_path)

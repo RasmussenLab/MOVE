@@ -6,6 +6,7 @@ from torch import nn
 from move.conf.schema import DataLoaderConfig, TrainingLoopConfig, VAEConfig
 from move.data.dataloader import MoveDataLoader
 from move.data.dataset import MoveDataset
+from move.models.base import BaseVae
 from move.tasks.base import ParentTask
 from move.training.loop import TrainingLoop
 
@@ -38,7 +39,7 @@ class MoveTask(ParentTask):
             self.training_dataloader_config, dataset=dataset, **kwargs
         )
 
-    def init_model(self, dataloader: MoveDataLoader):
+    def init_model(self, dataloader: MoveDataLoader) -> BaseVae:
         """Initialize a MOVE model."""
         return hydra.utils.instantiate(
             self.model_config,

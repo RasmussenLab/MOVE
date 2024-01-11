@@ -27,7 +27,7 @@ class Vae(BaseVae):
         num_latent: int = 20,
         kl_weight: float = 0.01,
         dropout_rate: float = 0.2,
-        cuda: bool = False,
+        usa_cuda: bool = False,
     ) -> None:
         super().__init__()
 
@@ -36,9 +36,11 @@ class Vae(BaseVae):
             raise ValueError(
                 "Number of hidden units in encoder/decoder must be non-negative."
             )
+        self.num_hidden = num_hidden
 
         if num_latent < 1:
             raise ValueError("Latent space size must be non-negative.")
+        self.num_latent = num_latent
 
         if kl_weight <= 0:
             raise ValueError("KLD weight must be greater than zero.")
@@ -51,10 +53,10 @@ class Vae(BaseVae):
         if discrete_shapes is None and continuous_shapes is None:
             raise ValueError("Shapes of input datasets must be provided.")
 
-        self.disc_shapes = discrete_shapes
+        self.discrete_shapes = discrete_shapes
         self.disc_split_sizes = []
         self.num_disc_features = 0
-        self.disc_weights = [1.0] * len(self.disc_shapes)
+        self.discrete_weights = [1.0] * len(self.discrete_shapes)
         if discrete_shapes is not None:
             (*shapes_1d,) = itertools.starmap(operator.mul, discrete_shapes)
             *self.disc_split_sizes, _ = itertools.accumulate(shapes_1d)
@@ -64,12 +66,12 @@ class Vae(BaseVae):
                     raise ShapeAndWeightMismatch(
                         len(discrete_shapes), len(discrete_weights)
                     )
-                self.disc_weights = discrete_weights
+                self.discrete_weights = discrete_weights
 
-        self.cont_shapes = continuous_shapes
+        self.continuous_shapes = continuous_shapes
         self.cont_split_sizes = []
         self.num_cont_features = 0
-        self.cont_weights = [1.0] * len(self.disc_shapes)
+        self.continuous_weights = [1.0] * len(self.continuous_shapes)
         if continuous_shapes is not None:
             *self.cont_split_sizes, _ = itertools.accumulate(
                 [shape * self.output_args for shape in continuous_shapes]
@@ -80,7 +82,7 @@ class Vae(BaseVae):
                     raise ShapeAndWeightMismatch(
                         len(continuous_shapes), len(continuous_weights)
                     )
-                self.cont_weights = continuous_weights
+                self.continuous_weights = continuous_weights
 
         self.in_features = self.num_disc_features + self.num_cont_features
 
@@ -98,14 +100,16 @@ class Vae(BaseVae):
             dropout_rate=dropout_rate,
         )
         self.log_softmax = nn.LogSoftmax(dim=-1)
-        self.split_output = SplitOutput(self.disc_shapes, self.cont_shapes)
+        self.split_output = SplitOutput(self.discrete_shapes, self.continuous_shapes)
 
         self.nll_loss = nn.NLLLoss(reduction="sum", ignore_index=-1)
         self.mse_loss = nn.MSELoss(reduction="sum")
 
-        if cuda and not torch.cuda.is_available():
+        if usa_cuda and not torch.cuda.is_available():
             raise CudaIsNotAvailable()
-        device = torch.device("cuda" if cuda else "cpu")
+        self.usa_cuda = usa_cuda
+
+        device = torch.device("cuda" if usa_cuda else "cpu")
         self.to(device)
 
     def encode(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
@@ -145,7 +149,7 @@ class Vae(BaseVae):
         # Compute discrete dataset losses
         disc_losses = []
         for disc_input, disc_logits, disc_wt in zip(
-            batch_disc, out_disc, self.disc_weights
+            batch_disc, out_disc, self.discrete_weights
         ):
             disc_recon = self.log_softmax(disc_logits).transpose(1, 2)
             disc_cats = disc_input.argmax(dim=-1)
@@ -159,7 +163,7 @@ class Vae(BaseVae):
         # Compute continuous dataset losses
         cont_losses = []
         for cont_input, cont_recon, cont_wt in zip(
-            batch_cont, out_cont, self.cont_weights
+            batch_cont, out_cont, self.continuous_weights
         ):
             assert isinstance(cont_input, torch.Tensor)
             assert isinstance(cont_recon, torch.Tensor)

@@ -243,7 +243,7 @@ class MoveDataset(Dataset):
     def num_discrete_features(self) -> int:
         return sum(
             dataset.num_features
-            for dataset in self.datasets
+            for dataset in self.datasets.values()
             if isinstance(dataset, DiscreteDataset)
         )
 
@@ -251,7 +251,7 @@ class MoveDataset(Dataset):
     def num_continuous_features(self) -> int:
         return sum(
             dataset.num_features
-            for dataset in self.datasets
+            for dataset in self.datasets.values()
             if isinstance(dataset, ContinuousDataset)
         )
 
@@ -259,7 +259,7 @@ class MoveDataset(Dataset):
     def discrete_shapes(self) -> list[tuple[int, int]]:
         return [
             dataset.original_shape
-            for dataset in self.datasets
+            for dataset in self.datasets.values()
             if isinstance(dataset, DiscreteDataset)
         ]
 
@@ -267,7 +267,7 @@ class MoveDataset(Dataset):
     def continuous_shapes(self) -> list[int]:
         return [
             dataset.num_features
-            for dataset in self.datasets
+            for dataset in self.datasets.values()
             if isinstance(dataset, ContinuousDataset)
         ]
 

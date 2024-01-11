@@ -7,6 +7,7 @@ import torch
 
 from move.core.typing import PathLike
 from move.tasks.base import MoveTask
+from move.tasks.feature_importance import FeatureImportance
 from move.tasks.metrics import ComputeAccuracyMetrics
 
 
@@ -27,6 +28,7 @@ class LatentSpaceAnalysis(MoveTask):
             **kwargs
         )
         self.compute_accuracy_metrics = compute_accuracy_metrics
+        self.compute_feature_importance = compute_feature_importance
 
     def run(self) -> Any:
         train_dataloader = self.make_dataloader()
@@ -46,7 +48,12 @@ class LatentSpaceAnalysis(MoveTask):
 
         model.eval()
 
+        test_dataloader = self.make_dataloader(shuffle=False, drop_last=False)
+
         if self.compute_accuracy_metrics:
-            subtask = ComputeAccuracyMetrics(model, train_dataloader)
-            subtask.parent = self
+            subtask = ComputeAccuracyMetrics(self, model, test_dataloader)
+            subtask.run()
+
+        if self.compute_feature_importance:
+            subtask = FeatureImportance(self, model, test_dataloader)
             subtask.run()

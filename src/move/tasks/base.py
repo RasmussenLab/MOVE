@@ -172,16 +172,14 @@ class CsvWriterMixin(SubTaskMixin):
     @property
     def can_write(self) -> bool:
         return (
-            self._csv_writer is not None
-            and self._csv_file is not None
-            and not self._csv_file.closed
+            getattr(self, "_csv_writer", None) is not None
+            and getattr(self, "_csv_file", None) is not None
+            and not self.csv_file.closed
         )
 
     @property
     def csv_file(self) -> TextIOWrapper:
-        value = getattr(self, "_csv_file", None)
-        assert value is not None
-        return value
+        return getattr(self, "_csv_file")
 
     @csv_file.setter
     def csv_file(self, value: Optional[TextIOWrapper]) -> None:
@@ -236,10 +234,17 @@ class CsvWriterMixin(SubTaskMixin):
                 self.csv_writer.writerows(self.row_buffer)
                 self.row_buffer.clear()
 
-    def close_csv_writer(self) -> None:
-        """Close file and flush"""
+    def close_csv_writer(self, clear: bool = False) -> None:
+        """Close file and flush buffer.
+
+        Args:
+            clear: whether to nullify the writer and file object"""
         if self.can_write:
             if len(self.row_buffer) > 0:
                 self.csv_writer.writerows(self.row_buffer)
                 self.row_buffer.clear()
             self.csv_file.close()
+        if clear:
+            self.csv_file = None
+            self.csv_filepath = None
+            self.csv_writer = None

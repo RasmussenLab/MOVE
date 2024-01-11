@@ -149,7 +149,7 @@ class TrainingLoop(CsvWriterMixin, Task):
                 optimizer.zero_grad()
 
                 # Forward pass
-                loss_dict = model.compute_loss(batch, self.annealing_factor)
+                loss_dict = model.compute_loss(batch[0], self.annealing_factor)
 
                 # Backward pass and optimize
                 loss_dict["elbo"].backward()

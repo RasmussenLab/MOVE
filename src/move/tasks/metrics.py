@@ -13,7 +13,7 @@ from move.analysis.metrics import (
 from move.data.dataloader import MoveDataLoader
 from move.data.dataset import ContinuousDataset, DiscreteDataset
 from move.models.base import BaseVae
-from move.tasks.base import CsvWriterMixin, Task
+from move.tasks.base import CsvWriterMixin, ParentTask, Task
 
 
 class ComputeAccuracyMetrics(CsvWriterMixin, Task):
@@ -22,7 +22,10 @@ class ComputeAccuracyMetrics(CsvWriterMixin, Task):
 
     filename = "reconstruction_metrics.csv"
 
-    def __init__(self, model: BaseVae, dataloader: MoveDataLoader) -> None:
+    def __init__(
+        self, parent: ParentTask, model: BaseVae, dataloader: MoveDataLoader
+    ) -> None:
+        self.parent = parent
         self.model = model
         self.dataloader = dataloader
 
@@ -35,7 +38,7 @@ class ComputeAccuracyMetrics(CsvWriterMixin, Task):
     def run(self) -> None:
         if self.parent:
             csv_filepath = self.parent.output_dir / self.filename
-            colnames = ["sample_name"] + self.dataloader.dataset.names
+            colnames = self.dataloader.dataset.names
             self.init_csv_writer(
                 csv_filepath, fieldnames=colnames, extrasaction="ignore"
             )
@@ -44,8 +47,8 @@ class ComputeAccuracyMetrics(CsvWriterMixin, Task):
         self.log("Computing accuracy metrics")
         scores_per_dataset = {}
         for batch in self.dataloader:
-            batch_disc, batch_cont = self.model.split_output(batch)
-            recon = self.model.reconstruct(batch)
+            batch_disc, batch_cont = self.model.split_output(batch[0])
+            recon = self.model.reconstruct(batch[0])
             recon_disc, recon_cont = self.model.split_output(recon)
             for i, dataset in enumerate(self.dataloader.datasets):
                 if isinstance(dataset, DiscreteDataset):

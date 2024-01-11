@@ -6,9 +6,9 @@ from typing import Any
 import torch
 
 from move.core.typing import PathLike
-from move.tasks.base import MoveTask
 from move.tasks.feature_importance import FeatureImportance
 from move.tasks.metrics import ComputeAccuracyMetrics
+from move.tasks.move import MoveTask
 
 
 class LatentSpaceAnalysis(MoveTask):

@@ -1,12 +1,10 @@
 __all__ = ["EncodeData"]
 
-from pathlib import Path
 from typing import TypedDict
 
 import numpy as np
 import torch
 
-from move.core.logging import get_logger
 from move.core.typing import PathLike
 from move.data import io, preprocessing
 from move.tasks.base import ParentTask

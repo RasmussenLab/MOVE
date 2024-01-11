@@ -15,6 +15,7 @@ from typing import Any, Optional
 from hydra.core.config_store import ConfigStore
 from omegaconf import MISSING, OmegaConf
 
+from move.data.dataloader import MoveDataLoader
 from move.data.preprocessing import PreprocessingOpName
 from move.models.vae_legacy import VAE
 from move.training.training_loop import training_loop
@@ -73,6 +74,16 @@ class VAEConfig(ModelConfig):
     beta: float = MISSING
     dropout: float = MISSING
     cuda: bool = False
+
+
+@dataclass
+class DataLoaderConfig:
+    """Configuration for the MOVE data loader."""
+
+    _target_: str = get_fully_qualname(MoveDataLoader)
+    batch_size: int = MISSING
+    shuffle: bool = MISSING
+    drop_last: bool = MISSING
 
 
 @dataclass

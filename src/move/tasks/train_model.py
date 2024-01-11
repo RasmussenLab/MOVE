@@ -1,11 +1,13 @@
 __all__ = []
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Union
 
 import hydra
+import torch
 
-from move.conf.schema import VAEConfig
+from move.conf.schema import VAEConfig, TrainingLoopConfig
+from move.core.exceptions import FILE_EXISTS_WARNING
 from move.core.typing import PathLike
 from move.data import MoveDataLoader, MoveDataset
 from move.tasks.base import ParentTask
@@ -15,6 +17,7 @@ from move.training.loop import TrainingLoop
 class TrainModel(ParentTask):
     """Train a single model"""
 
+    filename: str = "model.pt"
     results_subdir: str = "train_model"
 
     def __init__(
@@ -24,8 +27,8 @@ class TrainModel(ParentTask):
         discrete_dataset_names: list[str],
         continuous_dataset_names: list[str],
         batch_size: int,
-        model_config: VAEConfig,
-        training_loop_config,
+        model_config: Union[VAEConfig, dict[str, Any]],
+        training_loop_config: Union[TrainingLoopConfig, dict[str, Any]],
     ) -> None:
         super().__init__(
             input_dir=interim_data_path,
@@ -44,6 +47,9 @@ class TrainModel(ParentTask):
         return MoveDataLoader(dataset, **kwargs)
 
     def run(self) -> None:
+        model_path = self.output_dir / self.filename
+        if model_path.exists():
+            self.logger.warning(FILE_EXISTS_WARNING.format(model_path))
         # Init data/model
         dataloader = self.make_dataloader(
             batch_size=self.batch_size, shuffle=True, drop_last=True
@@ -58,3 +64,5 @@ class TrainModel(ParentTask):
         training_loop.parent = self
         training_loop.run(model, dataloader)
         training_loop.plot()
+        # Save model
+        torch.save(model.state_dict(), model_path)

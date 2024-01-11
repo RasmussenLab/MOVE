@@ -1,6 +1,9 @@
 __all__ = []
 
 
+FILE_EXISTS_WARNING = "File '{}' already exists. It will be overwritten."
+
+
 class CudaIsNotAvailable(RuntimeError):
     """CUDA is not available."""
 

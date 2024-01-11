@@ -6,7 +6,7 @@ from io import TextIOWrapper
 from pathlib import Path
 from typing import Any, Optional, cast
 
-from move.core.exceptions import UnsetProperty
+from move.core.exceptions import UnsetProperty, FILE_EXISTS_WARNING
 from move.core.logging import get_logger
 from move.core.typing import LoggingLevel, PathLike
 from move.tasks.writer import CsvWriter
@@ -152,9 +152,7 @@ class CsvWriterMixin(SubTaskMixin):
         """Initialize the CSV writer."""
         self.csv_filepath = filepath
         if self.csv_filepath.exists():
-            self.log(
-                f"File '{self.csv_filepath}' already exists. It will be overwritten."
-            )
+            self.log(FILE_EXISTS_WARNING.format(self.csv_filepath))
         self.csv_file = open(self.csv_filepath, "w", newline="")
         self.csv_writer = CsvWriter(self.csv_file, **writer_kwargs)
         self.csv_writer.writeheader()

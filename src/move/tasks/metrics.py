@@ -35,6 +35,7 @@ class ComputeAccuracyMetrics(CsvWriterMixin, Task):
             scores = [fig_df[col].to_list() for col in fig_df.columns]
             # TODO: viz.plot_metrics_boxplot(scores, fig_df.columns)
 
+    @torch.no_grad()
     def run(self) -> None:
         if self.parent:
             csv_filepath = self.parent.output_dir / self.filename

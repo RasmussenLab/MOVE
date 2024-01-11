@@ -45,25 +45,30 @@ class ComputeAccuracyMetrics(CsvWriterMixin, Task):
             )
         else:
             self.log("No parent task, metrics will not be saved.", "WARNING")
+
         self.log("Computing accuracy metrics")
-        scores_per_dataset = {}
+
+        datasets = self.dataloader.datasets
         for batch in self.dataloader:
             batch_disc, batch_cont = self.model.split_output(batch[0])
             recon = self.model.reconstruct(batch[0])
             recon_disc, recon_cont = self.model.split_output(recon)
-            for i, dataset in enumerate(self.dataloader.datasets):
-                if isinstance(dataset, DiscreteDataset):
-                    target = batch_disc[i].numpy()
-                    preds = torch.argmax(
-                        (torch.log_softmax(recon_disc[i], dim=-1)), dim=-1
-                    ).numpy()
-                    scores = calculate_accuracy(target, preds)
-                elif isinstance(dataset, ContinuousDataset):
-                    target = cast(torch.Tensor, batch_cont[i]).numpy()
-                    preds = cast(torch.Tensor, recon_cont[i]).numpy()
-                    scores = calculate_cosine_similarity(target, preds)
-                else:
-                    raise ValueError()
+
+            scores_per_dataset = {}
+            for i, dataset in enumerate(datasets[: len(batch_disc)]):
+                target = batch_disc[i].numpy()
+                preds = torch.argmax(
+                    (torch.log_softmax(recon_disc[i], dim=-1)), dim=-1
+                ).numpy()
+                scores = calculate_accuracy(target, preds)
                 scores_per_dataset[dataset.name] = scores
+
+            for i, dataset in enumerate(datasets[len(batch_disc) :]):
+                target = cast(torch.Tensor, batch_cont[i]).numpy()
+                preds = cast(torch.Tensor, recon_cont[i]).numpy()
+                scores = calculate_cosine_similarity(target, preds)
+                scores_per_dataset[dataset.name] = scores
+
             self.write_cols(scores_per_dataset)
+
         self.close_csv_writer()

@@ -51,7 +51,8 @@ class FeatureImportance(CsvWriterMixin, Task):
 
             # Make a perturbation for each feature
             for feature_name in dataset.feature_names:
-                self.dataloader.dataset.perturb(dataset.name, feature_name, None)
+                value = None if dataset.data_type == "discrete" else 0.0
+                self.dataloader.dataset.perturb(dataset.name, feature_name, value)
                 row = [feature_name]
                 for tup in self.dataloader:
                     batch, pert_batch = tup
@@ -64,7 +65,7 @@ class FeatureImportance(CsvWriterMixin, Task):
             self.close_csv_writer(clear=True)
 
             # Transpose CSV file, so each row is a sample, each column a feature
-            pd.read_csv(csv_filename).T.to_csv(csv_filename, index=False)
+            pd.read_csv(csv_filepath).T.to_csv(csv_filepath, index=False, header=False)
 
         # Clear perturbation
         self.dataloader.dataset.perturbation = None

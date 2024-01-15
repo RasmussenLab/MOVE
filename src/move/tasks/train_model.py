@@ -60,10 +60,12 @@ class TrainModel(ParentTask):
             discrete_shapes=dataloader.dataset.discrete_shapes,
             continuous_shapes=dataloader.dataset.continuous_shapes,
         )
+        self.logger.info("Training model")
         # Train
         training_loop: TrainingLoop = hydra.utils.instantiate(self.training_loop_config)
         training_loop.parent = self
         training_loop.run(model, dataloader)
         training_loop.plot()
+        self.logger.info("Training complete!")
         # Save model
         model.save(model_path)

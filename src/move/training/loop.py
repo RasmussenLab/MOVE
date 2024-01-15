@@ -31,6 +31,7 @@ class TrainingLoop(CsvWriterMixin, Task):
         annealing_epochs: int = 20,
         annealing_function: AnnealingFunction = "linear",
         annealing_schedule: AnnealingSchedule = "monotonic",
+        log_every_n_epoch: Optional[int] = 10,
     ):
         self.optimizer_config = optimizer_config
         self.lr_scheduler_config = lr_scheduler_config
@@ -39,6 +40,7 @@ class TrainingLoop(CsvWriterMixin, Task):
         self.annealing_function = annealing_function
         self.annealing_schedule = annealing_schedule
         self.current_epoch = 0
+        self.log_every_n_epoch = log_every_n_epoch
 
     def _repr_html_(self) -> str:
         return ""
@@ -169,6 +171,14 @@ class TrainingLoop(CsvWriterMixin, Task):
 
             if lr_scheduler:
                 lr_scheduler.step()
+
             self.current_epoch += 1
+
+            if (
+                self.log_every_n_epoch is not None
+                and self.current_epoch % self.log_every_n_epoch == 0
+            ):
+                num_zeros = int(math.log10(self.max_epochs)) + 1
+                self.log(f"Epoch {self.current_epoch:0{num_zeros}}")
 
         self.close_csv_writer()

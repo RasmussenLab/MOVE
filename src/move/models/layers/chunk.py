@@ -1,8 +1,8 @@
-__all__ = ["Chunk", "SplitOutput"]
+__all__ = ["Chunk", "SplitInput", "SplitOutput"]
 
 import itertools
 import operator
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, Type, TypeVar, cast
 
 import torch
 from torch import nn
@@ -15,6 +15,8 @@ ContinuousDistribution = list[tuple[torch.Tensor, ...]]
 SplitData = Union[
     tuple[DiscreteData, ContinuousData], tuple[DiscreteData, ContinuousDistribution]
 ]
+
+T = TypeVar("T", bound="SplitOutput")
 
 
 class Chunk(nn.Module):
@@ -111,11 +113,13 @@ class SplitOutput(nn.Module):
             ]
         )
 
-    def __call__(self, *args: Any, **kwds: Any) -> SplitData:
+    def __call__(
+        self, *args: Any, **kwds: Any
+    ) -> tuple[DiscreteData, ContinuousDistribution]:
         return super().__call__(*args, **kwds)
 
     @classmethod
-    def from_move_dataset(cls, move_dataset: MoveDataset) -> "SplitOutput":
+    def from_move_dataset(cls: Type[T], move_dataset: MoveDataset) -> T:
         discrete_dataset_shapes = []
         continuous_dataset_shapes = []
         for dataset in move_dataset:
@@ -165,4 +169,23 @@ class SplitOutput(nn.Module):
             ]
             return discrete_subsets, continous_subsets
 
-        return discrete_subsets, list(continous_subsets_multi)
+        if isinstance(self, SplitInput):
+            return discrete_subsets, list(continous_subsets_multi)
+
+        return discrete_subsets, [(sub,) for sub in continous_subsets_multi]
+
+
+class SplitInput(SplitOutput):
+    """Alias of `SplitOutput`."""
+
+    def __init__(
+        self,
+        discrete_dataset_shapes: list[tuple[int, ...]],
+        continuous_dataset_shapes: list[int],
+    ) -> None:
+        super().__init__(discrete_dataset_shapes, continuous_dataset_shapes, None)
+
+    def __call__(self, *args: Any, **kwds: Any) -> tuple[DiscreteData, ContinuousData]:
+        return cast(
+            tuple[DiscreteData, ContinuousData], super().__call__(*args, **kwds)
+        )

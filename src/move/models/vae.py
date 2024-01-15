@@ -10,7 +10,7 @@ from torch import nn
 
 from move.core.exceptions import CudaIsNotAvailable, ShapeAndWeightMismatch
 from move.models.base import BaseVae, LossDict, VaeOutput
-from move.models.layers.chunk import SplitOutput
+from move.models.layers.chunk import SplitInput, SplitOutput
 from move.models.layers.encoder_decoder import Decoder, Encoder
 
 
@@ -27,7 +27,7 @@ class Vae(BaseVae):
         num_latent: int = 20,
         kl_weight: float = 0.01,
         dropout_rate: float = 0.2,
-        usa_cuda: bool = False,
+        use_cuda: bool = False,
     ) -> None:
         super().__init__()
 
@@ -100,16 +100,17 @@ class Vae(BaseVae):
             dropout_rate=dropout_rate,
         )
         self.log_softmax = nn.LogSoftmax(dim=-1)
+        self.split_input = SplitInput(self.discrete_shapes, self.continuous_shapes)
         self.split_output = SplitOutput(self.discrete_shapes, self.continuous_shapes)
 
         self.nll_loss = nn.NLLLoss(reduction="sum", ignore_index=-1)
         self.mse_loss = nn.MSELoss(reduction="sum")
 
-        if usa_cuda and not torch.cuda.is_available():
+        if use_cuda and not torch.cuda.is_available():
             raise CudaIsNotAvailable()
-        self.usa_cuda = usa_cuda
+        self.use_cuda = use_cuda
 
-        device = torch.device("cuda" if usa_cuda else "cpu")
+        device = torch.device("cuda" if use_cuda else "cpu")
         self.to(device)
 
     def encode(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
@@ -141,7 +142,7 @@ class Vae(BaseVae):
 
     def compute_loss(self, batch: torch.Tensor, annealing_factor: float) -> LossDict:
         # Split concatenated input
-        batch_disc, batch_cont = self.split_output(batch)
+        batch_disc, batch_cont = self.split_input(batch)
         # Split concatenated output
         out = self(batch)
         out_disc, out_cont = self.split_output(out["x_recon"])
@@ -165,8 +166,7 @@ class Vae(BaseVae):
         for cont_input, cont_recon, cont_wt in zip(
             batch_cont, out_cont, self.continuous_weights
         ):
-            assert isinstance(cont_input, torch.Tensor)
-            assert isinstance(cont_recon, torch.Tensor)
+            cont_recon = cont_recon[0]
             na_mask = (cont_input == 0).logical_not().float()
             multiplier = cont_wt / operator.mul(*cont_input.shape)
             loss = self.mse_loss(na_mask * cont_recon, cont_input) * multiplier

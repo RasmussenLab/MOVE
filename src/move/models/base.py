@@ -8,7 +8,7 @@ from typing import Any, Type, TypedDict, TypeVar, cast, OrderedDict
 import torch
 from torch import nn
 
-from move.models.layers.chunk import SplitOutput
+from move.models.layers.chunk import SplitInput, SplitOutput
 
 T = TypeVar("T", bound="BaseVae")
 
@@ -37,6 +37,7 @@ class BaseVae(nn.Module, ABC):
     output_args: int = 1
     encoder: nn.Module
     decoder: nn.Module
+    split_input: SplitInput
     split_output: SplitOutput
 
     def __call__(self, *args: Any, **kwds: Any) -> VaeOutput:

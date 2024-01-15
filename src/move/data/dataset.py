@@ -3,7 +3,7 @@ __all__ = ["DiscreteDataset", "ContinuousDataset", "MoveDataset"]
 import operator
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Literal, NoReturn, Optional, Union, cast
+from typing import Literal, NoReturn, Optional, Union, Type, TypeVar, cast
 
 import pandas as pd
 import torch
@@ -14,6 +14,7 @@ from move.core.exceptions import UnsetProperty
 
 DataType = Literal["continuous", "discrete"]
 Index = Union[int, tuple[str, int], tuple[int, int]]
+T = TypeVar("T", bound="NamedDataset")
 
 
 class NamedDataset(Dataset, ABC):
@@ -77,7 +78,7 @@ class NamedDataset(Dataset, ABC):
         return self.num_features
 
     @classmethod
-    def load(cls, path: Path):
+    def load(cls: Type[T], path: Path) -> T:
         """Load dataset.
 
         Args:

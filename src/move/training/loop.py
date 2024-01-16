@@ -2,7 +2,8 @@ __all__ = []
 
 import csv
 import math
-from typing import Literal, Optional, cast
+from numbers import Number
+from typing import Mapping, Literal, Optional, cast
 
 import hydra
 import pandas as pd
@@ -20,6 +21,29 @@ AnnealingSchedule = Literal["monotonic", "cyclical"]
 
 
 class TrainingLoop(CsvWriterMixin, Task):
+    """Train a VAE model.
+
+    Args:
+        optimizer_config:
+            Configuration for the optimizer.
+        lr_scheduler_config:
+            Configuration for the learning rate scheduler.
+        max_epochs:
+            Max training epochs, may be lower if early stopping is implemented.
+        annealing_epochs:
+            Epochs required to fully warm KL divergence.
+        annealing_function:
+            Function to wamr KL divergence.
+        annealing_schedule:
+            Whether KL divergence is warmed monotonically or cyclically.
+        prog_every_n_epoch:
+            Log progress every n-th epoch. Note this only controls a message
+            displaying the current epoch. Loss and other metrics are logged at
+            every step.
+        log_grad:
+            Whether gradients should be logged.
+    """
+
     max_steps: int
     global_step: int
 
@@ -31,7 +55,8 @@ class TrainingLoop(CsvWriterMixin, Task):
         annealing_epochs: int = 20,
         annealing_function: AnnealingFunction = "linear",
         annealing_schedule: AnnealingSchedule = "monotonic",
-        log_every_n_epoch: Optional[int] = 10,
+        prog_every_n_epoch: Optional[int] = 10,
+        log_grad: bool = False,
     ):
         self.optimizer_config = optimizer_config
         self.lr_scheduler_config = lr_scheduler_config
@@ -40,7 +65,8 @@ class TrainingLoop(CsvWriterMixin, Task):
         self.annealing_function = annealing_function
         self.annealing_schedule = annealing_schedule
         self.current_epoch = 0
-        self.log_every_n_epoch = log_every_n_epoch
+        self.prog_every_n_epoch = prog_every_n_epoch
+        self.log_grad = log_grad
 
     def _repr_html_(self) -> str:
         return ""
@@ -111,6 +137,54 @@ class TrainingLoop(CsvWriterMixin, Task):
     def run(self, model: BaseVae, train_dataloader: MoveDataLoader) -> None:
         return self.train(model, train_dataloader)
 
+    def get_colnames(self, model: Optional[BaseVae] = None) -> list[str]:
+        """Return the list of column names of the CSV being generated. If set
+        to log gradients, a model would be required to obtain the names of its
+        parameters.
+
+        Args:
+            model: a deep learning model"""
+        colnames = ["epoch", "step"]
+        colnames.extend(LossDict.__annotations__.keys())
+        if self.log_grad and model is not None:
+            for module_name, module in model.named_children():
+                param_names = []
+                for param_name, param in module.named_parameters(module_name):
+                    if param.grad is not None:
+                        param_names.append(param_name)
+                if param_names:
+                    colnames.extend(param_names)
+                    colnames.append(module_name)
+        return colnames
+
+    def make_row(self, loss_dict: LossDict, model: BaseVae) -> dict[str, float]:
+        """Format a loss dictionary and the model's gradients into a dictionary
+        representing a CSV row.
+
+        Args:
+            loss_dict: dictionary with loss metrics
+            model: deep-learning model"""
+        csv_row: dict[str, float] = {
+            "epoch": self.current_epoch,
+            "step": self.global_step,
+        }
+        for key, value in loss_dict.items():
+            if isinstance(value, torch.Tensor):
+                csv_row[key] = value.item()
+            else:
+                csv_row[key] = cast(float, value)
+        if self.log_grad and model is not None:
+            for module_name, module in model.named_children():
+                grads = []
+                for param_name, param in module.named_parameters(module_name):
+                    if param.grad is not None:
+                        grad = torch.norm(param.grad.detach())
+                        grads.append(grad)
+                        csv_row[param_name] = grad.item()
+                if len(grads) > 0:
+                    csv_row[module_name] = torch.norm(torch.stack(grads)).item()
+        return csv_row
+
     def train(
         self,
         model: BaseVae,
@@ -157,7 +231,9 @@ class TrainingLoop(CsvWriterMixin, Task):
                 loss_dict["elbo"].backward()
                 optimizer.step()
 
-                self._add_to_buffer(loss_dict)
+                csv_row = self.make_row(loss_dict, model)
+                self.add_row_to_buffer(csv_row)
+
                 self.global_step += 1
 
             """ if valid_dataloader is not None:
@@ -169,14 +245,14 @@ class TrainingLoop(CsvWriterMixin, Task):
                             if isinstance(value, torch.Tensor):
                                 epoch_loss[f"valid_{key}"] += value.item() / num_batches """
 
-            if lr_scheduler:
+            if lr_scheduler is not None:
                 lr_scheduler.step()
 
             self.current_epoch += 1
 
             if (
-                self.log_every_n_epoch is not None
-                and self.current_epoch % self.log_every_n_epoch == 0
+                self.prog_every_n_epoch is not None
+                and self.current_epoch % self.prog_every_n_epoch == 0
             ):
                 num_zeros = int(math.log10(self.max_epochs)) + 1
                 self.log(f"Epoch {self.current_epoch:0{num_zeros}}")

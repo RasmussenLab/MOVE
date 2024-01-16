@@ -53,7 +53,7 @@ class Task(ABC):
                 return task.logger
             raise UnsetProperty("Parent task")
         if getattr(self, "_logger", None) is None:
-            self._logger = get_logger(self.__name__)
+            self._logger = get_logger(self.__class__.__name__)
         return self._logger
 
     @abstractmethod

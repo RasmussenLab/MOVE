@@ -79,6 +79,12 @@ class BaseVae(nn.Module, ABC):
         model.load_state_dict(model_dict["state_dict"])
         return model
 
+    def freeze(self) -> None:
+        """Freeze all parameters."""
+        for param in self.parameters():
+            param.requires_grad = False
+        self.eval()
+
     def save(self, model_path: Path) -> None:
         """Save the serialized config and state dict of the model to disk."""
         argnames = inspect.signature(self.__init__).parameters.keys()

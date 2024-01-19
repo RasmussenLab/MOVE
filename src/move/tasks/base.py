@@ -1,10 +1,13 @@
 __all__ = ["Task", "ParentTask", "SubTaskMixin", "CsvWriterMixin"]
 
+import inspect
 import logging
 from abc import ABC, abstractmethod
 from io import TextIOWrapper
 from pathlib import Path
 from typing import Any, Optional, cast
+
+from omegaconf import OmegaConf
 
 from move.core.exceptions import UnsetProperty, FILE_EXISTS_WARNING
 from move.core.logging import get_logger
@@ -59,6 +62,13 @@ class Task(ABC):
     @abstractmethod
     def run(self, *args, **kwargs) -> Any:
         raise NotImplementedError()
+
+    def to_yaml(self, filepath: PathLike) -> None:
+        """Save task as YAML file."""
+        signature = inspect.signature(self.__init__).parameters.keys()
+        config = OmegaConf.create({name: getattr(self, name) for name in signature})
+        with open(filepath, "w") as file:
+            file.write(OmegaConf.to_yaml(config))
 
 
 class ParentTask(InputDirMixin, OutputDirMixin, Task):

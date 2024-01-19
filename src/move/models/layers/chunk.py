@@ -68,12 +68,16 @@ class SplitOutput(nn.Module):
     continuous_dataset_shapes: list[int]
     discrete_split_indices: list[int]
     continuous_split_indices: list[int]
+    discrete_activation: Optional[nn.Module]
+    continuous_activation: Optional[nn.Module]
 
     def __init__(
         self,
         discrete_dataset_shapes: list[tuple[int, ...]],
         continuous_dataset_shapes: list[int],
         distribution_name: Optional[str] = None,
+        discrete_activation_name: Optional[str] = None,
+        continuous_activation_name: Optional[str] = None,
     ) -> None:
         super().__init__()
 
@@ -85,6 +89,16 @@ class SplitOutput(nn.Module):
                 self.num_distribution_args = 3
             elif distribution_name not in ("Bernoulli", "Categorical", "Exponential"):
                 raise ValueError("Unsupported distribution")
+
+        activation_funs = []
+        for name in [discrete_activation_name, continuous_activation_name]:
+            if name is not None:
+                activation_fun = getattr(nn, name)
+                assert issubclass(activation_fun, nn.Module)
+                activation_funs.append(activation_fun())
+            else:
+                activation_funs.append(None)
+        self.discrete_activation, self.continuous_activation = activation_funs
 
         self.discrete_dataset_shapes = discrete_dataset_shapes
         self.continuous_dataset_shapes = continuous_dataset_shapes
@@ -145,6 +159,10 @@ class SplitOutput(nn.Module):
         discrete_x, continuous_x = torch.tensor_split(
             x, [self.num_discrete_features], dim=-1
         )
+        if self.discrete_activation is not None:
+            discrete_x = self.discrete_activation(discrete_x)
+        if self.continuous_activation is not None:
+            continuous_x = self.continuous_activation(continuous_x)
 
         # Split and re-shape discrete set into 3D subsets
         discrete_subsets_flat = torch.tensor_split(

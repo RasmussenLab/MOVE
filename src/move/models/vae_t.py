@@ -88,7 +88,10 @@ class VaeT(BaseVae):
 
         self.split_input = SplitInput(self.discrete_shapes, self.continuous_shapes)
         self.split_output = SplitOutput(
-            self.discrete_shapes, self.continuous_shapes, "StudentT"
+            self.discrete_shapes,
+            self.continuous_shapes,
+            "StudentT",
+            continuous_activation_name="Tanh",
         )
 
         self.in_features = self.num_disc_features + self.num_cont_features
@@ -167,7 +170,7 @@ class VaeT(BaseVae):
         disc_rec_loss = torch.tensor(0.0)
         for i, args in enumerate(out_disc):
             y = torch.argmax(batch_disc[i], dim=-1)
-            disc_rec_loss += self.compute_log_prob(Categorical, y, logits=args)
+            disc_rec_loss -= self.compute_log_prob(Categorical, y, logits=args)
 
         # Compute continuous dataset losses
         cont_rec_loss = torch.tensor(0.0)
@@ -175,7 +178,7 @@ class VaeT(BaseVae):
             loc, logvar, p_df = args
             df = torch.pow(torch.exp(p_df * 0.5) * 27.5 + 2.5, -1)
             scale = torch.exp(logvar * 0.5)
-            cont_rec_loss += self.compute_log_prob(
+            cont_rec_loss -= self.compute_log_prob(
                 StudentT, batch_cont[i], df=df, loc=loc, scale=scale
             )
 
@@ -185,7 +188,7 @@ class VaeT(BaseVae):
 
         # Compute ELBO
         kl_weight = annealing_factor * self.kl_weight
-        elbo = rec_loss - reg_loss * kl_weight
+        elbo = rec_loss + reg_loss * kl_weight
         return {
             "elbo": elbo,
             "discrete_loss": disc_rec_loss,

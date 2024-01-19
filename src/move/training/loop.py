@@ -1,17 +1,17 @@
 __all__ = []
 
-import csv
 import math
-from numbers import Number
-from typing import Mapping, Literal, Optional, cast
+from typing import Literal, Optional, cast
 
 import hydra
 import pandas as pd
 import torch
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler as LRScheduler
+from torch.nn.utils.clip_grad import clip_grad_norm_
 
 import move.visualization as viz
+from move.core.typing import PathLike
 from move.data.dataloader import MoveDataLoader
 from move.models.base import LossDict, BaseVae
 from move.tasks.base import Task, CsvWriterMixin
@@ -30,10 +30,13 @@ class TrainingLoop(CsvWriterMixin, Task):
             Configuration for the learning rate scheduler.
         max_epochs:
             Max training epochs, may be lower if early stopping is implemented.
+        max_grad_norm:
+            If other than none, clip gradient norm.
         annealing_epochs:
-            Epochs required to fully warm KL divergence.
+            Epochs required to fully warm KL divergence. Set to 0 and a
+            `monotonic` schedue to turn off KL divergence annealing.
         annealing_function:
-            Function to wamr KL divergence.
+            Function to warm KL divergence.
         annealing_schedule:
             Whether KL divergence is warmed monotonically or cyclically.
         prog_every_n_epoch:
@@ -52,15 +55,23 @@ class TrainingLoop(CsvWriterMixin, Task):
         optimizer_config,
         lr_scheduler_config=None,
         max_epochs: int = 100,
+        max_grad_norm: Optional[float] = None,
         annealing_epochs: int = 20,
         annealing_function: AnnealingFunction = "linear",
         annealing_schedule: AnnealingSchedule = "monotonic",
         prog_every_n_epoch: Optional[int] = 10,
         log_grad: bool = False,
     ):
+        if annealing_epochs < 0:
+            raise ValueError("Annealing epochs must be a non-negative integer")
+        if annealing_epochs == 0 and annealing_schedule == "cyclical":
+            raise ValueError(
+                "Annealing epochs must be a positive integer if schedule is cyclical"
+            )
         self.optimizer_config = optimizer_config
         self.lr_scheduler_config = lr_scheduler_config
         self.max_epochs = max_epochs
+        self.max_grad_norm = max_grad_norm
         self.annealing_epochs = annealing_epochs
         self.annealing_function = annealing_function
         self.annealing_schedule = annealing_schedule
@@ -109,25 +120,8 @@ class TrainingLoop(CsvWriterMixin, Task):
     def num_cycles(self) -> float:
         return self.max_epochs / (self.annealing_epochs * 2)
 
-    def _add_to_buffer(self, loss_dict: LossDict) -> None:
-        """Add loss to buffer and flush buffer if it has reached its limit.
-
-        Args:
-            loss_dict: Dict containing ELBO loss components
-        """
-        csv_row: dict[str, float] = {
-            "epoch": self.current_epoch,
-            "step": self.global_step,
-        }
-        for key, value in loss_dict.items():
-            if isinstance(value, torch.Tensor):
-                csv_row[key] = value.item()
-            else:
-                csv_row[key] = cast(float, value)
-        self.add_row_to_buffer(csv_row)
-
     def plot(self) -> None:
-        if self.parent and self.csv_filepath:
+        if self.parent is not None and self.csv_filepath is not None:
             data = pd.read_csv(self.csv_filepath)
             losses = [data[key].to_list() for key in LossDict.__annotations__.keys()]
             fig = viz.plot_loss_curves(losses, xlabel="Step")
@@ -150,11 +144,11 @@ class TrainingLoop(CsvWriterMixin, Task):
             for module_name, module in model.named_children():
                 param_names = []
                 for param_name, param in module.named_parameters(module_name):
-                    if param.grad is not None:
+                    if param.requires_grad:
                         param_names.append(param_name)
                 if param_names:
-                    colnames.extend(param_names)
                     colnames.append(module_name)
+                    colnames.extend(param_names)
         return colnames
 
     def make_row(self, loss_dict: LossDict, model: BaseVae) -> dict[str, float]:
@@ -202,7 +196,7 @@ class TrainingLoop(CsvWriterMixin, Task):
         if self.parent:
             self.init_csv_writer(
                 self.parent.output_dir / "loss_curve.csv",
-                fieldnames=["epoch", "step"] + list(LossDict.__annotations__.keys()),
+                fieldnames=self.get_colnames(model),
             )
 
         optimizer: Optimizer = hydra.utils.instantiate(
@@ -225,10 +219,17 @@ class TrainingLoop(CsvWriterMixin, Task):
                 optimizer.zero_grad()
 
                 # Forward pass
-                loss_dict = model.compute_loss(batch[0], self.annealing_factor)
-
+                try:
+                    loss_dict = model.compute_loss(batch[0], self.annealing_factor)
+                except (KeyboardInterrupt, ValueError) as exception:
+                    self.close_csv_writer()
+                    raise exception
                 # Backward pass and optimize
                 loss_dict["elbo"].backward()
+
+                if self.max_grad_norm is not None:
+                    clip_grad_norm_(model.parameters(), self.max_grad_norm)
+
                 optimizer.step()
 
                 csv_row = self.make_row(loss_dict, model)
@@ -257,4 +258,5 @@ class TrainingLoop(CsvWriterMixin, Task):
                 num_zeros = int(math.log10(self.max_epochs)) + 1
                 self.log(f"Epoch {self.current_epoch:0{num_zeros}}")
 
+        model.freeze()
         self.close_csv_writer()

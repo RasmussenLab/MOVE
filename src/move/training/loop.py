@@ -11,7 +11,7 @@ from torch.optim.lr_scheduler import _LRScheduler as LRScheduler
 from torch.nn.utils.clip_grad import clip_grad_norm_
 
 import move.visualization as viz
-from move.core.typing import PathLike
+from move.conf.optim import LrSchedulerConfig, OptimizerConfig
 from move.data.dataloader import MoveDataLoader
 from move.models.base import LossDict, BaseVae
 from move.tasks.base import Task, CsvWriterMixin
@@ -52,8 +52,8 @@ class TrainingLoop(CsvWriterMixin, Task):
 
     def __init__(
         self,
-        optimizer_config,
-        lr_scheduler_config=None,
+        optimizer_config: OptimizerConfig,
+        lr_scheduler_config: Optional[LrSchedulerConfig] = None,
         max_epochs: int = 100,
         max_grad_norm: Optional[float] = None,
         annealing_epochs: int = 20,

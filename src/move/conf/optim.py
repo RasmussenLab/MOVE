@@ -9,8 +9,12 @@ __all__ = [
 
 from dataclasses import dataclass, field
 
-from torch.optim import Adam, AdamW, SGD
-from torch.optim.lr_scheduler import ExponentialLR, ReduceLROnPlateau, CosineAnnealingLR
+from torch.optim import SGD, Adam, AdamW
+from torch.optim.lr_scheduler import (
+    CosineAnnealingLR,
+    ExponentialLR,
+    ReduceLROnPlateau,
+)
 
 from move.conf.schema import get_fully_qualname
 

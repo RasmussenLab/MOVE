@@ -75,6 +75,16 @@ class ParentTask(InputDirMixin, OutputDirMixin, Task):
         self.output_dir = output_dir
 
 
+class OutputDir(ParentTask):
+    """Task used to set an output directory."""
+
+    def __init__(self, output_dir: PathLike) -> None:
+        super().__init__(Path.cwd(), output_dir)
+
+    def run(self) -> None:
+        raise NotImplementedError()
+
+
 class TestTask(Task):
     """Task used for testing"""
 
@@ -147,6 +157,16 @@ class CsvWriterMixin(SubTaskMixin):
         if getattr(self, "_buffer", None) is None:
             self._buffer = []
         return self._buffer
+
+    @property
+    def output_dir(self) -> Path:
+        if self.parent is None:
+            raise UnsetProperty("Output directory")
+        return self.parent.output_dir
+
+    @output_dir.setter
+    def output_dir(self, value: PathLike) -> None:
+        self.parent = OutputDir(value)
 
     def init_csv_writer(self, filepath: Path, **writer_kwargs) -> None:
         """Initialize the CSV writer."""

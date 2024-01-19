@@ -23,7 +23,7 @@ def build_network(
     assert issubclass(activation_fun, nn.Module)
 
     layers = []
-    layer_dims = [input_dim, *compress_dims, output_dim]
+    layer_dims = [input_dim, *compress_dims]
 
     out_features = None
     for in_features, out_features in zip(layer_dims, layer_dims[1:]):
@@ -57,13 +57,14 @@ class Encoder(nn.Sequential):
             compress_dims,
             embedding_dim * embedding_args,
             dropout_rate,
-            activation_fun_name
+            activation_fun_name,
         )
         layers.append(Chunk(embedding_args))
         super().__init__(*layers)
 
     def __call__(self, *args: Any, **kwds: Any) -> tuple[torch.Tensor, ...]:
         return super().__call__(*args, **kwds)
+
 
 class Decoder(Encoder):
     def __init__(
@@ -80,5 +81,5 @@ class Decoder(Encoder):
             output_dim,
             1,
             dropout_rate,
-            activation_fun_name
+            activation_fun_name,
         )

@@ -5,9 +5,10 @@ import logging
 from abc import ABC, abstractmethod
 from io import TextIOWrapper
 from pathlib import Path
-from typing import Any, Optional, cast
+from typing import Any, Optional, Union, cast
 
 from omegaconf import OmegaConf
+from numpy.typing import NDArray
 
 from move.core.exceptions import UnsetProperty, FILE_EXISTS_WARNING
 from move.core.logging import get_logger
@@ -187,7 +188,7 @@ class CsvWriterMixin(SubTaskMixin):
         self.csv_writer = CsvWriter(self.csv_file, **writer_kwargs)
         self.csv_writer.writeheader()
 
-    def write_cols(self, cols: dict[str, list[float]]) -> None:
+    def write_cols(self, cols: dict[str, Union[list[float], NDArray]]) -> None:
         """Directly write columns to CSV file.
 
         Args:

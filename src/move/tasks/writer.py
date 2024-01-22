@@ -1,13 +1,15 @@
 __all__ = ["CsvWriter"]
 
 import csv
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping, Sequence, Union
+
+from numpy.typing import NDArray
 
 
 class CsvWriter(csv.DictWriter):
     """Create a CSV writer that maps dictionaries onto output rows and columns."""
 
-    def writecols(self, cols: Mapping[str, Sequence[Any]]):
+    def writecols(self, cols: Mapping[str, Union[Sequence[Any], NDArray]]):
         """Write all elements in columns to the writer's file object."""
         colnames = set(self.fieldnames)
         if not colnames.issubset(cols.keys()):

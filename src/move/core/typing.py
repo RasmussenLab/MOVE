@@ -20,6 +20,8 @@ LoggingLevel = Union[
 ]
 PathLike = Union[str, os.PathLike]
 
+Split = Literal["train", "valid", "test"]
+
 BoolArray = NDArray[np.bool_]
 IntArray = NDArray[np.int_]
 FloatArray = NDArray[np.float_]

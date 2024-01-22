@@ -81,16 +81,6 @@ class VAEConfig(ModelConfig):
 
 
 @dataclass
-class DataLoaderConfig:
-    """Configuration for the MOVE data loader."""
-
-    _target_: str = get_fully_qualname(MoveDataLoader)
-    batch_size: int = MISSING
-    shuffle: bool = MISSING
-    drop_last: bool = MISSING
-
-
-@dataclass
 class TrainingLoopConfig:
     _target_: str = get_fully_qualname(training_loop)
     num_epochs: int = MISSING

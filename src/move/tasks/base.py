@@ -13,7 +13,7 @@ from numpy.typing import NDArray
 from move.core.exceptions import UnsetProperty, FILE_EXISTS_WARNING
 from move.core.logging import get_logger
 from move.core.typing import LoggingLevel, PathLike
-from move.tasks.writer import CsvWriter
+from move.data.writer import CsvWriter
 
 
 class InputDirMixin:

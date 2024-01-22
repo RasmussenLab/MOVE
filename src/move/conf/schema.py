@@ -10,7 +10,7 @@ __all__ = [
 ]
 
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any, Optional, Type
 
 from hydra.core.config_store import ConfigStore
 from omegaconf import MISSING, OmegaConf
@@ -22,7 +22,11 @@ from move.training.training_loop import training_loop
 
 
 def get_fully_qualname(sth: Any) -> str:
-    return ".".join((sth.__module__, sth.__qualname__))
+    if not isinstance(sth, Type):
+        class_ = type(sth)
+    else:
+        class_ = sth
+    return ".".join((class_.__module__, class_.__qualname__))
 
 
 @dataclass

@@ -2,12 +2,14 @@ __all__ = ["BaseVae"]
 
 import inspect
 from abc import ABC, abstractmethod
+from importlib import import_module
 from pathlib import Path
 from typing import Any, Type, TypedDict, TypeVar, cast, OrderedDict
 
 import torch
 from torch import nn
 
+from move.conf.schema import get_fully_qualname
 from move.models.layers.chunk import SplitInput, SplitOutput
 
 T = TypeVar("T", bound="BaseVae")
@@ -75,7 +77,10 @@ class BaseVae(nn.Module, ABC):
     def reload(cls: Type[T], model_path: Path) -> T:
         """Reload a model from its serialized config and state dict."""
         model_dict = cast(SerializedModel, torch.load(model_path))
-        model = cls(**model_dict["config"])
+        target = model_dict["config"].pop("_target_")
+        module_name, class_name = target.rsplit(".", 1)
+        cls_: Type = getattr(import_module(module_name), class_name)
+        model = cls_(**model_dict["config"])
         model.load_state_dict(model_dict["state_dict"])
         return model
 
@@ -88,8 +93,10 @@ class BaseVae(nn.Module, ABC):
     def save(self, model_path: Path) -> None:
         """Save the serialized config and state dict of the model to disk."""
         argnames = inspect.signature(self.__init__).parameters.keys()
+        config = {argname: getattr(self, argname) for argname in argnames}
+        config["_target_"] = get_fully_qualname(self)
         model = SerializedModel(
-            config={argname: getattr(self, argname) for argname in argnames},
+            config=config,
             state_dict=self.state_dict(),
         )
         torch.save(model, model_path)

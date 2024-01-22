@@ -180,7 +180,7 @@ class Project(CsvWriterMixin, Task):
                 target_values = np.argmax(target_values, axis=1)
                 assert dataset.mapping is not None
                 code2cat_map = {
-                    str(code): category for category, code in dataset.mapping
+                    str(code): category for category, code in dataset.mapping.items()
                 }
                 fig = viz.plot_latent_space_with_cat(
                     latent_space, name, target_values, code2cat_map, is_nan

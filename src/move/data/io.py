@@ -9,6 +9,7 @@ __all__ = [
 ]
 
 import json
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -162,3 +163,44 @@ def dump_mappings(path: PathLike, mappings: dict[str, dict[str, int]]) -> None:
 def dump_names(path: PathLike, names: np.ndarray) -> None:
     with open(path, "w", encoding="utf-8") as file:
         file.writelines([f"{name}\n" for name in names])
+
+
+RESERVED_NAMES = [
+    "CON",
+    "PRN",
+    "AUX",
+    "NUL",
+    "COM1",
+    "COM2",
+    "COM3",
+    "COM4",
+    "COM5",
+    "COM6",
+    "COM7",
+    "COM8",
+    "COM9",
+    "LPT1",
+    "LPT2",
+    "LPT3",
+    "LPT4",
+    "LPT5",
+    "LPT6",
+    "LPT7",
+    "LPT8",
+    "LPT9",
+]
+MAX_FILENAME_LEN = 255
+
+
+def sanitize_filename(string: str) -> str:
+    """Sanitize a filename."""
+    # Replace non-alpha charaacters with underscore
+    filename = re.sub(r'[<>:"/\\|?*\0-\x1f\x7f]', "_", string)
+    # Check if reserved Windows name
+    sep_idx = filename.rindex(".")
+    stem, suffix = filename[:sep_idx], filename[sep_idx:]
+    if stem.upper() in RESERVED_NAMES:
+        stem += "_"
+    # Truncate
+    filename = stem[: MAX_FILENAME_LEN - len(suffix)] + suffix
+    return filename

@@ -8,6 +8,7 @@ import torch
 import move.visualization as viz
 from move.core.exceptions import UnsetProperty
 from move.data.dataloader import MoveDataLoader
+from move.data.io import sanitize_filename
 from move.models.base import BaseVae
 from move.tasks.base import CsvWriterMixin, ParentTask, Task
 
@@ -37,7 +38,7 @@ class FindAssociations(CsvWriterMixin, Task):
             # Create a file for each dataset
             # File is transposed; each column is a sample, each row a feature
             if self.parent:
-                csv_filename = self.filename_fmt.format(dataset)
+                csv_filename = sanitize_filename(self.filename_fmt.format(dataset))
                 csv_filepath = self.parent.output_dir / csv_filename
                 colnames = ["feature_name"] + [""] * len(self.dataloader.dataset)
                 self.init_csv_writer(

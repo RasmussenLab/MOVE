@@ -199,6 +199,10 @@ class TrainingLoop(CsvWriterMixin, Task):
                 fieldnames=self.get_colnames(model),
             )
 
+        if train_dataloader.dataset.perturbation is not None:
+            self.log("Dataset's perturbation will be removed", "WARNING")
+            train_dataloader.dataset.perturbation = None
+
         optimizer: Optimizer = hydra.utils.instantiate(
             self.optimizer_config, params=model.parameters()
         )
@@ -214,13 +218,13 @@ class TrainingLoop(CsvWriterMixin, Task):
 
             model.train()
 
-            for batch in train_dataloader:
+            for (batch,) in train_dataloader:
                 # Zero gradients
                 optimizer.zero_grad()
 
                 # Forward pass
                 try:
-                    loss_dict = model.compute_loss(batch[0], self.annealing_factor)
+                    loss_dict = model.compute_loss(batch, self.annealing_factor)
                 except (KeyboardInterrupt, ValueError) as exception:
                     self.close_csv_writer()
                     raise exception
@@ -240,7 +244,7 @@ class TrainingLoop(CsvWriterMixin, Task):
             """ if valid_dataloader is not None:
                 model.eval()
                 with torch.no_grad():
-                    for batch in valid_dataloader:
+                    for (batch,) in valid_dataloader:
                         loss_dict = model.compute_loss(batch, self.annealing_factor)
                         for key, value in loss_dict.items():
                             if isinstance(value, torch.Tensor):

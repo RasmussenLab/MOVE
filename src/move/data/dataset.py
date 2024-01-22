@@ -87,6 +87,22 @@ class NamedDataset(Dataset, ABC):
         enc_data = cast(EncodedData, torch.load(path))
         return cls(**enc_data)
 
+    def select(self, feature_name: str) -> torch.Tensor:
+        """Slice and return values corresponding to a single feature."""
+        slice_ = self.feature_slice(feature_name)
+        return self.tensor[:, slice_]
+
+    def feature_slice(self, feature_name: str) -> slice:
+        """Return a slice object containing start and end position of a feature
+        in the dataset."""
+        if feature_name not in self.feature_names:
+            raise KeyError(f"{feature_name} not found")
+        idx = self.feature_names.index(feature_name)
+        num_classes = getattr(self, "num_classes", 1)
+        start = idx * num_classes
+        stop = (idx + 1) * num_classes
+        return slice(start, stop)
+
 
 class DiscreteDataset(NamedDataset):
     """A dataset for discrete values. Discrete data is expected to be a one-hot
@@ -308,7 +324,7 @@ class MoveDataset(Dataset):
                 value.mapped_value = dataset.one_hot_encode(value.target_value)
             else:
                 value.mapped_value = torch.FloatTensor([value.target_value])
-            value.feature_index = dataset.feature_names.index(value.feature_name)
+            value.feature_indices = dataset.feature_slice(value.feature_name)
         self._perturbation = value
 
     @classmethod
@@ -338,6 +354,15 @@ class MoveDataset(Dataset):
         """Add a perturbation to dataset."""
         self.perturbation = Perturbation(dataset_name, feature_name, value)
 
+    def select(self, feature_name: str) -> torch.Tensor:
+        """Slice and return values corresponding to a single feature. If the
+        same feature name exists in more than one dataset, the first matching
+        feature will be returned."""
+        for dataset in self.datasets.values():
+            if feature_name in dataset.feature_names:
+                return dataset.select(feature_name)
+        raise KeyError(f"{feature_name} not found in any dataset")
+
 
 class Perturbation:
     """Perturbation in a MOVE dataset. A perturbation will target a feature in
@@ -356,18 +381,17 @@ class Perturbation:
         self.target_value = target_value
 
     @property
-    def feature_index(self) -> int:
-        if (idx := getattr(self, "_feature_idx", None)) is None:
-            raise UnsetProperty("Target feature index")
+    def feature_indices(self) -> tuple[int, int]:
+        if (idx := getattr(self, "_feature_indices", None)) is None:
+            raise UnsetProperty("Target feature indices")
         return idx
 
-    @feature_index.setter
-    def feature_index(self, idx: int) -> None:
-        self._feature_idx = idx * self.mapped_value.numel()
-
-    @property
-    def feature_indices(self) -> tuple[int, int]:
-        return self.feature_index, self.feature_index + self.mapped_value.numel()
+    @feature_indices.setter
+    def feature_indices(self, value: Union[tuple[int, int], slice]) -> None:
+        if isinstance(value, slice):
+            self._feature_indices = (value.start, value.stop)
+        else:
+            self._feature_indices = value
 
     @property
     def mapped_value(self) -> torch.Tensor:

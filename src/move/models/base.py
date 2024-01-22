@@ -41,6 +41,7 @@ class BaseVae(nn.Module, ABC):
     decoder: nn.Module
     split_input: SplitInput
     split_output: SplitOutput
+    num_latent: int
 
     def __call__(self, *args: Any, **kwds: Any) -> VaeOutput:
         return super().__call__(*args, **kwds)
@@ -100,3 +101,8 @@ class BaseVae(nn.Module, ABC):
             state_dict=self.state_dict(),
         )
         torch.save(model, model_path)
+
+
+def reload_vae(model_path: Path) -> BaseVae:
+    """Alias of `BaseVae.reload`."""
+    return BaseVae.reload(model_path)

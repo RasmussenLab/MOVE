@@ -1,7 +1,8 @@
 __all__ = ["plot_latent_space_with_cat", "plot_latent_space_with_con"]
 
-from typing import Any
+from typing import Any, cast
 
+import matplotlib.axes
 import matplotlib.figure
 import matplotlib.pyplot as plt
 import matplotlib.style
@@ -56,13 +57,15 @@ def plot_latent_space_with_cat(
         raise ValueError("Expected at least two dimensions in latent space.")
     with style_settings(style), color_cycle(colormap):
         fig, ax = plt.subplots()
+        assert isinstance(fig, matplotlib.figure.Figure)
+        assert isinstance(ax, matplotlib.axes.Axes)
         codes = np.unique(feature_values)
         for code in codes:
             category = feature_mapping[str(code)]
             is_category = (feature_values == code) & ~is_nan
-            dims = np.take(latent_space.compress(is_category, axis=0), [0, 1], axis=1).T
+            dims = np.take(latent_space.compress(is_category, axis=0), (0, 1), axis=1).T
             ax.scatter(*dims, label=category)
-        dims = np.take(latent_space.compress(is_nan, axis=0), [0, 1], axis=1).T
+        dims = np.take(latent_space.compress(is_nan, axis=0), (0, 1), axis=1).T
         ax.scatter(*dims, label="NaN")
         ax.set(xlabel="dim 0", ylabel="dim 1")
         legend = ax.legend()
@@ -98,8 +101,10 @@ def plot_latent_space_with_con(
     norm = TwoSlopeNorm(0.0, min(feature_values), max(feature_values))
     with style_settings(style):
         fig, ax = plt.subplots()
+        assert isinstance(fig, matplotlib.figure.Figure)
+        assert isinstance(ax, matplotlib.axes.Axes)
         dims = latent_space[:, 0], latent_space[:, 1]
-        pts = ax.scatter(*dims, c=feature_values, cmap=colormap, norm=norm)
+        pts = ax.scatter(*dims, c=cast(list, feature_values), cmap=colormap, norm=norm)
         cbar = fig.colorbar(pts, ax=ax)
         cbar.ax.set(ylabel=feature_name)
         ax.set(xlabel="dim 0", ylabel="dim 1")

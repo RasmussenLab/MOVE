@@ -216,6 +216,7 @@ class Project(CsvWriterMixin, Task):
         if self.reducer is None:
             array = latent_space
         else:
+            self.log("Reducing data to two dimensions")
             reduced_latent_space = self.reducer.fit_transform(latent_space)
             array = np.hstack((reduced_latent_space, latent_space))
 

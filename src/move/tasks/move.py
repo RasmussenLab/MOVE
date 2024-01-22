@@ -61,6 +61,8 @@ class MoveTask(ParentTask):
 
     def init_training_loop(self) -> TrainingLoop:
         """Initialize a training loop."""
-        training_loop: TrainingLoop = hydra.utils.instantiate(self.training_loop_config)
+        training_loop: TrainingLoop = hydra.utils.instantiate(
+            self.training_loop_config, _recursive_=False
+        )
         training_loop.parent = self
         return training_loop

@@ -348,6 +348,13 @@ class MoveDataset(Dataset):
             datasets.append(ContinuousDataset.load(path / f"{dataset_name}.pt"))
         return cls(*datasets)
 
+    def find(self, feature_name) -> NamedDataset:
+        """Return dataset which contains feature name."""
+        for dataset in self.datasets.values():
+            if feature_name in dataset.feature_names:
+                return dataset
+        raise KeyError(f"{feature_name} not found in any dataset")
+
     def perturb(
         self, dataset_name: str, feature_name: str, value: Union[str, float, None]
     ) -> None:

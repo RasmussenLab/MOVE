@@ -63,7 +63,9 @@ class TrainModel(ParentTask):
         )
         self.logger.info("Training model")
         # Train
-        training_loop: TrainingLoop = hydra.utils.instantiate(self.training_loop_config)
+        training_loop: TrainingLoop = hydra.utils.instantiate(
+            self.training_loop_config, _recursive_=False
+        )
         training_loop.parent = self
         training_loop.run(model, dataloader)
         training_loop.plot()

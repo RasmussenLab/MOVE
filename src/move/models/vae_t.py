@@ -91,7 +91,7 @@ class VaeT(BaseVae):
             self.discrete_shapes,
             self.continuous_shapes,
             "StudentT",
-            continuous_activation_name="Tanh",
+            # continuous_activation_name="Tanh",
         )
 
         self.in_features = self.num_disc_features + self.num_cont_features
@@ -133,7 +133,14 @@ class VaeT(BaseVae):
         return self.encode(batch)[0]
 
     def reconstruct(self, batch: torch.Tensor) -> torch.Tensor:
-        return self(batch)["x_recon"]
+        out = self(batch)["x_recon"]
+        out_disc, out_cont = self.split_output(out)
+        recon = torch.cat(
+            [logits.flatten(start_dim=1) for logits in out_disc]
+            + [loc for (_, loc, _) in out_cont],
+            dim=1,
+        )
+        return recon
 
     def forward(self, x: torch.Tensor) -> VaeOutput:
         z_loc, z_scale = self.encode(x)
@@ -175,8 +182,8 @@ class VaeT(BaseVae):
         # Compute continuous dataset losses
         cont_rec_loss = torch.tensor(0.0)
         for i, args in enumerate(out_cont):
-            loc, logvar, p_df = args
-            df = torch.pow(torch.exp(p_df * 0.5) * 27.5 + 2.5, -1)
+            df, loc, logvar = args
+            df = torch.pow(torch.exp(df * -0.5) * 27.5 + 2.5, -1)
             scale = torch.exp(logvar * 0.5)
             cont_rec_loss -= self.compute_log_prob(
                 StudentT, batch_cont[i], df=df, loc=loc, scale=scale

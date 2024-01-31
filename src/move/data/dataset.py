@@ -180,12 +180,8 @@ class MoveDataset(Dataset):
             len(args[0]) == len(dataset) for dataset in args[1:]
         ):
             raise ValueError("Size mismatch between datasets")
-        self.datasets = {
-            dataset.name: dataset
-            for dataset in sorted(
-                args, key=operator.attrgetter("data_type"), reverse=True
-            )
-        }
+        self._list = sorted(args, key=operator.attrgetter("data_type"), reverse=True)
+        self.datasets = {dataset.name: dataset for dataset in self._list}
         if len(self.datasets) != len(args):
             raise ValueError("One or more datasets have the same name")
         self._perturbation = None
@@ -194,7 +190,7 @@ class MoveDataset(Dataset):
         items = [[dataset[index] for dataset in self.datasets.values()]]
         if self.perturbation is not None:
             values = []
-            for dataset in self.datasets.values():
+            for dataset in self._list:
                 if dataset.name == self.perturbation.dataset_name:
                     left, _, right = torch.tensor_split(
                         dataset[index], self.perturbation.feature_indices
@@ -206,16 +202,16 @@ class MoveDataset(Dataset):
         return tuple(torch.cat(item, dim=-1) for item in items)
 
     def __len__(self) -> int:
-        return len(next(iter(self.datasets.values())))
+        return len(self._list[0])
 
     def __repr__(self) -> str:
-        dataset_count = len(self.datasets)
+        dataset_count = len(self._list)
         s = "s" if dataset_count != 1 else ""
         return f"{self.__class__.__name__}({dataset_count} dataset{s})"
 
     def _repr_html_(self) -> str:
         rows = ""
-        for dataset in self.datasets.values():
+        for dataset in self._list:
             num_classes = (
                 str(dataset.num_classes)
                 if isinstance(dataset, DiscreteDataset)
@@ -254,13 +250,13 @@ class MoveDataset(Dataset):
 
     @property
     def num_features(self) -> int:
-        return sum(dataset.num_features for dataset in self.datasets.values())
+        return sum(dataset.num_features for dataset in self._list)
 
     @property
     def num_discrete_features(self) -> int:
         return sum(
             dataset.num_features
-            for dataset in self.datasets.values()
+            for dataset in self._list
             if isinstance(dataset, DiscreteDataset)
         )
 
@@ -268,7 +264,7 @@ class MoveDataset(Dataset):
     def num_continuous_features(self) -> int:
         return sum(
             dataset.num_features
-            for dataset in self.datasets.values()
+            for dataset in self._list
             if isinstance(dataset, ContinuousDataset)
         )
 
@@ -276,7 +272,7 @@ class MoveDataset(Dataset):
     def discrete_shapes(self) -> list[tuple[int, int]]:
         return [
             dataset.original_shape
-            for dataset in self.datasets.values()
+            for dataset in self._list
             if isinstance(dataset, DiscreteDataset)
         ]
 
@@ -284,7 +280,7 @@ class MoveDataset(Dataset):
     def continuous_shapes(self) -> list[int]:
         return [
             dataset.num_features
-            for dataset in self.datasets.values()
+            for dataset in self._list
             if isinstance(dataset, ContinuousDataset)
         ]
 
@@ -295,11 +291,27 @@ class MoveDataset(Dataset):
     @property
     def feature_names(self) -> list[str]:
         feature_names = []
-        for dataset in self.datasets.values():
+        for dataset in self._list:
             if dataset.feature_names:
                 feature_names.extend(dataset.feature_names)
             else:
                 raise ValueError("Missing feature names in one or more datasets")
+        return feature_names
+
+    @property
+    def continuous_feature_names(self) -> list[str]:
+        feature_names = []
+        for dataset in self._list:
+            if dataset.data_type == "continuous":
+                feature_names.extend(dataset.feature_names)
+        return feature_names
+
+    @property
+    def discrete_feature_names(self) -> list[str]:
+        feature_names = []
+        for dataset in self._list:
+            if dataset.data_type == "discrete":
+                feature_names.extend(dataset.feature_names)
         return feature_names
 
     @property
@@ -350,7 +362,7 @@ class MoveDataset(Dataset):
 
     def find(self, feature_name) -> NamedDataset:
         """Return dataset which contains feature name."""
-        for dataset in self.datasets.values():
+        for dataset in self._list:
             if feature_name in dataset.feature_names:
                 return dataset
         raise KeyError(f"{feature_name} not found in any dataset")
@@ -365,7 +377,7 @@ class MoveDataset(Dataset):
         """Slice and return values corresponding to a single feature. If the
         same feature name exists in more than one dataset, the first matching
         feature will be returned."""
-        for dataset in self.datasets.values():
+        for dataset in self._list:
             if feature_name in dataset.feature_names:
                 return dataset.select(feature_name)
         raise KeyError(f"{feature_name} not found in any dataset")

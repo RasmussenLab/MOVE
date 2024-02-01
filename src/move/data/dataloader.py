@@ -5,7 +5,7 @@ from typing import Iterator
 import torch
 from torch.utils.data import DataLoader
 
-from move.data.dataset import NamedDataset, MoveDataset
+from move.data.dataset import MoveDataset, NamedDataset
 
 
 class MoveDataLoader(DataLoader):

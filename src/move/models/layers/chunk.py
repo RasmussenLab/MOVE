@@ -2,7 +2,7 @@ __all__ = ["Chunk", "SplitInput", "SplitOutput"]
 
 import itertools
 import operator
-from typing import Any, Optional, Union, Type, TypeVar, cast
+from typing import Any, Optional, Type, TypeVar, Union, cast
 
 import torch
 from torch import nn

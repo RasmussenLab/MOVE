@@ -7,8 +7,13 @@ from typing import Optional, Type
 import torch
 import torch.optim
 from torch import nn
-from torch.distributions import Distribution, Categorical, Normal, StudentT
-from torch.distributions import kl_divergence
+from torch.distributions import (
+    Categorical,
+    Distribution,
+    Normal,
+    StudentT,
+    kl_divergence,
+)
 
 from move.core.exceptions import CudaIsNotAvailable, ShapeAndWeightMismatch
 from move.models.base import BaseVae, LossDict, VaeOutput

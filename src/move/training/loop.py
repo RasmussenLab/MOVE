@@ -6,15 +6,15 @@ from typing import Literal, Optional, cast
 import hydra
 import pandas as pd
 import torch
+from torch.nn.utils.clip_grad import clip_grad_norm_
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler as LRScheduler
-from torch.nn.utils.clip_grad import clip_grad_norm_
 
 import move.visualization as viz
 from move.conf.optim import LrSchedulerConfig, OptimizerConfig
 from move.data.dataloader import MoveDataLoader
-from move.models.base import LossDict, BaseVae
-from move.tasks.base import Task, CsvWriterMixin
+from move.models.base import BaseVae, LossDict
+from move.tasks.base import CsvWriterMixin, Task
 
 AnnealingFunction = Literal["linear", "cosine", "sigmoid", "stairs"]
 AnnealingSchedule = Literal["monotonic", "cyclical"]

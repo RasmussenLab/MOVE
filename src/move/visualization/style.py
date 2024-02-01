@@ -23,13 +23,13 @@ def color_cycle(colormap: str) -> ContextManager:
     """Returns a context manager for using a color cycle in plots.
 
     Args:
-        colormap: Name of qualitative color map.
+        colormap: Name of palette.
 
     Returns:
         Context manager
     """
     registry: ColormapRegistry = getattr(matplotlib, "colormaps")
-    colormap = registry[colormap]
+    colormap = registry[colormap]  # type: ignore
     if not isinstance(colormap, ListedColormap):
         raise ValueError("Only colormaps that are list of colors supported.")
     prop_cycle = cycler(color=getattr(colormap, "colors"))

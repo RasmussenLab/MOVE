@@ -3,14 +3,14 @@ __all__ = ["DiscreteDataset", "ContinuousDataset", "MoveDataset"]
 import operator
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Literal, NoReturn, Optional, Union, Type, TypeVar, cast
+from typing import Literal, NoReturn, Optional, Type, TypeVar, Union, cast
 
 import pandas as pd
 import torch
 from torch.utils.data import Dataset
 
-from move.core.typing import EncodedData
 from move.core.exceptions import UnsetProperty
+from move.core.typing import EncodedData
 
 DataType = Literal["continuous", "discrete"]
 Index = Union[int, tuple[str, int], tuple[int, int]]

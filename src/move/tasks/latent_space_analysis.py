@@ -11,15 +11,15 @@ from numpy.typing import NDArray
 from sklearn.base import TransformerMixin
 
 import move.visualization as viz
-from move.core.exceptions import UnsetProperty
-from move.core.typing import PathLike
-from move.conf.tasks import ReducerConfig
-from move.data.dataset import DiscreteDataset
-from move.data.dataloader import MoveDataLoader
-from move.data.io import sanitize_filename
-from move.models.base import BaseVae
 from move.analysis.feature_importance import FeatureImportance
 from move.analysis.metrics import ComputeAccuracyMetrics
+from move.conf.tasks import ReducerConfig
+from move.core.exceptions import UnsetProperty
+from move.core.typing import PathLike
+from move.data.dataloader import MoveDataLoader
+from move.data.dataset import DiscreteDataset
+from move.data.io import sanitize_filename
+from move.models.base import BaseVae
 from move.tasks.base import CsvWriterMixin, Task
 from move.tasks.move import MoveTask
 

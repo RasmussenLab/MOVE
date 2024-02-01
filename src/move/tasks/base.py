@@ -7,10 +7,10 @@ from io import TextIOWrapper
 from pathlib import Path
 from typing import Any, Optional, Union, cast
 
-from omegaconf import OmegaConf
 from numpy.typing import NDArray
+from omegaconf import OmegaConf
 
-from move.core.exceptions import UnsetProperty, FILE_EXISTS_WARNING
+from move.core.exceptions import FILE_EXISTS_WARNING, UnsetProperty
 from move.core.logging import get_logger
 from move.core.typing import LoggingLevel, PathLike
 from move.data.writer import CsvWriter

@@ -1,6 +1,6 @@
 __all__ = ["get_luminance", "get_contrast_ratio", "MIN_CONTRAST"]
 
-from typing import Union, Sequence
+from typing import Sequence, Union
 
 import numpy as np
 from numpy.typing import NDArray

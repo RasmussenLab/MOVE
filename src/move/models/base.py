@@ -4,7 +4,7 @@ import inspect
 from abc import ABC, abstractmethod
 from importlib import import_module
 from pathlib import Path
-from typing import Any, Type, TypedDict, TypeVar, cast, OrderedDict
+from typing import Any, OrderedDict, Type, TypedDict, TypeVar, cast
 
 import torch
 from torch import nn
@@ -80,7 +80,8 @@ class BaseVae(nn.Module, ABC):
         model_dict = cast(SerializedModel, torch.load(model_path))
         target = model_dict["config"].pop("_target_")
         module_name, class_name = target.rsplit(".", 1)
-        cls_: Type = getattr(import_module(module_name), class_name)
+        module = import_module(module_name)
+        cls_: Type = getattr(module, class_name)
         model = cls_(**model_dict["config"])
         model.load_state_dict(model_dict["state_dict"])
         return model

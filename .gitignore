@@ -33,7 +33,8 @@ outputs/
 
 # Tutorial files
 tutorial/*
-!tutorial/config
+!tutorial/config/*maize*.yaml
+!tutorial/config/*random_small*.yaml
 !tutorial/data
 !tutorial/maize/maize_dataset.py
 !tutorial/notebooks/*.ipynb

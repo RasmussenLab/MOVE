@@ -5,8 +5,9 @@
 __pycache__/
 *.py[cod]
 
-# NumPy binary files
-data*/*.npy
+# NumPy/PyTorch binary files
+*.npy
+*.pt
 
 # Distribution and packaging files
 build/
@@ -31,10 +32,13 @@ outputs/
 *.log
 
 # Tutorial files
-**/interim_data/
-**/processed_data/
-**/results/
-tutorial/maize/data
+tutorial/*
+!tutorial/config/*maize*.yaml
+!tutorial/config/*random_small*.yaml
+!tutorial/data
+!tutorial/maize/maize_dataset.py
+!tutorial/notebooks/*.ipynb
+!tutorial/README.md
 
 # Virtual environment
 venv/
@@ -43,3 +47,14 @@ virtualvenv/
 # docs files
 docs/build/
 docs/source/_templates/
+
+# Root folder
+/*.*
+!/.gitignore
+!/.readthedocs.yaml
+!/LICENSE
+!/MANIFEST.in
+!/README.md
+!/pyproject.toml
+!/requirements.txt
+!/setup.cfg

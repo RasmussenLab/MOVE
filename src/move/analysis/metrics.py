@@ -33,9 +33,9 @@ def calculate_accuracy(
     y_pred = np.ma.masked_array(reconstruction, mask=is_nan)
 
     num_features = np.ma.count(y_true, axis=1)
-    scores = np.ma.filled(np.sum(y_true == y_pred, axis=1) / num_features, 0)
+    scores = np.sum(y_true == y_pred, axis=1) / num_features
 
-    return scores
+    return np.ma.filled(scores, 0)
 
 
 def calculate_cosine_similarity(
@@ -64,12 +64,12 @@ def calculate_cosine_similarity(
 
     # Equivalent to `np.diag(sklearn.metrics.pairwise.cosine_similarity(x, y))`
     # But can handle masked arrays
-    scores = np.ma.compressed(np.sum(x * y, axis=1)) / (norm(x) * norm(y))
+    scores = np.sum(x * y, axis=1) / (norm(x) * norm(y))
 
-    return scores
+    return np.ma.filled(scores, 0)
 
 
-def norm(x: np.ma.MaskedArray, axis: int = 1) -> FloatArray:
+def norm(x: np.ma.MaskedArray, axis: int = 1) -> np.ma.MaskedArray:
     """Return Euclidean norm. This function is equivalent to `np.linalg.norm`,
     but it can handle masked arrays.
 
@@ -80,4 +80,4 @@ def norm(x: np.ma.MaskedArray, axis: int = 1) -> FloatArray:
     Returns:
         1D array with the specified axis removed.
     """
-    return np.ma.compressed(np.sqrt(np.sum(x**2, axis=axis)))
+    return np.sqrt(np.sum(x**2, axis=axis))

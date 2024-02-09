@@ -3,8 +3,10 @@ import math
 import torch
 
 
-def hdi_bounds(x: torch.Tensor, hdi_prob: float = 0.95) -> torch.Tensor:
-    """Return high density interval bounds (HDI) of a samples-features matrix.
+def hdi_bounds(
+    x: torch.Tensor, hdi_prob: float = 0.95
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Return highest density interval (HDI) of a samples-features matrix.
     The HDI represents the range within which most of the samples are located.
 
     Args:
@@ -12,7 +14,7 @@ def hdi_bounds(x: torch.Tensor, hdi_prob: float = 0.95) -> torch.Tensor:
         hdi_prob: Percentage of samples inside the HDI
 
     Returns:
-        Two-column tensor (`num_features` x 2)
+        Lower and upper bounds of HDI
     """
     # adapated from arviz
 
@@ -31,4 +33,4 @@ def hdi_bounds(x: torch.Tensor, hdi_prob: float = 0.95) -> torch.Tensor:
     hdi_min = torch.diag(x[min_idx])
     hdi_max = torch.diag(x[min_idx + interval_idx_inc])
 
-    return torch.stack((hdi_min, hdi_max)).T
+    return hdi_min, hdi_max

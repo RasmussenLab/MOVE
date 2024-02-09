@@ -172,8 +172,10 @@ class MoveDataset(Dataset):
     A MOVE dataset can have a perturbation in one of its features. This
     changes all the values of that feature. A perturbed dataset will return a
     tuple when indexed. In the first position, it will contain the original
-    output as if there was no perturbation. The other element of the tuple will
-    correspond to the output affected by the perturbation."""
+    output as if there was no perturbation. The second element of the tuple
+    will correspond to the output affected by the perturbation. Lastly, the
+    third element is a boolean indicating whether the perturbation changed or
+    not the original value."""
 
     def __init__(self, *args: NamedDataset) -> None:
         if len(args) > 1 and not all(
@@ -187,6 +189,7 @@ class MoveDataset(Dataset):
         self._perturbation = None
 
     def __getitem__(self, index: int) -> tuple[torch.Tensor, ...]:
+        indices = None
         items = [[dataset[index] for dataset in self.datasets.values()]]
         if self.perturbation is not None:
             values = []
@@ -196,10 +199,17 @@ class MoveDataset(Dataset):
                         dataset[index], self.perturbation.feature_indices
                     )
                     values.extend((left, self.perturbation.mapped_value, right))
+                    indices = torch.all(
+                        dataset[index][self.perturbation.feature_slice]
+                        != self.perturbation.mapped_value
+                    )
                 else:
                     values.append(dataset[index])
             items.append(values)
-        return tuple(torch.cat(item, dim=-1) for item in items)
+        out = tuple(torch.cat(item, dim=-1) for item in items)
+        if indices is not None:
+            out += (indices,)
+        return out
 
     def __len__(self) -> int:
         return len(self._list[0])
@@ -336,7 +346,7 @@ class MoveDataset(Dataset):
                 value.mapped_value = dataset.one_hot_encode(value.target_value)
             else:
                 value.mapped_value = torch.FloatTensor([value.target_value])
-            value.feature_indices = dataset.feature_slice(value.feature_name)
+            value.feature_slice = dataset.feature_slice(value.feature_name)
         self._perturbation = value
 
     @classmethod
@@ -370,8 +380,18 @@ class MoveDataset(Dataset):
     def perturb(
         self, dataset_name: str, feature_name: str, value: Union[str, float, None]
     ) -> None:
-        """Add a perturbation to dataset."""
+        """Add a perturbation to dataset.
+
+        Args:
+            dataset_name: Name of dataset to perturb
+            feature_name: Name of feature in dataset to perturb
+            value: Value of perturbation
+        """
         self.perturbation = Perturbation(dataset_name, feature_name, value)
+
+    def remove_perturbation(self) -> None:
+        """Remove perturbation from dataset."""
+        self.perturbation = None
 
     def select(self, feature_name: str) -> torch.Tensor:
         """Slice and return values corresponding to a single feature. If the
@@ -399,18 +419,26 @@ class Perturbation:
         self.feature_name = target_feature_name
         self.target_value = target_value
 
+    def __repr__(self) -> str:
+        return str(self)
+
+    def __str__(self) -> str:
+        return f'{self.__class__.__name__}("{self.dataset_name}/{self.feature_name}")'
+
     @property
     def feature_indices(self) -> tuple[int, int]:
-        if (idx := getattr(self, "_feature_indices", None)) is None:
-            raise UnsetProperty("Target feature indices")
-        return idx
+        slice_ = self.feature_slice
+        return slice_.start, slice_.stop
 
-    @feature_indices.setter
-    def feature_indices(self, value: Union[tuple[int, int], slice]) -> None:
-        if isinstance(value, slice):
-            self._feature_indices = (value.start, value.stop)
-        else:
-            self._feature_indices = value
+    @property
+    def feature_slice(self) -> slice:
+        if (slice_ := getattr(self, "_feature_slice", None)) is None:
+            raise UnsetProperty("Target feature indices")
+        return slice_
+
+    @feature_slice.setter
+    def feature_slice(self, value: slice) -> None:
+        self._feature_slice = value
 
     @property
     def mapped_value(self) -> torch.Tensor:

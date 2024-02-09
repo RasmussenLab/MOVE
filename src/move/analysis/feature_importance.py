@@ -56,7 +56,7 @@ class FeatureImportance(CsvWriterMixin, Task):
                 self.dataloader.dataset.perturb(dataset.name, feature_name, value)
                 row = [feature_name]
                 for tup in self.dataloader:
-                    batch, pert_batch = tup
+                    batch, pert_batch, _ = tup
                     z = self.model.project(batch)
                     z_pert = self.model.project(pert_batch)
                     diff = torch.sum(z_pert - z, dim=-1)

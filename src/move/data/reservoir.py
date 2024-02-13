@@ -98,7 +98,7 @@ class PairedReservoir(Reservoir):
     """Genereate a paired set of random samples (reservoirs) from a paired set
     of streams, whose size is either unknown or very large."""
 
-    def __init__(self, capacity: int, num_stream: int = 2):
+    def __init__(self, capacity: int):
         super().__init__(capacity)
 
     def __call__(self) -> tuple[torch.Tensor, ...]:
@@ -121,7 +121,7 @@ class PairedReservoir(Reservoir):
         stream1 = streams_[0]
         num_samples = stream1.size(0)
 
-        if all(stream.size(0) == num_samples for stream in streams_[1:]):
+        if not all(stream.size(0) == num_samples for stream in streams_[1:]):
             raise ValueError("Streams must have the same number of samples")
 
         self.total_samples += num_samples
@@ -158,8 +158,8 @@ class PairedReservoir(Reservoir):
         j = torch.floor(torch.rand(i.shape) * i).long()
         replace = j < self.capacity
 
-        for a, b in zip(j[replace], i[replace] - self.idx):
+        for m, n in zip(j[replace], i[replace] - self.idx):
             for reservoir, stream in zip(self._reservoir, streams_):
-                reservoir[a] = stream[b]
+                reservoir[m] = stream[n]
 
         self.idx += num_samples

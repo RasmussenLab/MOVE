@@ -1,6 +1,6 @@
 __all__ = ["one_hot_encode", "one_hot_encode_single", "scale"]
 
-from typing import Any, Literal, Optional
+from typing import Any, Literal, Optional, cast
 
 import numpy as np
 import pandas as pd
@@ -49,7 +49,7 @@ def one_hot_encode(x_: ArrayLike) -> tuple[IntArray, dict[str, int]]:
     return encoded_x, mapping
 
 
-def one_hot_encode_single(mapping: dict[str, int], value: Optional[str]) -> IntArray:
+def one_hot_encode_single(mapping: dict[str, int], value: Optional[str]) -> FloatArray:
     """One-hot encode a single value given an existing mapping.
 
     Args:
@@ -79,5 +79,16 @@ def scale(x: np.ndarray) -> tuple[FloatArray, BoolArray]:
     logx = np.log2(x + 1)
     mask_1d = ~np.isclose(np.nanstd(logx, axis=0), 0.0)
     scaled_x = standardize(logx[:, mask_1d], axis=0)
-    scaled_x[np.isnan(scaled_x)] = 0
-    return scaled_x, mask_1d
+    return fill(cast(FloatArray, scaled_x)), mask_1d
+
+
+def fill(x: np.ndarray) -> FloatArray:
+    """Replace NaNs with zeroes.
+
+    Args:
+        x: Array
+
+    Returns:
+        Array with no NaNs"""
+    x[np.isnan(x)] = 0
+    return x

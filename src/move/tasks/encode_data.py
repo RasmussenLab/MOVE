@@ -91,6 +91,8 @@ class EncodeData(ParentTask):
             elif op_name == "one_hot_encoding":
                 values, mapping = preprocessing.one_hot_encode(values)
                 self.mappings[dataset_name] = mapping
+            else:
+                values = preprocessing.fill(values)
             tensor = torch.from_numpy(values).float()
             # Save data
             data = {

@@ -23,7 +23,7 @@ PathLike = Union[str, os.PathLike]
 Split = Literal["train", "valid", "test"]
 
 BoolArray = NDArray[np.bool_]
-IntArray = NDArray[np.int_]
+IntArray = Union[NDArray[np.int_], NDArray[np.uint]]
 FloatArray = NDArray[np.float_]
 ObjectArray = NDArray[np.object_]
 

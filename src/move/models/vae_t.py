@@ -158,10 +158,19 @@ class VaeT(BaseVae):
         }
 
     @staticmethod
-    def compute_log_prob(dist: Type, x: torch.Tensor, **dist_args):
+    def compute_log_prob(
+        dist: Type,
+        x: torch.Tensor,
+        ignore_mask: Optional[torch.Tensor] = None,
+        **dist_args
+    ):
         """Compute the log of the probability density of the likelihood p(x|z)."""
         px: Distribution = dist(**dist_args)
-        return torch.sum(px.log_prob(x), dim=-1).mean()
+        out = px.log_prob(x)
+        if ignore_mask is None:
+            return torch.sum(out, dim=-1).mean()
+        out = out * ignore_mask
+        return out.sum(dim=-1).sum() / ignore_mask.sum(-1).sum()
 
     @staticmethod
     def compute_kl_div(qz_loc: torch.Tensor, qz_scale: torch.Tensor):
@@ -182,7 +191,10 @@ class VaeT(BaseVae):
         disc_rec_loss = torch.tensor(0.0)
         for i, args in enumerate(out_disc):
             y = torch.argmax(batch_disc[i], dim=-1)
-            disc_rec_loss -= self.compute_log_prob(Categorical, y, logits=args)
+            ignore_mask = torch.any(batch_disc[i] == 1, dim=-1).float()  # Ignore NaNs
+            disc_rec_loss -= self.compute_log_prob(
+                Categorical, y, ignore_mask, logits=args
+            )
 
         # Compute continuous dataset losses
         cont_rec_loss = torch.tensor(0.0)
@@ -190,8 +202,9 @@ class VaeT(BaseVae):
             df, loc, logvar = args
             df = torch.pow(torch.exp(df * -0.5) * 27.5 + 2.5, -1)
             scale = torch.exp(logvar * 0.5)
+            ignore_mask = torch.logical_not(batch_cont[i] == 0.0)  # Ignore NaNs
             cont_rec_loss -= self.compute_log_prob(
-                StudentT, batch_cont[i], df=df, loc=loc, scale=scale
+                StudentT, batch_cont[i], ignore_mask, df=df, loc=loc, scale=scale
             )
 
         # Calculate overall reconstruction and regularization loss

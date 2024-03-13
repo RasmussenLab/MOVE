@@ -54,6 +54,8 @@ class Reservoir:
     def reservoir(self) -> torch.Tensor:
         if self._reservoir is None:
             raise UnsetProperty("Reservoir")
+        if self.total_samples < self.capacity:
+            return self._reservoir[: self.total_samples]
         return self._reservoir
 
     def add(self, stream: torch.Tensor):
@@ -108,6 +110,8 @@ class PairedReservoir(Reservoir):
     def reservoir(self) -> tuple[torch.Tensor, ...]:
         if self._reservoir is None:
             raise UnsetProperty("Reservoir")
+        if self.total_samples < self.capacity:
+            return tuple([r[: self.total_samples] for r in self._reservoir])
         return self._reservoir
 
     def add(self, *streams: torch.Tensor):

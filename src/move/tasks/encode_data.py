@@ -5,17 +5,10 @@ from typing import TypedDict
 import numpy as np
 import torch
 
+from move.conf.schema import InputConfig
 from move.core.typing import PathLike
 from move.data import io, preprocessing
 from move.tasks.base import ParentTask
-
-
-class InputConfig(TypedDict):
-    """Dictionary containing name of dataset and name of preprocessing
-    operation to apply to it"""
-
-    name: str
-    preprocessing: preprocessing.PreprocessingOpName
 
 
 class EncodeData(ParentTask):

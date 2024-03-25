@@ -33,5 +33,5 @@ try:
         _target_: str = field(default=get_fully_qualname(UMAP), init=False, repr=False)
         n_neighbors: int = 15
 
-except (ModuleNotFoundError, SystemError):
+except (ModuleNotFoundError, SystemError, TypeError):
     pass

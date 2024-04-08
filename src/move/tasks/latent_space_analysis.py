@@ -63,6 +63,8 @@ class LatentSpaceAnalysis(MoveTask):
             containing all latent representations will still be created.
     """
 
+    loop_filename: str = "loop.yaml"
+    model_filename: str = "model.pt"
     results_subdir: str = "latent_space"
 
     def __init__(
@@ -86,7 +88,7 @@ class LatentSpaceAnalysis(MoveTask):
         self.compute_feature_importance = compute_feature_importance
 
     def run(self) -> Any:
-        model_path = self.output_dir / "model.pt"
+        model_path = self.output_dir / self.model_filename
 
         if model_path.exists():
             self.logger.debug("Re-loading model")
@@ -98,6 +100,7 @@ class LatentSpaceAnalysis(MoveTask):
             training_loop = self.init_training_loop()
             training_loop.train(model, train_dataloader)
             training_loop.plot()
+            training_loop.to_yaml(self.output_dir / self.loop_filename)
             model.save(model_path)
 
         model.eval()
@@ -206,7 +209,7 @@ class Project(CsvWriterMixin, Task):
 
         if self.dataloader.dataset.perturbation is not None:
             self.log("Dataset's perturbation will be removed", "WARNING")
-            self.dataloader.dataset.perturbation = None
+            self.dataloader.dataset.remove_perturbation()
 
         tensors = []
         for (batch,) in self.dataloader:

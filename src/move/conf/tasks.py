@@ -1,6 +1,7 @@
 __all__ = ["PcaConfig", "TsneConfig"]
 
 from dataclasses import dataclass, field
+from typing import Literal, Union, Optional
 
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
@@ -35,3 +36,10 @@ try:
 
 except (ModuleNotFoundError, SystemError, TypeError):
     pass
+
+
+@dataclass
+class PerturbationConfig:
+    target_dataset_name: str
+    target_feature_name: Optional[str]
+    target_value: Union[float, int, str]

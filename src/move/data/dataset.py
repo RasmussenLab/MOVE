@@ -167,7 +167,7 @@ class MoveDataset(Dataset):
     and continuous).
 
     When indexed, returns a flat concatenation of the indexed elements of all
-    constituting datasets.
+    constituent datasets.
 
     A MOVE dataset can have a perturbation in one of its features. This
     changes all the values of that feature. A perturbed dataset will return a
@@ -370,8 +370,12 @@ class MoveDataset(Dataset):
             datasets.append(ContinuousDataset.load(path / f"{dataset_name}.pt"))
         return cls(*datasets)
 
+    def feature_names_of(self, dataset_name: str) -> list[str]:
+        """Return feature names of a constituent dataset."""
+        return self.datasets[dataset_name].feature_names
+
     def find(self, feature_name) -> NamedDataset:
-        """Return dataset which contains feature name."""
+        """Return constituent dataset which contains feature name."""
         for dataset in self._list:
             if feature_name in dataset.feature_names:
                 return dataset
@@ -380,7 +384,7 @@ class MoveDataset(Dataset):
     def perturb(
         self, dataset_name: str, feature_name: str, value: Union[str, float, None]
     ) -> None:
-        """Add a perturbation to dataset.
+        """Add a perturbation to a feature in a constituent dataset.
 
         Args:
             dataset_name: Name of dataset to perturb

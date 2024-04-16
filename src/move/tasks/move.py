@@ -59,10 +59,11 @@ class MoveTask(ParentTask):
             continuous_shapes=dataloader.dataset.continuous_shapes,
         )
 
-    def init_training_loop(self) -> TrainingLoop:
+    def init_training_loop(self, set_parent: bool = True) -> TrainingLoop:
         """Initialize a training loop."""
         training_loop: TrainingLoop = hydra.utils.instantiate(
             self.training_loop_config, _recursive_=False
         )
-        training_loop.parent = self
+        if set_parent:
+            training_loop.parent = self
         return training_loop

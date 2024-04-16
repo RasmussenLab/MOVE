@@ -5,7 +5,7 @@ import logging
 from abc import ABC, abstractmethod
 from io import TextIOWrapper
 from pathlib import Path
-from typing import Any, Optional, Union, cast
+from typing import Any, Optional, Sequence, Union, cast
 
 from numpy.typing import NDArray
 from omegaconf import OmegaConf
@@ -65,7 +65,7 @@ class Task(ABC):
         raise NotImplementedError()
 
     def to_yaml(self, filepath: PathLike) -> None:
-        """Save task as YAML file."""
+        """Save task config as YAML file."""
         signature = inspect.signature(self.__init__).parameters.keys()
         config = OmegaConf.create({name: getattr(self, name) for name in signature})
         with open(filepath, "w") as file:
@@ -188,7 +188,7 @@ class CsvWriterMixin(SubTaskMixin):
         self.csv_writer = CsvWriter(self.csv_file, **writer_kwargs)
         self.csv_writer.writeheader()
 
-    def write_cols(self, cols: dict[str, Union[list[float], NDArray]]) -> None:
+    def write_cols(self, cols: dict[str, Union[Sequence[Any], NDArray]]) -> None:
         """Directly write columns to CSV file.
 
         Args:

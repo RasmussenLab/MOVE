@@ -1,0 +1,27 @@
+# @package _global_
+
+defaults:
+  - _self_
+  - data: base_data
+  - task: null
+  - experiment: null
+  - override /hydra/job_logging: none
+  - override /hydra/hydra_logging: none
+
+hydra:
+  output_subdir: null
+  run:
+    dir: ./
+  searchpath:
+    - file://config/
+  sweep:
+    dir: ./
+    subdir: ./
+  job:
+    config:
+      override_dirname:
+        item_sep: ";"
+        exclude_keys:
+          - experiment
+
+seed: null

@@ -1,0 +1,88 @@
+{
+    "OS": {
+        "0": 0,
+        "1": 1
+    },
+    "DSS": {
+        "0": 0,
+        "1": 1
+    },
+    "PFI": {
+        "0": 0,
+        "1": 1
+    },
+    "DFI": {
+        "0": 0,
+        "1": 1
+    },
+    "ajcc_pathologic_tumor_stage": {
+        "IS": 0,
+        "Stage I": 1,
+        "Stage IA": 2,
+        "Stage IB": 3,
+        "Stage II": 4,
+        "Stage IIA": 5,
+        "Stage IIB": 6,
+        "Stage III": 7,
+        "Stage IIIA": 8,
+        "Stage IIIB": 9,
+        "Stage IIIC": 10,
+        "Stage IV": 11,
+        "Stage IVA": 12,
+        "[Discrepancy]": 13
+    },
+    "gender": {
+        "FEMALE": 0,
+        "MALE": 1
+    },
+    "cancer_type_abbreviation": {
+        "BLCA": 0,
+        "ESCA": 1,
+        "GBM": 2,
+        "LUAD": 3,
+        "LUSC": 4,
+        "OV": 5,
+        "PRAD": 6,
+        "TGCT": 7,
+        "UCEC": 8
+    },
+    "histological_type": {
+        "Endometrioid endometrial adenocarcinoma": 0,
+        "Esophagus Adenocarcinoma, NOS": 1,
+        "Glioblastoma Multiforme (GBM)": 2,
+        "Lung Adenocarcinoma": 3,
+        "Lung Squamous Cell Carcinoma": 4,
+        "Muscle invasive urothelial carcinoma (pT2 or above)": 5,
+        "Non-Seminoma; Embryonal Carcinoma": 6,
+        "Non-Seminoma; Embryonal Carcinoma|Non-Seminoma; Teratoma (Mature)|Non-Seminoma; Choriocarcinoma|Non-Seminoma; Yolk Sac Tumor|Seminoma; NOS": 7,
+        "Non-Seminoma; Embryonal Carcinoma|Non-Seminoma; Teratoma (Mature)|Non-Seminoma; Teratoma (Immature)|Non-Seminoma; Yolk Sac Tumor": 8,
+        "Non-Seminoma; Embryonal Carcinoma|Non-Seminoma; Yolk Sac Tumor": 9,
+        "Non-Seminoma; Embryonal Carcinoma|Non-Seminoma; Yolk Sac Tumor|Non-Seminoma; Teratoma (Mature)": 10,
+        "Non-Seminoma; Embryonal Carcinoma|Seminoma; NOS": 11,
+        "Non-Seminoma; Teratoma (Immature)|Non-Seminoma; Yolk Sac Tumor": 12,
+        "Non-Seminoma; Teratoma (Immature)|Non-Seminoma; Yolk Sac Tumor|Non-Seminoma; Embryonal Carcinoma|Non-Seminoma; Teratoma (Mature)": 13,
+        "Non-Seminoma; Teratoma (Mature)": 14,
+        "Non-Seminoma; Teratoma (Mature)|Non-Seminoma; Embryonal Carcinoma|Non-Seminoma; Teratoma (Immature)|Non-Seminoma; Yolk Sac Tumor": 15,
+        "Non-Seminoma; Teratoma (Mature)|Non-Seminoma; Teratoma (Immature)|Non-Seminoma; Embryonal Carcinoma": 16,
+        "Non-Seminoma; Teratoma (Mature)|Non-Seminoma; Teratoma (Immature)|Non-Seminoma; Embryonal Carcinoma|Non-Seminoma; Yolk Sac Tumor": 17,
+        "Non-Seminoma; Teratoma (Mature)|Non-Seminoma; Teratoma (Immature)|Non-Seminoma; Yolk Sac Tumor|Non-Seminoma; Embryonal Carcinoma|Seminoma; NOS": 18,
+        "Non-Seminoma; Teratoma (Mature)|Non-Seminoma; Yolk Sac Tumor": 19,
+        "Non-Seminoma; Teratoma (Mature)|Seminoma; NOS|Non-Seminoma; Embryonal Carcinoma|Non-Seminoma; Yolk Sac Tumor": 20,
+        "Non-Seminoma; Teratoma (Mature)|[Not Available]|Non-Seminoma; Embryonal Carcinoma|Non-Seminoma; Yolk Sac Tumor": 21,
+        "Non-Seminoma; Yolk Sac Tumor": 22,
+        "Non-Seminoma; Yolk Sac Tumor|Non-Seminoma; Embryonal Carcinoma": 23,
+        "Non-Seminoma; Yolk Sac Tumor|Non-Seminoma; Embryonal Carcinoma|Non-Seminoma; Teratoma (Mature)|Non-Seminoma; Teratoma (Immature)": 24,
+        "Non-Seminoma; Yolk Sac Tumor|Non-Seminoma; Embryonal Carcinoma|Non-Seminoma; Teratoma (Mature)|Seminoma; NOS": 25,
+        "Non-Seminoma; Yolk Sac Tumor|Non-Seminoma; Teratoma (Mature)": 26,
+        "Prostate Adenocarcinoma Acinar Type": 27,
+        "Seminoma; NOS": 28,
+        "Seminoma; NOS|Non-Seminoma; Embryonal Carcinoma": 29,
+        "Seminoma; NOS|Non-Seminoma; Teratoma (Mature)|Non-Seminoma; Teratoma (Immature)|Non-Seminoma; Yolk Sac Tumor": 30,
+        "Serous Cystadenocarcinoma": 31,
+        "Untreated primary (de novo) GBM": 32
+    },
+    "vital_status": {
+        "Alive": 0,
+        "Dead": 1
+    }
+}

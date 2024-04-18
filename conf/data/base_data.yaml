@@ -1,0 +1,38 @@
+
+# raw - for raw data (e.g., TSVs, text)
+# interim - for intermediate data (e.g., NPYs, trained models, latents)
+# processed - for results (e.g., TSVs)
+raw_data_path: data/
+interim_data_path: interim_data/
+results_path: processed_data/
+
+sample_names: baseline_ids
+
+categorical_inputs:
+  - name: diabetes_genotypes
+    weight: 1
+  - name: baseline_drugs
+    weight: 1
+  - name: baseline_categorical
+    weight: 1
+
+continuous_inputs:
+  - name: baseline_continuous
+    weight: 2
+  - name: baseline_transcriptomics
+    weight: 1
+  - name: baseline_diet_wearables
+    weight: 1
+  - name: baseline_proteomic_antibodies
+    weight: 1
+  - name: baseline_target_metabolomics
+    weight: 1
+  - name: baseline_untarget_metabolomics
+    weight: 1
+  - name: baseline_metagenomics
+    weight: 1
+
+categorical_names: ${names:${data.categorical_inputs}}
+continuous_names: ${names:${data.continuous_inputs}}
+categorical_weights: ${weights:${data.categorical_inputs}}
+continuous_weights: ${weights:${data.continuous_inputs}}

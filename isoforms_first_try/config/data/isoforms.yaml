@@ -1,0 +1,25 @@
+defaults:
+  - base_data
+
+raw_data_path: data/
+interim_data_path: interim_data/
+results_path: results/
+
+sample_names: common_samples_500
+
+categorical_inputs:
+  - name: OS
+  - name: DSS
+  - name: PFI
+  - name: DFI
+  - name: ajcc_pathologic_tumor_stage
+  - name: gender
+  - name: cancer_type_abbreviation
+  - name: histological_type
+  - name: vital_status
+
+continuous_inputs:
+  - name: pheno_continuous_float
+  - name: iso_IF_100
+  - name: iso_tpm_100
+  - name: gene_tpm_100

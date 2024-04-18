@@ -742,9 +742,7 @@ def identify_associations_multiprocess(config: MOVEConfig) -> None:
             config, interim_path, baseline_dataloader, cat_list,
         )
 
-    num_perturbed = 50 # len(dataloaders) - 1  # P CHANGE THIS ACCORDINGLY VERY IMPORTANT. mAYBE TRY TO A
-    # AUTOMATE IT LATER SO TAHT IT GETS THE LENGTH OF FEATURES IN THE TARGET DATASET. For now I only wnat to 
-    # see it it works, así que voy a hacer un poco una chapuza y poner directamente el número. 
+    num_perturbed = 50 #  CHANGE THIS so that it is all the perturbed features once multiprocessign works
 
 
     logger.debug(f"# perturbed features: {num_perturbed}")

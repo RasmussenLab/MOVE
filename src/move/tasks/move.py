@@ -11,6 +11,7 @@ from move.conf.training import (
     TestDataLoaderConfig,
     TrainingLoopConfig,
 )
+from move.core.exceptions import UnsetProperty
 from move.core.typing import Split
 from move.data.dataloader import MoveDataLoader
 from move.data.dataset import MoveDataset
@@ -26,9 +27,9 @@ class MoveTask(ParentTask):
         self,
         discrete_dataset_names: list[str],
         continuous_dataset_names: list[str],
-        model_config: ModelConfig,
-        training_dataloader_config: DataLoaderConfig,
-        training_loop_config: TrainingLoopConfig,
+        model_config: Optional[ModelConfig],
+        training_dataloader_config: DataLoaderConfig,  # TODO: make optional too
+        training_loop_config: Optional[TrainingLoopConfig],
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -53,6 +54,8 @@ class MoveTask(ParentTask):
 
     def init_model(self, dataloader: MoveDataLoader) -> BaseVae:
         """Initialize a MOVE model."""
+        if self.model_config is None:
+            raise UnsetProperty("Model config")
         return hydra.utils.instantiate(
             self.model_config,
             discrete_shapes=dataloader.dataset.discrete_shapes,
@@ -61,6 +64,8 @@ class MoveTask(ParentTask):
 
     def init_training_loop(self, set_parent: bool = True) -> TrainingLoop:
         """Initialize a training loop."""
+        if self.training_loop_config is None:
+            raise UnsetProperty("Training loop config")
         training_loop: TrainingLoop = hydra.utils.instantiate(
             self.training_loop_config, _recursive_=False
         )

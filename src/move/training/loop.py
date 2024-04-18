@@ -14,13 +14,13 @@ import move.visualization as viz
 from move.conf.optim import LrSchedulerConfig, OptimizerConfig
 from move.data.dataloader import MoveDataLoader
 from move.models.base import BaseVae, LossDict
-from move.tasks.base import CsvWriterMixin, Task
+from move.tasks.base import CsvWriterMixin, SubTask
 
 AnnealingFunction = Literal["linear", "cosine", "sigmoid", "stairs"]
 AnnealingSchedule = Literal["monotonic", "cyclical"]
 
 
-class TrainingLoop(CsvWriterMixin, Task):
+class TrainingLoop(CsvWriterMixin, SubTask):
     """Train a VAE model.
 
     Args:

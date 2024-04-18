@@ -20,7 +20,7 @@ from move.data.dataloader import MoveDataLoader
 from move.data.dataset import DiscreteDataset
 from move.data.io import sanitize_filename
 from move.models.base import BaseVae
-from move.tasks.base import CsvWriterMixin, Task
+from move.tasks.base import CsvWriterMixin, SubTask
 from move.tasks.move import MoveTask
 
 
@@ -122,7 +122,7 @@ class LatentSpaceAnalysis(MoveTask):
             subtask.run()
 
 
-class Project(CsvWriterMixin, Task):
+class Project(CsvWriterMixin, SubTask):
     """Use a variational autoencoder to compress input data from a dataloader
     into a latent space. Additionally, use a reducer to further compress the
     latent space into an even lower-dimensional space that can be easily

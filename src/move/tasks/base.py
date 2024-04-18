@@ -1,4 +1,4 @@
-__all__ = ["Task", "ParentTask", "SubTaskMixin", "CsvWriterMixin"]
+__all__ = ["Task", "ParentTask", "SubTask", "CsvWriterMixin"]
 
 import inspect
 import logging
@@ -46,8 +46,8 @@ class OutputDirMixin:
         self._output_dir.mkdir(parents=True, exist_ok=True)
 
 
-class Task(ABC):
-    """Base class for a task"""
+class LoggerMixin:
+    """Mixin class for logging."""
 
     @property
     def logger(self) -> logging.Logger:
@@ -59,6 +59,24 @@ class Task(ABC):
         if getattr(self, "_logger", None) is None:
             self._logger = get_logger(self.__class__.__name__)
         return self._logger
+
+    def log(self, message: str, level: LoggingLevel = "INFO") -> None:
+        """Log a message.
+
+        Args:
+            message: logged message
+            level: predefined logging level name or numeric value."""
+        if isinstance(level, str):
+            level_num = logging.getLevelName(level)
+            if not isinstance(level_num, int):
+                raise ValueError(f"Unexpected logging level: {level}")
+        else:
+            level_num = level
+        self.logger.log(level_num, message)
+
+
+class Task(ABC, LoggerMixin):
+    """Base class for a task"""
 
     @abstractmethod
     def run(self, *args, **kwargs) -> Any:
@@ -103,7 +121,7 @@ class TestTask(Task):
         pass
 
 
-class SubTaskMixin:
+class SubTaskMixin(LoggerMixin):
     """Mixin class to designate a task is child of another task."""
 
     @property
@@ -114,26 +132,17 @@ class SubTaskMixin:
     def parent(self, task: ParentTask) -> None:
         self._parent = task
 
-    def log(self, message: str, level: LoggingLevel = "INFO") -> None:
-        """Log a message using the parent task's logger.
 
-        Args:
-            message: logged message
-            level: predefined logging level name or numeric value."""
-        if self.parent is not None:
-            if isinstance(level, str):
-                level_num = logging.getLevelName(level)
-                if not isinstance(level_num, int):
-                    raise ValueError(f"Unexpected logging level: {level}")
-            else:
-                level_num = level
-            self.parent.logger.log(level_num, message)
+class SubTask(SubTaskMixin, Task):
+    """Base class for sub-tasks."""
+
+    ...
 
 
 CsvRow = dict[str, float]
 
 
-class CsvWriterMixin(SubTaskMixin):
+class CsvWriterMixin(LoggerMixin):
     """Mixin class to designate a sub-task that has its own CSV writer."""
 
     csv_filepath: Optional[Path] = None

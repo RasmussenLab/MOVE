@@ -10,10 +10,10 @@ from move.core.exceptions import UnsetProperty
 from move.data.dataloader import MoveDataLoader
 from move.data.io import sanitize_filename
 from move.models.base import BaseVae
-from move.tasks.base import CsvWriterMixin, ParentTask, Task
+from move.tasks.base import CsvWriterMixin, ParentTask, SubTask
 
 
-class FeatureImportance(CsvWriterMixin, Task):
+class FeatureImportance(CsvWriterMixin, SubTask):
     """Compute feature importance in latent space.
 
     Feature importance is computed per feature per dataset. For each dataset,

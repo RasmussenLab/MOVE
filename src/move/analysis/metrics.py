@@ -12,7 +12,7 @@ from move.core.typing import FloatArray
 from move.data.dataloader import MoveDataLoader
 from move.data.dataset import ContinuousDataset, DiscreteDataset
 from move.models.base import BaseVae
-from move.tasks.base import CsvWriterMixin, ParentTask, Task
+from move.tasks.base import CsvWriterMixin, ParentTask, SubTask
 
 
 def calculate_accuracy(
@@ -93,7 +93,7 @@ def norm(x: np.ma.MaskedArray, axis: int = 1) -> FloatArray:
     return np.ma.compressed(np.sqrt(np.sum(x**2, axis=axis)))
 
 
-class ComputeAccuracyMetrics(CsvWriterMixin, Task):
+class ComputeAccuracyMetrics(CsvWriterMixin, SubTask):
     """Compute accuracy metrics between original input and reconstruction (use
     cosine similarity for continuous dataset reconstructions)."""
 

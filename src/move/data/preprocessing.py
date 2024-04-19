@@ -57,7 +57,7 @@ def one_hot_encode_single(mapping: dict[str, int], value: Optional[str]) -> IntA
     Returns:
         2D array
     """
-    encoded_value = np.zeros((1, len(mapping)))
+    encoded_value = np.zeros((1, len(mapping)), dtype=int)
     if not pd.isna(value):
         code = mapping[str(value)]
         encoded_value[0, code] = 1
@@ -74,8 +74,30 @@ def scale(x: np.ndarray) -> tuple[FloatArray, BoolArray]:
         Tuple containing (1) scaled output and (2) a 1D mask marking columns
         (i.e., features) without zero variance
     """
-    logx = np.log2(x + 1)
+    #CHANGES: Allow for negative values, so only standardization
+    #logx = np.log2(x + 1)
+    logx = x
     mask_1d = ~np.isclose(np.nanstd(logx, axis=0), 0.0)
     scaled_x = standardize(logx[:, mask_1d], axis=0)
     scaled_x[np.isnan(scaled_x)] = 0
     return scaled_x, mask_1d
+
+
+def feature_stats(x: ArrayLike) -> tuple[FloatArray, FloatArray, FloatArray]:
+    """
+    Read an array of continuous values and extract the
+    minimum, maximum and standard deviation per column (feature).
+
+    Args:
+        x: 2D array with samples in its rows and features in its columns
+
+    Returns:
+        minimum: list with minimum value per feature (column)
+        maximum: list with maximum  " "
+        std: list with std " "
+    """
+
+    minimum = np.nanmin(x, axis=0)
+    maximum = np.nanmax(x, axis=0)
+    std = np.nanstd(x, axis=0)
+    return minimum, maximum, std

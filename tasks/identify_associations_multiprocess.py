@@ -2,7 +2,6 @@ __all__ = ["identify_associations_multiprocess"]
 
 import faulthandler
 
-
 from functools import reduce
 from os.path import exists
 from pathlib import Path
@@ -38,7 +37,8 @@ from move.core.logging import get_logger
 from move.core.typing import BoolArray, FloatArray, IntArray
 from move.data import io
 
-from move.data.dataloaders import MOVEDataset, make_dataloader # Make dataloader with both continuous and categorical datasets
+from move.data.dataloaders import MOVEDataset, make_dataloader 
+# make_dataloader creates a dataloader with both continuous and categorical datasets
 
 from move.data.perturbations import (
     ContinuousPerturbationType,
@@ -85,7 +85,7 @@ from move.visualization.dataset_distributions import (
     plot_reconstruction_movement,
 )
 
-# NOT IMPORTANT NOW
+# NOT IMPORTANT NOW, use it once multiprocessing works and I change the script to get the real results
 def save_results(
     config: MOVEConfig,
     con_shapes: list[int],
@@ -162,8 +162,15 @@ def save_results(
             output_path / f"results_sig_assoc_{task_type}.tsv", sep="\t", index=False
         )
 
-def perturb_continuous_data_extended_one( # We will keep the input almost the same, to make everything easier
-    # However, we to introduce a variable that allows to index the specific dataloader we want to create (index_pert_feat)
+
+
+# perturb_continuous_data_extended_one adapts perturb_continuous_data_extended, so that instead of creating a list of perturbed
+# dataloaders, it perturbs only one feature at a time.
+########################################################################
+### THIS FUNCTION WORKS IN MULTIPROCESSING ###
+########################################################################
+def perturb_continuous_data_extended_one( # We will keep the input almost the same,
+    # but we to introduce a variable that allows to index the specific dataloader we want to create (index_pert_feat)
     # And no need for the output directory
     baseline_dataloader: DataLoader,
     cloned_dataset, # CHANGE for multiprocessing, import the already cloned dataset, as cloning inside the process does not work.
@@ -181,24 +188,14 @@ def perturb_continuous_data_extended_one( # We will keep the input almost the sa
     1,2) substituting this feature in all samples by the feature's minimum/maximum value.
     3,4) Adding/Substracting one standard deviation to the sample's feature value.
 
-    Args:
-        baseline_dataloader: Baseline dataloader
-        con_dataset_names: List of continuous dataset names
-        target_dataset_name: Target continuous dataset to perturb
-        perturbation_type: 'minimum', 'maximum', 'plus_std' or 'minus_std'.
-        output_subpath: path where the figure showing the perturbation will be saved
-
     Returns:
         - Dataloader with the ith feature (index_pert_feat) perturbed.
-        - Plot of the feature value distribution after the perturbation. Note that
-          all perturbations are collapsed into one single plot.
-
-    Note:
-        This function was created so that it could generalize to non-normalized
-        datasets. Scaling is done per dataset, not per feature -> slightly different stds
-        feature to feature.
+ 
     """
     logger.debug(f"Inside perturb_continuous_data_extended_one for feature {index_pert_feat}")
+    
+    # Took the following part out and passed this as arguments, as trying to do it inside multiprocessing
+    # does not work
     #baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
     #assert baseline_dataset.con_shapes is not None
     #assert baseline_dataset.con_all is not None
@@ -210,19 +207,17 @@ def perturb_continuous_data_extended_one( # We will keep the input almost the sa
     slice_ = slice(*splits[target_idx : target_idx + 2])
     #logger.debug(f"slice: {slice}")
 
+    # No need for this variable in the new script. Also, it would not work, because I need to operat on a pytorch object
     #num_features = baseline_dataset.con_shapes[target_idx] 
-    # Change below.
-    #num_features = 10
+
 
     # Now, instead of the for loop that iterates over all the features we want to perturb, we do it only for one feature, the one 
     # indicated in index_pert_feat
-
    
-    
     logger.debug(f"Inside perturb_continuous_data_extended_one, using already cloned dataset for {index_pert_feat}")
+    # Cloning inside multiprocessing does not work, so I clone outside the baseline dataset outside and pass it as an
+    # argument
     #perturbed_con = baseline_dataset.con_all.clone()
-    # Cloning inside multiprocessing does not work, clone outside
-    
     perturbed_con = cloned_dataset
     logger.debug(f"Already assigned the cloned dataset. Going into slice, for feature {index_pert_feat}")
 
@@ -265,14 +260,13 @@ def perturb_continuous_data_extended_one( # We will keep the input almost the sa
 
     logger.debug(f"Finished perturb_continuous_data_extended_one for feature {index_pert_feat}")
 
-    ### THIS FUNCTION WORKS IN MULTIPROCESSING ###
-
     return perturbed_dataloader
 
 
 
 
-# Returns also NaN mask. May be redundant because now I create the NaN mask outside, possible to join with the previous function into one, once everything works
+# Returns also NaN mask. May be redundant because now I create the NaN mask outside, 
+# possible to join with the previous function into one, once everything works
 def prepare_for_continuous_perturbation_one(
     config: MOVEConfig,
     # output_subpath: Path, Remove this
@@ -285,16 +279,8 @@ def prepare_for_continuous_perturbation_one(
     baseline_dataset_cat_all,) -> tuple[DataLoader, BoolArray, BoolArray,]:
     """
     This function creates the required dataloaders and masks
-    for further continuous association analysis.
-
-    Args:
-        config:
-            main configuration file.
-        output_subpath:
-            path where the output plots for continuous analysis are saved.
-        baseline_dataloader:
-            reference dataloader that will be perturbed.
-
+    for further continuous association analysis. 
+    This function will probably be removed afterwards, and just use perturbed_continuous_data_extended_one
     Returns:
         dataloaders:
             One dataloader, correponding to the feature we are perturbing at the moment.
@@ -320,7 +306,8 @@ def prepare_for_continuous_perturbation_one(
 
     # Clone the baseline dataset to ensure it's not modified
     logger.debug(f"Passing the data in prepare_for_continuous_pertrubation_one to perturb_cont_data_extened_one for feature {index_pert_feat}")
-    # I MADE A CHANGE HERE. CHANGE_TRY_THREE, IMPORTED IN FROM BEFORE
+    # First, I tried to do deepcopies when cloning, but it still did not work. So I just cloned the dataset ouside and
+    # passed it as an argument
     #baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
     #cloned_dataset = copy.deepcopy(baseline_dataset)
     #logger.debug(f"Deep copy succesful for feature {index_pert_feat}")
@@ -339,6 +326,10 @@ def prepare_for_continuous_perturbation_one(
     ) # We will get only one dataloader for each iteration of the for loop
     #dataloaders.append(baseline_dataloader) # Add the baseline dataloader to the perturbed dataloader
 
+
+    # All this code is not necessary now, as I pass NaN mask for outside
+    # Leave it to make sure that the new script is correct
+
     #logger.debug(f"Creating NaN mask in prepare_con for feature {index_pert_feat}")
     # Get the baseline dataset
     #baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
@@ -351,17 +342,24 @@ def prepare_for_continuous_perturbation_one(
     # np.sum(nan_mask) calculates the total number of NaN values using the nan_mask, and orig_con.numel() calculates the total number of elements in the original data.
     feature_mask = nan_mask
 
-    logger.debug(f"NaN mask for feature {index_pert_feat} copied. Going into perturb_continuous_data extended with no issues?")
+    logger.debug(f"NaN mask for feature {index_pert_feat} copied.")
 
     return (dataloaders, nan_mask, feature_mask)
 
-############ THINGS FOR MULTIPROCESSING ############
 
+###################################################################################
+#                       THINGS FOR MULTIPROCESSING 
+###################################################################################
+
+# Since training models does not work inside multiprocessing, I'll train the refits outside, and just load them
+# inside the multiprocessing. I will use that each model to get the reconstruction of the perturbed dataset and 
+# the baseline dataset, and compare them.
+# The PROBLEM is that reconstruction does not work inside multiprocessing. The baseline I can fix by reconstructing it
+# outside and loading it, but the reconstruction of the perturbed dataloader I need to do it inside each worker function
 def load_model(models_path, task_config, continuous_shapes, categorical_shapes, j):
     logger = get_logger(__name__)
     """
     Load model from the given path and get corresponding reconstruction baseline
-
     """
     reconstruction_path = models_path / f"baseline_recon_{task_config.model.num_latent}_{j}.pt"
      # Load the reconstruction from the saved file
@@ -390,12 +388,12 @@ def load_model(models_path, task_config, continuous_shapes, categorical_shapes, 
 #global_lock = Lock()
 
 def _bayes_approach_worker(args):
-    """F
+    """
     Worker function to calculate mean differences and Bayes factors for one feature.
     """
-    faulthandler.enable()
+    #faulthandler.enable()
 
-    # Unpack arguments, this step works
+    # Unpack arguments, this step works. Later, get rid of the arguments that are not used
     (config, task_config, train_dataloader, baseline_dataloader,
      num_perturbed, num_samples, num_continuous, nan_mask, feature_mask, i, models_path, cloned_dataset,
      continuous_shapes, categorical_shapes, baseline_dataset_cat_all, model, baseline_recon) = args
@@ -412,7 +410,7 @@ def _bayes_approach_worker(args):
     logger.debug(f"Setting up mean_diff and normalizer for feature {i}")
     # Now we are inside the num_perturbed loop, we will do this for each of the perturbed features
     # Now, mean_diff will not have a first dimension for num_perturbed, because we will not store it for each perturbed feature
-    # we will use it in each loop for calculating the bayes factors, and then delete its content and refill it with a new perturbed feature
+    # we will use it in each loop for calculating the bayes factors, and then overwrite its content with a new perturbed feature
     mean_diff = np.zeros((num_samples, num_continuous))
     # Set the normalizer
     normalizer = 1 / task_config.num_refits # Divide by the number of refits. All the refits will have the same importance
@@ -433,9 +431,11 @@ def _bayes_approach_worker(args):
     logger.debug(f"created perturbed dataloader for feature {i}")
 
 
-    #####################################################################
-    # UP TO HERE, IT RUNS. IT LOOKS LIKE IN THE J LOOP WE HAVE THE PROBEM
-    #####################################################################
+    ######################################################################################
+    # UP TO HERE, IT RUNS
+    # Before, I got deadlocks when trying to train the models, that's why I trained the refits
+    # outside and now I just load them
+    ######################################################################################
 
     # For each perturbed feature, we will calculate the difference with the baseline reconstruction, taking into account all
     # refits
@@ -515,9 +515,8 @@ def _bayes_approach_parallel(
     baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
 
     assert task_config.model is not None
-    logger.debug("Moving model into device in bayes_approach_parallel")
     device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
-    logger.debug("Model moved to devide in bayes_approach_parallel")
+    logger.debug("Model moved to device in bayes_approach_parallel")
 
     # Train models
     logger = get_logger(__name__)
@@ -558,7 +557,8 @@ def _bayes_approach_parallel(
 
         # Calculate baseline reconstruction
         # For each model j, we get a different reconstruction for the baseline. We haven't perturbed anything yet, we are just
-        # getting the reconstruction for the baseline
+        # getting the reconstruction for the baseline, to make sure that we get the same reconstruction for each refit, we cannot
+        # do it inside each process because the results might be different
         _, baseline_recon = model.reconstruct(baseline_dataloader)
 
         # Save the reconstruction separately. Up to here, it works.
@@ -568,10 +568,10 @@ def _bayes_approach_parallel(
         logger.debug(f"Saved baseline reconstruction {j}")
 
 
-    # Clone the dataset outside the multiprocessing, to see if it works.
+    # Clone the dataset outside the multiprocessing, because cloning it inside does not work
     cloned_dataset = baseline_dataset.con_all.clone()
 
-    # Get NaN mask before, to see if it works, as I do not need dataloaders for anything to create it. In CHANGE 4
+    # Get NaN mask before, to see if it works, as I do not need dataloaders for anything to create it.
 
     logger.debug("Creating NaN mask in prepare_con for feature")
     orig_con = baseline_dataset.con_all # Original continuous data of the baseline dataset (all data)
@@ -580,13 +580,16 @@ def _bayes_approach_parallel(
     logger.debug(f"# NaN values: {np.sum(nan_mask)}/{orig_con.numel()}")
     # np.sum(nan_mask) calculates the total number of NaN values using the nan_mask, and orig_con.numel() calculates the total number of elements in the original data.
     feature_mask = nan_mask
+    ####################################################
+    # We are creating it, so prepare_for_continuous_perturbation_one is not necessary, right now it just
+    # gets some argumetns and return them, so remove it in the future
+    #####################################################
 
     logger.debug("NaN mask for feature created. Going into MULTIPROCESSING extended with no issues?")
 
     # I need to pass also these argumetns to each worker:
     continuous_shapes=baseline_dataset.con_shapes
     categorical_shapes=baseline_dataset.cat_shapes
-
     baseline_dataset_cat_all = baseline_dataset.cat_all
 
         
@@ -597,7 +600,8 @@ def _bayes_approach_parallel(
     models_list = []
     baseline_recon_list =[]
 
-    # Iterate over models and load them
+    # Iterate over models and load them. Since creating them inside each process does not work, I will store them in a list
+    # and iterate over them
     for j in range(task_config.num_refits):
         model_path = models_path / f"model_{task_config.model.num_latent}_{j}.pt"
         logger.debug(f"Loading model {models_path} into models_list, using load function")
@@ -607,7 +611,7 @@ def _bayes_approach_parallel(
         baseline_recon_list.append(baseline_recon)
 
     logger.debug("Starting parallelization")
-    # Define arguments for each worker
+    # Define arguments for each worker, and iterate over models and perturbed features
     args = [(config, task_config, train_dataloader, baseline_dataloader,
                num_perturbed, num_samples, num_continuous, nan_mask, feature_mask, i, models_path, cloned_dataset,
                continuous_shapes, categorical_shapes, baseline_dataset_cat_all, model, baseline_recon)
@@ -617,7 +621,6 @@ def _bayes_approach_parallel(
     logger.debug(f"Arguments for workers are {args}")
     
     
-    # See if I should train the models outside this function, and only do the perturbations inside the function
     # Create a Pool with multiprocessing.cpu_count() - 1 processes
     with Pool(processes=multiprocessing.cpu_count() - 1) as pool:
         logger.debug("Inside the pool loop?")
@@ -665,9 +668,6 @@ def identify_associations_multiprocess(config: MOVEConfig) -> None:
     #################### DATA PREPARATION ######################
     ####### Read original data and create perturbed datasets####
 
-    #################### DATA PREPARATION ######################
-    ####### Read original data and create perturbed datasets####
-
     logger = get_logger(__name__)
     task_config = cast(IdentifyAssociationsConfig, config.task)
     task_type = _get_task_type(task_config)
@@ -675,9 +675,8 @@ def identify_associations_multiprocess(config: MOVEConfig) -> None:
 
     interim_path = Path(config.data.interim_data_path)
 
-    # Lo voy a cambiar para asegurarme de que está bien
-    #models_path = interim_path / "models"
-    models_path = Path("/home/qgh533/MOVE_cont/MOVE/isoforms_first_try/interim_data/models")
+    models_path = interim_path / "models"
+    #models_path = Path("/home/qgh533/MOVE_cont/MOVE/isoforms_first_try/interim_data/models")
     if task_config.save_refits:
         models_path.mkdir(exist_ok=True)
 
@@ -710,9 +709,8 @@ def identify_associations_multiprocess(config: MOVEConfig) -> None:
         cat_list, con_list, shuffle=False, batch_size=task_config.batch_size
     )
 
-    # ADDING THIS FOR CHANGE_TRY_3
+   
     baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
-    #cloned_dataset = baseline_dataset.con_all.clone()
 
     orig_con = baseline_dataset.con_all # Original continuous data of the baseline dataset (all data)
     nan_mask = (orig_con == 0).numpy()  # Creates a mask to identify NaN values in the original data. 
@@ -742,7 +740,8 @@ def identify_associations_multiprocess(config: MOVEConfig) -> None:
             config, interim_path, baseline_dataloader, cat_list,
         )
 
-    num_perturbed = 50 #  CHANGE THIS so that it is all the perturbed features once multiprocessign works
+    num_perturbed = 50 # For the moment, 50 to see if it works. Later, change it to the number of features to perturb
+    #, (which will be much higher) 
 
 
     logger.debug(f"# perturbed features: {num_perturbed}")

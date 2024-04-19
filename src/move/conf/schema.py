@@ -28,10 +28,6 @@ class InputConfig:
     name: str
     weight: int = 1
 
-@dataclass
-class ContinuousInputConfig(InputConfig):
-    scale: bool = True
-
 
 @dataclass
 class DataConfig:
@@ -40,7 +36,7 @@ class DataConfig:
     results_path: str = MISSING
     sample_names: str = MISSING
     categorical_inputs: list[InputConfig] = MISSING
-    continuous_inputs: list[ContinuousInputConfig] = MISSING
+    continuous_inputs: list[InputConfig] = MISSING
     categorical_names: list[str] = MISSING
     continuous_names: list[str] = MISSING
     categorical_weights: list[int] = MISSING
@@ -133,6 +129,8 @@ class AnalyzeLatentConfig(TaskConfig):
 
     feature_names: list[str] = field(default_factory=list)
     reducer: dict[str, Any] = MISSING
+    fast: bool = False  # Default value is False
+
 
 
 @dataclass
@@ -168,6 +166,7 @@ class IdentifyAssociationsConfig(TaskConfig):
 @dataclass
 class IdentifyAssociationsBayesConfig(IdentifyAssociationsConfig):
     """Configure the probabilistic approach to identify associations."""
+    multiprocess: bool = False  # Default value is False
 
     ...
 
@@ -183,6 +182,27 @@ class IdentifyAssociationsTTestConfig(IdentifyAssociationsConfig):
     """
 
     num_latent: list[int] = MISSING
+
+
+@dataclass
+class IdentifyAssociationsKSConfig(IdentifyAssociationsConfig):
+    """Configure the Kolmogorov-Smirnov approach to identify associations.
+
+    Args:
+        perturbed_feature_names: names of the perturbed features of interest.
+        target_feature_names: names of the target features of interest.
+        
+    Description:
+    For each perturbed feature - target feature pair, we will plot:
+            - Input vs. reconstruction correlation plot: to assess reconstruction 
+              quality of both target and perturbed features.
+            - Distribution of reconstruction values for the target feature before 
+              and after the perturbation of the perturbed feature.
+            
+    """
+
+    perturbed_feature_names: list[str] = field(default_factory=list)
+    target_feature_names: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -236,6 +256,11 @@ cs.store(
     group="task",
     name="identify_associations_ttest_schema",
     node=IdentifyAssociationsTTestConfig,
+)
+cs.store(
+    group="task",
+    name="identify_associations_ks_schema",
+    node=IdentifyAssociationsKSConfig,
 )
 
 # Register custom resolvers

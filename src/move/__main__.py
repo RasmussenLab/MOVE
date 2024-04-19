@@ -14,6 +14,8 @@ from move.conf.schema import (
 )
 from move.core.logging import get_logger
 
+import move.tasks.analyze_latent_fast
+
 
 @hydra.main(
     config_path="conf",
@@ -36,10 +38,19 @@ def main(config: MOVEConfig) -> None:
         move.tasks.encode_data(config.data)
     elif issubclass(task_type, TuneModelConfig):
         move.tasks.tune_model(config)
+    # the fast version  does not calcuate feature importance, it is only to look at the reconstruction metrics
     elif task_type is AnalyzeLatentConfig:
-        move.tasks.analyze_latent(config)
+        if config.task.fast:
+            move.tasks.analyze_latent_fast(config)
+        else:
+            move.tasks.analyze_latent(config)
     elif issubclass(task_type, IdentifyAssociationsConfig):
-        move.tasks.identify_associations(config)
+        if config.task.multiprocess:
+            move.tasks.identify_associations_multiprocess(config)
+        else:
+            move.tasks.identify_associations(config)
+        #What we had before
+        #move.tasks.identify_associations(config)
     else:
         raise ValueError("Unsupported type of task.")
 

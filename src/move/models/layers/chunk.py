@@ -75,10 +75,12 @@ class SplitOutput(nn.Module):
             Number of features and classes of each discrete dataset.
         continuous_dataset_shapes:
             Number of features of each continuous dataset.
-        distribution_name:
+        distribution_name_or_cls:
             If given, continuous variables will be treated as distribution
             arguments. For instance, for a normal distribution, the continuous
             subset of the output will be split into mean and standard deviation.
+            This can be either the name of a class from the `torch.distributions`
+            module or a class that can be instantiated.
     """
 
     num_discrete_features: int
@@ -98,7 +100,7 @@ class SplitOutput(nn.Module):
         self,
         discrete_dataset_shapes: list[tuple[int, ...]],
         continuous_dataset_shapes: list[int],
-        distribution_name: Optional[str] = None,
+        distribution_name_or_cls: Union[str, Type[Distribution], None] = None,
         discrete_activation_name: Optional[str] = None,
         continuous_activation_name: Optional[str] = None,
     ) -> None:
@@ -106,12 +108,19 @@ class SplitOutput(nn.Module):
 
         self.distribution: Optional[Type[Distribution]] = None
         self.num_distribution_args = 1
-        if distribution_name is not None:
-            if distribution_name not in SUPPORTED_DISTRIBUTIONS:
-                raise ValueError("Unsupported distribution")
-            self.distribution = getattr(torch.distributions, distribution_name, None)
+        if distribution_name_or_cls is not None:
+            if isinstance(distribution_name_or_cls, str):
+                if distribution_name_or_cls not in SUPPORTED_DISTRIBUTIONS:
+                    raise ValueError("Unsupported distribution")
+                self.distribution = getattr(
+                    torch.distributions, distribution_name_or_cls, None
+                )
+            else:
+                if not issubclass(distribution_name_or_cls, Distribution):
+                    raise ValueError("Not a distribution")
+                self.distribution = distribution_name_or_cls
         if self.distribution is not None:
-            self.num_distribution_args = len(self.distribution.arg_constraints)
+            self.num_distribution_args = len(self.distribution.arg_constraints)  # type: ignore
 
         activation_funs = []
         for name in [discrete_activation_name, continuous_activation_name]:

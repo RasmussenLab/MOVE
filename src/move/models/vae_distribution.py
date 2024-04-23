@@ -2,7 +2,7 @@ __all__ = ["VaeDistribution"]
 
 import itertools
 import operator
-from typing import Optional, Type
+from typing import Optional, Type, cast
 
 import torch
 import torch.optim
@@ -16,7 +16,7 @@ from torch.distributions import (
 
 from move.core.exceptions import CudaIsNotAvailable, ShapeAndWeightMismatch
 from move.models.base import BaseVae, LossDict, VaeOutput
-from move.models.layers.chunk import SplitInput, SplitOutput
+from move.models.layers.chunk import ContinuousDistribution, SplitInput, SplitOutput
 from move.models.layers.encoder_decoder import Decoder, Encoder
 
 
@@ -94,7 +94,7 @@ class VaeDistribution(BaseVae):
         self.split_output = SplitOutput(
             self.discrete_shapes,
             self.continuous_shapes,
-            "StudentT",
+            self.decoder_distribution,
             # continuous_activation_name="Tanh",
         )
 
@@ -122,6 +122,10 @@ class VaeDistribution(BaseVae):
         device = torch.device("cuda" if use_cuda else "cpu")
         self.to(device)
 
+    @property
+    def decoder_distribution(self) -> Type[Distribution]:
+        return Normal
+
     def encode(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         z_loc, z_logvar, *_ = self.encoder(x)
         return z_loc, torch.exp(z_logvar * 0.5)
@@ -139,6 +143,7 @@ class VaeDistribution(BaseVae):
     def reconstruct(self, batch: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         out = self(batch)["x_recon"]
         out_disc, out_cont = self.split_output(out)
+        out_cont = cast(ContinuousDistribution, out_cont)
         recon_disc = torch.cat(
             [logits.flatten(start_dim=1) for logits in out_disc], dim=1
         )
@@ -184,6 +189,7 @@ class VaeDistribution(BaseVae):
         # Split concatenated output
         out = self(batch)
         out_disc, out_cont = self.split_output(out["x_recon"])
+        out_cont = cast(ContinuousDistribution, out_cont)
 
         # Compute discrete dataset losses
         disc_rec_loss = torch.tensor(0.0)
@@ -195,12 +201,11 @@ class VaeDistribution(BaseVae):
             )
 
         # Compute continuous dataset losses
-        assert self.split_output.distribution is not None
         cont_rec_loss = torch.tensor(0.0)
         for i, args in enumerate(out_cont):
             ignore_mask = torch.logical_not(batch_cont[i] == 0.0)  # Ignore NaNs
             cont_rec_loss -= self.compute_log_prob(
-                self.split_output.distribution, batch_cont[i], ignore_mask, **args
+                self.decoder_distribution, batch_cont[i], ignore_mask, **args
             )
 
         # Calculate overall reconstruction and regularization loss

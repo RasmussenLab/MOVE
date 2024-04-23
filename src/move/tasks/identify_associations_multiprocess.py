@@ -3,13 +3,11 @@ __all__ = ["identify_associations_multiprocess"]
 import faulthandler
 
 from functools import reduce
-from os.path import exists
 from pathlib import Path
-from typing import Literal, Sized, Union, cast, Optional, Tuple
+from typing import Literal, Sized, cast
 from move.data.preprocessing import feature_stats
-from move.visualization.dataset_distributions import plot_value_distributions
+# from move.visualization.dataset_distributions import plot_value_distributions
 ContinuousPerturbationType = Literal["minimum", "maximum", "plus_std", "minus_std"]
-import copy
 
 #from multiprocessing import Pool, Lock
 
@@ -21,10 +19,10 @@ from omegaconf import OmegaConf
 from scipy.stats import ks_2samp, pearsonr  # type: ignore
 from torch.utils.data import DataLoader
 
-from move.analysis.metrics import get_2nd_order_polynomial
+# from move.analysis.metrics import get_2nd_order_polynomial
 
-import multiprocessing
-from multiprocessing import Pool, Process, Manager
+import torch.multiprocessing as multiprocessing
+from torch.multiprocessing import Pool, Process, Manager
 
 from move.conf.schema import (
     IdentifyAssociationsBayesConfig,
@@ -34,7 +32,7 @@ from move.conf.schema import (
     MOVEConfig,
 )
 from move.core.logging import get_logger
-from move.core.typing import BoolArray, FloatArray, IntArray
+from move.core.typing import BoolArray
 from move.data import io
 
 from move.data.dataloaders import MOVEDataset, make_dataloader 
@@ -43,7 +41,7 @@ from move.data.dataloaders import MOVEDataset, make_dataloader
 from move.data.perturbations import (
     ContinuousPerturbationType,
     perturb_categorical_data,
-    perturb_continuous_data_extended,
+    # perturb_continuous_data_extended,
 ) 
 
 # We can do three types of statistical tests
@@ -78,12 +76,12 @@ def _validate_task_config(
 
 from move.data.preprocessing import one_hot_encode_single
 from move.models.vae import VAE
-from move.visualization.dataset_distributions import (
-    plot_correlations,
-    plot_cumulative_distributions,
-    plot_feature_association_graph,
-    plot_reconstruction_movement,
-)
+# from move.visualization.dataset_distributions import (
+#     plot_correlations,
+#     plot_cumulative_distributions,
+#     plot_feature_association_graph,
+#     plot_reconstruction_movement,
+# )
 
 # NOT IMPORTANT NOW, use it once multiprocessing works and I change the script to get the real results
 def save_results(
@@ -510,7 +508,7 @@ def _bayes_approach_parallel(
 ):
     logger = get_logger(__name__)
     logger.debug("Inside the bayes_parallel function")
-    
+    torch.set_num_threads(1)
     # First, I train or reload the models (number of refits), and save the baseline reconstruction
     baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
 
@@ -634,25 +632,24 @@ def _bayes_approach_parallel(
     return results
 
 
-'''
+
 #########################################################
 # LEAVE THIS FOR LATER, ONCE THE MULTIPROCESSING WORKS
 #########################################################
-    # Unpack results from the workers
-    sig_ids, prob, fdr, bayes_k = zip(*results)
+    # # Unpack results from the workers
+    # sig_ids, prob, fdr, bayes_k = zip(*results)
 
-    # Convert to numpy arrays
-    sig_ids = np.array(sig_ids)
-    prob = np.array(prob)
-    fdr = np.array(fdr)
-    bayes_k = np.array(bayes_k)
+    # # Convert to numpy arrays
+    # sig_ids = np.array(sig_ids)
+    # prob = np.array(prob)
+    # fdr = np.array(fdr)
+    # bayes_k = np.array(bayes_k)
 
-    # I will get the results as tuples of arrays, where each array contains the indices, probs, fdr, or bayes factors 
-    # of significantly associated features for a specific perturbed feature. Each array corresponds to one perturbed feature, 
-    # and the order of arrays will follow the order of perturbed features.
-    return sig_ids, prob, fdr, bayes_k
+    # # I will get the results as tuples of arrays, where each array contains the indices, probs, fdr, or bayes factors 
+    # # of significantly associated features for a specific perturbed feature. Each array corresponds to one perturbed feature, 
+    # # and the order of arrays will follow the order of perturbed features.
+    # return sig_ids, prob, fdr, bayes_k
 
-'''
 
 
 
@@ -762,68 +759,67 @@ def identify_associations_multiprocess(config: MOVEConfig) -> None:
             feature_mask,
             models_path,
         )
-'''
-    # Combine the results from all processes to get the final associations for all features
-    # Here, you can process the `sig_ids`, `prob`, `fdr`, and `bayes_k` arrays as needed.
 
-    elif task_type == "ttest":
-        task_config = cast(IdentifyAssociationsTTestConfig, task_config)
-        sig_ids, *extra_cols = _ttest_approach(
-            config,
-            task_config,
-            train_dataloader,
-            baseline_dataloader,
-            #dataloaders, I will create it inside
-            models_path,
-            interim_path,
-            num_perturbed,
-            num_samples,
-            num_continuous,
-            nan_mask,
-            feature_mask,
-        )
+    # # Combine the results from all processes to get the final associations for all features
+    # # Here, you can process the `sig_ids`, `prob`, `fdr`, and `bayes_k` arrays as needed.
 
-        extra_colnames = ["p_value"]
+    # elif task_type == "ttest":
+    #     task_config = cast(IdentifyAssociationsTTestConfig, task_config)
+    #     sig_ids, *extra_cols = _ttest_approach(
+    #         config,
+    #         task_config,
+    #         train_dataloader,
+    #         baseline_dataloader,
+    #         #dataloaders, I will create it inside
+    #         models_path,
+    #         interim_path,
+    #         num_perturbed,
+    #         num_samples,
+    #         num_continuous,
+    #         nan_mask,
+    #         feature_mask,
+    #     )
 
-    elif task_type == "ks":
-        task_config = cast(IdentifyAssociationsKSConfig, task_config)
-        sig_ids, *extra_cols = _ks_approach(
-            config,
-            task_config,
-            train_dataloader,
-            baseline_dataloader,
-            dataloaders,
-            models_path,
-            num_perturbed,
-            num_samples,
-            num_continuous,
-            con_names,
-            output_path,
-        )
+    #     extra_colnames = ["p_value"]
 
-        extra_colnames = ["ks_distance"]
+    # elif task_type == "ks":
+    #     task_config = cast(IdentifyAssociationsKSConfig, task_config)
+    #     sig_ids, *extra_cols = _ks_approach(
+    #         config,
+    #         task_config,
+    #         train_dataloader,
+    #         baseline_dataloader,
+    #         dataloaders,
+    #         models_path,
+    #         num_perturbed,
+    #         num_samples,
+    #         num_continuous,
+    #         con_names,
+    #         output_path,
+    #     )
 
-    else:
-        raise ValueError()
+    #     extra_colnames = ["ks_distance"]
 
-    ###################### RESULTS ################################
-    save_results(
-        config,
-        con_shapes,
-        cat_names,
-        con_names,
-        output_path,
-        sig_ids,
-        extra_cols,
-        extra_colnames,
-    )
+    # else:
+    #     raise ValueError()
 
-    if exists(output_path / f"results_sig_assoc_{task_type}.tsv"):
-        association_df = pd.read_csv(
-            output_path / f"results_sig_assoc_{task_type}.tsv", sep="\t"
-        )
-        plot_feature_association_graph(association_df, output_path)
-        plot_feature_association_graph(
-            association_df, output_path, layout="spring"
-        )
-'''
+    # ###################### RESULTS ################################
+    # save_results(
+    #     config,
+    #     con_shapes,
+    #     cat_names,
+    #     con_names,
+    #     output_path,
+    #     sig_ids,
+    #     extra_cols,
+    #     extra_colnames,
+    # )
+
+    # if exists(output_path / f"results_sig_assoc_{task_type}.tsv"):
+    #     association_df = pd.read_csv(
+    #         output_path / f"results_sig_assoc_{task_type}.tsv", sep="\t"
+    #     )
+    #     plot_feature_association_graph(association_df, output_path)
+    #     plot_feature_association_graph(
+    #         association_df, output_path, layout="spring"
+    #     )

@@ -21,8 +21,8 @@ from torch.utils.data import DataLoader
 
 # from move.analysis.metrics import get_2nd_order_polynomial
 
-import multiprocessing
-from multiprocessing import Pool, Process, Manager
+import torch.multiprocessing as multiprocessing
+from torch.multiprocessing import Pool, Process, Manager
 
 from move.conf.schema import (
     IdentifyAssociationsBayesConfig,
@@ -508,7 +508,7 @@ def _bayes_approach_parallel(
 ):
     logger = get_logger(__name__)
     logger.debug("Inside the bayes_parallel function")
-    
+    torch.set_num_threads(1)
     # First, I train or reload the models (number of refits), and save the baseline reconstruction
     baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
 

@@ -10,7 +10,7 @@ from torch import nn
 
 from move.core.exceptions import CudaIsNotAvailable, ShapeAndWeightMismatch
 from move.models.base import BaseVae, LossDict, VaeOutput
-from move.models.layers.chunk import SplitInput, SplitOutput, ContinuousData
+from move.models.layers.chunk import ContinuousData, SplitInput, SplitOutput
 from move.models.layers.encoder_decoder import Decoder, Encoder
 
 

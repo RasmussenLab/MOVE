@@ -1,7 +1,7 @@
 __all__ = ["PcaConfig", "TsneConfig"]
 
 from dataclasses import dataclass, field
-from typing import Literal, Union, Optional
+from typing import Literal, Optional, Union
 
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE

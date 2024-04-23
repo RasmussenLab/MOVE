@@ -66,7 +66,6 @@ class MOVEDataset(TensorDataset):
         con_slice = torch.empty(0) if self.con_all is None else self.con_all[idx]
         return cat_slice, con_slice
 
-
 def concat_cat_list(
     cat_list: list[FloatArray],
 ) -> tuple[list[tuple[int, ...]], FloatArray]:

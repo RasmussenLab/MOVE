@@ -1,12 +1,14 @@
 __all__ = ["perturb_categorical_data", "perturb_continuous_data"]
 
-from typing import cast
+from typing import cast, Literal
 
 import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
 from move.data.dataloaders import MOVEDataset
+
+ContinuousPerturbationType = Literal["minimum", "maximum", "plus_std", "minus_std"]
 
 
 def perturb_categorical_data(

@@ -47,20 +47,20 @@ class BaseVae(nn.Module, ABC):
         return super().__call__(*args, **kwds)
 
     @abstractmethod
-    def encode(self, x: torch.Tensor) -> tuple[torch.Tensor, ...]:
-        ...
+    def encode(self, x: torch.Tensor) -> tuple[torch.Tensor, ...]: ...
 
     @abstractmethod
-    def reparameterize(self, loc: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
-        ...
+    def reparameterize(
+        self, loc: torch.Tensor, scale: torch.Tensor
+    ) -> torch.Tensor: ...
 
     @abstractmethod
-    def decode(self, z: torch.Tensor) -> tuple[torch.Tensor, ...]:
-        ...
+    def decode(self, z: torch.Tensor) -> tuple[torch.Tensor, ...]: ...
 
     @abstractmethod
-    def compute_loss(self, batch: torch.Tensor, annealing_factor: float) -> LossDict:
-        ...
+    def compute_loss(
+        self, batch: torch.Tensor, annealing_factor: float
+    ) -> LossDict: ...
 
     @torch.no_grad()
     @abstractmethod
@@ -70,7 +70,7 @@ class BaseVae(nn.Module, ABC):
 
     @torch.no_grad()
     @abstractmethod
-    def reconstruct(self, batch: torch.Tensor) -> torch.Tensor:
+    def reconstruct(self, batch: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """Create reconstruction."""
         ...
 

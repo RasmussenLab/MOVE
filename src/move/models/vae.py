@@ -2,7 +2,7 @@ __all__ = ["Vae"]
 
 import itertools
 import operator
-from typing import Optional
+from typing import Optional, cast
 
 import torch
 import torch.optim
@@ -10,7 +10,7 @@ from torch import nn
 
 from move.core.exceptions import CudaIsNotAvailable, ShapeAndWeightMismatch
 from move.models.base import BaseVae, LossDict, VaeOutput
-from move.models.layers.chunk import SplitInput, SplitOutput
+from move.models.layers.chunk import SplitInput, SplitOutput, ContinuousData
 from move.models.layers.encoder_decoder import Decoder, Encoder
 
 
@@ -127,8 +127,14 @@ class Vae(BaseVae):
     def project(self, batch: torch.Tensor) -> torch.Tensor:
         return self.encode(batch)[0]
 
-    def reconstruct(self, batch: torch.Tensor) -> torch.Tensor:
-        return self(batch)["x_recon"]
+    def reconstruct(self, batch: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        out = self(batch)["x_recon"]
+        out_disc, out_cont = self.split_output(out)
+        recon_disc = torch.cat(
+            [logits.flatten(start_dim=1) for logits in out_disc], dim=1
+        )
+        recon_cont = torch.cat(cast(ContinuousData, out_cont), dim=1)
+        return recon_disc, recon_cont
 
     def forward(self, x: torch.Tensor) -> VaeOutput:
         z_loc, z_scale = self.encode(x)
@@ -166,7 +172,6 @@ class Vae(BaseVae):
         for cont_input, cont_recon, cont_wt in zip(
             batch_cont, out_cont, self.continuous_weights
         ):
-            cont_recon = cont_recon[0]
             na_mask = (cont_input == 0).logical_not().float()
             multiplier = cont_wt / operator.mul(*cont_input.shape)
             loss = self.mse_loss(na_mask * cont_recon, cont_input) * multiplier

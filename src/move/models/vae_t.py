@@ -137,15 +137,14 @@ class VaeT(BaseVae):
     def project(self, batch: torch.Tensor) -> torch.Tensor:
         return self.encode(batch)[0]
 
-    def reconstruct(self, batch: torch.Tensor) -> torch.Tensor:
+    def reconstruct(self, batch: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         out = self(batch)["x_recon"]
         out_disc, out_cont = self.split_output(out)
-        recon = torch.cat(
-            [logits.flatten(start_dim=1) for logits in out_disc]
-            + [loc for (_, loc, _) in out_cont],
-            dim=1,
+        recon_disc = torch.cat(
+            [logits.flatten(start_dim=1) for logits in out_disc], dim=1
         )
-        return recon
+        recon_cont = torch.cat([args["loc"] for args in out_cont], dim=1)
+        return recon_disc, recon_cont
 
     def forward(self, x: torch.Tensor) -> VaeOutput:
         z_loc, z_scale = self.encode(x)
@@ -159,13 +158,13 @@ class VaeT(BaseVae):
 
     @staticmethod
     def compute_log_prob(
-        dist: Type,
+        dist: Type[Distribution],
         x: torch.Tensor,
         ignore_mask: Optional[torch.Tensor] = None,
         **dist_args
     ):
         """Compute the log of the probability density of the likelihood p(x|z)."""
-        px: Distribution = dist(**dist_args)
+        px = dist(**dist_args)
         out = px.log_prob(x)
         if ignore_mask is None:
             return torch.sum(out, dim=-1).mean()
@@ -197,14 +196,12 @@ class VaeT(BaseVae):
             )
 
         # Compute continuous dataset losses
+        assert self.split_output.distribution is not None
         cont_rec_loss = torch.tensor(0.0)
         for i, args in enumerate(out_cont):
-            df, loc, logvar = args
-            df = torch.pow(torch.exp(df * -0.5) * 27.5 + 2.5, -1)
-            scale = torch.exp(logvar * 0.5)
             ignore_mask = torch.logical_not(batch_cont[i] == 0.0)  # Ignore NaNs
             cont_rec_loss -= self.compute_log_prob(
-                StudentT, batch_cont[i], ignore_mask, df=df, loc=loc, scale=scale
+                self.split_output.distribution, batch_cont[i], ignore_mask, **args
             )
 
         # Calculate overall reconstruction and regularization loss

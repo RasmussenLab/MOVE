@@ -151,15 +151,13 @@ class Associations(CsvWriterMixin, MoveTask):
                 # Compute reconstruction differences (only continuous)
                 diff_list = []
                 for orig_batch, pert_batch, pert_mask in test_dataloader:
-                    orig_recon = model.reconstruct(orig_batch)
-                    pert_recon = model.reconstruct(pert_batch)
-                    _, orig_con = torch.tensor_split(
+                    _, orig_recon = model.reconstruct(orig_batch)
+                    _, pert_recon = model.reconstruct(pert_batch)
+                    _, orig_input = torch.tensor_split(
                         orig_batch, num_discrete_indices, dim=-1
                     )
-                    _, diff = torch.tensor_split(
-                        pert_recon - orig_recon, num_discrete_indices, dim=-1
-                    )
-                    diff[orig_con == 0] = 0.0  # mark NaN as 0
+                    diff = pert_recon - orig_recon
+                    diff[orig_input == 0] = 0.0  # mark NaN as 0
                     diff = diff[pert_mask, :]  # ignore unperturbed features
                     diff_list.append(diff)
 

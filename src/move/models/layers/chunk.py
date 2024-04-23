@@ -6,14 +6,37 @@ from typing import Any, Optional, Type, TypeVar, Union, cast
 
 import torch
 from torch import nn
+from torch.distributions import Distribution, constraints
 
 from move.data.dataset import ContinuousDataset, DiscreteDataset, MoveDataset
 
 DiscreteData = list[torch.Tensor]
 ContinuousData = list[torch.Tensor]
-ContinuousDistribution = list[tuple[torch.Tensor, ...]]
+ContinuousDistribution = list[dict[str, torch.Tensor]]
 SplitData = Union[
     tuple[DiscreteData, ContinuousData], tuple[DiscreteData, ContinuousDistribution]
+]
+
+SUPPORTED_DISTRIBUTIONS = [
+    "Beta,"
+    "Cauchy,"
+    "Chi2,"
+    "Exponential,"
+    "FisherSnedecor,"
+    "Gamma,"
+    "Gumbel,"
+    "HalfCauchy,"
+    "HalfNormal,"
+    "Kumaraswamy,"
+    "LKJCholesky,"
+    "Laplace,"
+    "LogNormal,"
+    "LogisticNormal,"
+    "Normal,"
+    "Pareto,"
+    "StudentT,"
+    "VonMises,"
+    "Weibull,"
 ]
 
 T = TypeVar("T", bound="SplitOutput")
@@ -81,14 +104,14 @@ class SplitOutput(nn.Module):
     ) -> None:
         super().__init__()
 
+        self.distribution: Optional[Type[Distribution]] = None
         self.num_distribution_args = 1
         if distribution_name is not None:
-            if distribution_name in ("Normal", "LogNormal"):
-                self.num_distribution_args = 2
-            elif distribution_name == "StudentT":
-                self.num_distribution_args = 3
-            elif distribution_name not in ("Bernoulli", "Categorical", "Exponential"):
+            if distribution_name not in SUPPORTED_DISTRIBUTIONS:
                 raise ValueError("Unsupported distribution")
+            self.distribution = getattr(torch.distributions, distribution_name, None)
+        if self.distribution is not None:
+            self.num_distribution_args = len(self.distribution.arg_constraints)
 
         activation_funs = []
         for name in [discrete_activation_name, continuous_activation_name]:
@@ -127,9 +150,7 @@ class SplitOutput(nn.Module):
             ]
         )
 
-    def __call__(
-        self, *args: Any, **kwds: Any
-    ) -> tuple[DiscreteData, ContinuousDistribution]:
+    def __call__(self, *args: Any, **kwds: Any) -> SplitData:
         return super().__call__(*args, **kwds)
 
     @classmethod
@@ -177,20 +198,32 @@ class SplitOutput(nn.Module):
 
         # Split continuous set into subsets
         # If outputs are distributions, split into correct # of arguments
-        continous_subsets_multi = torch.tensor_split(
-            continuous_x, self.continuous_split_indices, dim=-1
+        continous_subsets = list(
+            torch.tensor_split(continuous_x, self.continuous_split_indices, dim=-1)
         )
         if self.num_distribution_args > 1:
-            continous_subsets = [
-                tuple(torch.chunk(subset, self.num_distribution_args, dim=-1))
-                for subset in continous_subsets_multi
-            ]
-            return discrete_subsets, continous_subsets
+            if self.distribution is not None:
+                continous_distributions = []
+                # For each distribution, split into correct # arguments
+                # Example: if modeling a Normal distribution, split into loc and scale
+                # Chunks are saved in dictionary
+                # If distribution arg constrained positive (e.g. scale), apply transform
+                for subset in continous_subsets:
+                    chunks = torch.chunk(subset, self.num_distribution_args, dim=-1)
+                    args = {}
+                    for arg, (arg_name, arg_constraint) in zip(
+                        chunks, self.distribution.arg_constraints.items()  # type: ignore
+                    ):
+                        if arg_constraint is constraints.positive:
+                            arg = torch.exp(arg * 0.5)
+                        args[arg_name] = arg
+                    continous_distributions.append(args)
+            return discrete_subsets, continous_distributions
 
         if isinstance(self, SplitInput):
-            return discrete_subsets, list(continous_subsets_multi)
+            return discrete_subsets, list(continous_subsets)
 
-        return discrete_subsets, [(sub,) for sub in continous_subsets_multi]
+        return discrete_subsets, continous_subsets
 
 
 class SplitInput(SplitOutput):

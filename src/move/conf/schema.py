@@ -130,6 +130,7 @@ class AnalyzeLatentConfig(TaskConfig):
     feature_names: list[str] = field(default_factory=list)
     reducer: dict[str, Any] = MISSING
     fast: bool = False  # Default value is False
+    multiprocess: bool = False
 
 
 

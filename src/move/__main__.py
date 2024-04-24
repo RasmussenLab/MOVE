@@ -15,6 +15,7 @@ from move.conf.schema import (
 from move.core.logging import get_logger
 
 import move.tasks.analyze_latent_fast
+import move.tasks.analyze_latent_multiprocessing
 
 
 @hydra.main(
@@ -42,6 +43,8 @@ def main(config: MOVEConfig) -> None:
     elif task_type is AnalyzeLatentConfig:
         if config.task.fast:
             move.tasks.analyze_latent_fast(config)
+        elif config.task.multiprocess:
+            move.tasks.analyze_latent_multiprocessing(config)
         else:
             move.tasks.analyze_latent(config)
     elif issubclass(task_type, IdentifyAssociationsConfig):

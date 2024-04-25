@@ -4,7 +4,7 @@ __all__ = ["identify_associations_multiprocess"]
 from functools import reduce
 from os.path import exists
 from pathlib import Path
-from typing import Literal, Sized, Union, cast, Optional, Tuple
+from typing import Literal, Sized, cast
 from move.data.preprocessing import feature_stats
 #from move.visualization.dataset_distributions import plot_value_distributions
 ContinuousPerturbationType = Literal["minimum", "maximum", "plus_std", "minus_std"]
@@ -19,7 +19,7 @@ from torch.utils.data import DataLoader
 #from move.analysis.metrics import get_2nd_order_polynomial
 
 import torch.multiprocessing
-from torch.multiprocessing import Pool
+from torch.multiprocessing import Pool, Array
 
 from move.conf.schema import (
     IdentifyAssociationsBayesConfig,
@@ -423,7 +423,9 @@ def _bayes_approach_worker(args):
     # We also set up bayes_k, which has the same dimensions as mean_diff
 
     mean_diff = np.zeros((num_samples, num_continuous))
-    bayes_k = np.empty((num_perturbed, num_continuous))
+    # Create a shared memory array for bayes_k within each worker process
+    bayes_k_worker = np.zeros((num_continuous))
+    
     # Set the normalizer
     normalizer = 1 / task_config.num_refits # Divide by the number of refits. All the refits will have the same importance
  
@@ -444,55 +446,6 @@ def _bayes_approach_worker(args):
         baseline_dataset_cat_all = baseline_dataset_cat_all
     ) # Like this, I get only one perturbed dataloader, and the nan and feature masks
     logger.debug(f"created perturbed dataloader for feature {i}")
-
-
-    ######################################################################################
-    # UP TO HERE, IT RUNS
-    # Before, I got deadlocks when trying to train the models, that's why I trained the refits
-    # outside and now I just load them
-    ######################################################################################
-
-    # For each perturbed feature, we will calculate the difference with the baseline reconstruction, taking into account all
-    # refits
-    
-    #logger.debug(f"Entering in j loop for feature {i}")
-    #for j in range(task_config.num_refits):
-        # First, we need to reload the baseline reconstruction for the corresponding model
-     #   logger.debug(f"Loading baseline_recon for refit {j}")
-      #  reconstruction_path = models_path / f"baseline_recon_{task_config.model.num_latent}_{j}.pt"
-        # Load the reconstruction from the saved file
-       # if reconstruction_path.exists():
-        #    baseline_recon = torch.load(reconstruction_path)
-        #else:
-         #   logger.debug(f"Reconstruction file for iteration {j} does not exist.")
-        
-        # Now, I get the perturbed reconstruction. First I load the model, then I use it to get the reconstruction
-
-        
-        #model: VAE = hydra.utils.instantiate(
-         #   task_config.model,
-          #  continuous_shapes=continuous_shapes,
-           # categorical_shapes=categorical_shapes,
-        #)
-        
-        #model_path = models_path / f"model_{task_config.model.num_latent}_{j}.pt"
-        ####### THE ERROR IS HERE ###############
-
-        #with global_lock:
-         #   logger.debug(f"Re-loading refit in path {model_path}, refit {j + 1}/{task_config.num_refits} for perturbed recon")
-
-          #  try:
-           #     model.load_state_dict(torch.load(model_path))
-            #except Exception as e:
-             #   logger.error(f"Error loading model from {model_path}: {e}")
-
-            #model.load_state_dict(torch.load(model_path))
-            ##########################################
-            #logger.debug(f"Loaded model inside lock, in {model_path}, passing it to device for feature {i}")
-            #model.to(device)
-            #logger.debug(f"Model {j} reloaded for perturbed recon")
-
-            #model.eval()
         
     for j in range(task_config.num_refits):
         #CHANGE HERE, SUGGESTED BY HENRY. Also better to add the results to mean_diff one by one for the refits
@@ -519,11 +472,12 @@ def _bayes_approach_worker(args):
     logger.debug(f"prob calculated for feature {i}. Starting to calculate bayes_k")
 
     # Calculate bayes factor
-    bayes_k[i, :] = np.log(prob + 1e-8) - np.log(1 - prob + 1e-8)
+    bayes_k_worker = np.log(prob + 1e-8) - np.log(1 - prob + 1e-8)
+    #shared_bayes_k[i, :] = np.log(prob + 1e-8) - np.log(1 - prob + 1e-8)
+    #shared_bayes_k = Array('d', bayes_k)
     logger.debug(f"bayes factor calculated for feature {i}. Woker function {i} finished")
 
-    return bayes_k # for the moment, return only this to see if multiprocessing works. Later we will calculate the real results
-
+    return i, bayes_k_worker 
 
 
 def _bayes_approach_parallel(
@@ -560,7 +514,7 @@ def _bayes_approach_parallel(
 
         # Train/reload model
         model_path = models_path / f"model_{task_config.model.num_latent}_{j}.pt"
-        
+       
         if model_path.exists(): # If the models were already created, we load them
             logger.debug(f"Re-loading refit {j + 1}/{task_config.num_refits}")
             model.load_state_dict(torch.load(model_path))
@@ -575,7 +529,7 @@ def _bayes_approach_parallel(
                 train_dataloader=train_dataloader,
             )
             if task_config.save_refits:
-                torch.save(model.state_dict(), model_path)
+                torch.save(model.state_dict(), model_path, pickle_protocol=4)
         # Independently of whether we loaded the models or trained them, we go into evaluation mode        
         model.eval()
 
@@ -588,7 +542,7 @@ def _bayes_approach_parallel(
         # Save the reconstruction separately. Up to here, it works.
         logger.debug(f"Saving baseline reconstruction {j}")
         reconstruction_path = models_path / f"baseline_recon_{task_config.model.num_latent}_{j}.pt"
-        torch.save(baseline_recon, reconstruction_path)
+        torch.save(baseline_recon, reconstruction_path, pickle_protocol=4)
         logger.debug(f"Saved baseline reconstruction {j}")
 
 
@@ -634,6 +588,7 @@ def _bayes_approach_parallel(
         #models_list.append(model)
         #baseline_recon_list.append(baseline_recon)
     
+
     logger.debug("Starting parallelization")
     # Define arguments for each worker, and iterate over models and perturbed features
     args = [(config, task_config, train_dataloader, baseline_dataloader,
@@ -650,15 +605,20 @@ def _bayes_approach_parallel(
         logger.debug("Inside the pool loop?")
         # Map worker function to arguments
         # We get the bayes_k matrix, filled for all the perturbed features
-        bayes_k = pool.map(_bayes_approach_worker, args)
+        results = pool.map(_bayes_approach_worker, args)
     
     logger.info("Pool multiprocess completed. Calculating bayes_abs and bayes_p")
+    # Process the results
+    bayes_k = np.empty((num_perturbed, num_continuous))
+    for i, computed_bayes_k in results:
+        bayes_k[i, :] = computed_bayes_k
 
     # Once we have the Bayes factors for all features, we can calculate Bayes probabilities
     bayes_abs = np.abs(bayes_k)
     bayes_max = np.max(bayes_abs)
     bayes_min = np.min(bayes_abs)
     logger.debug(f"bayes_abs max is {bayes_max}. Bayes_abs min is {bayes_min}")
+    
     
     bayes_p = np.exp(bayes_abs) / (1 + np.exp(bayes_abs))  # 2D: N x C (perturbed features as rows, all continuous features as columns)
     
@@ -674,11 +634,6 @@ def _bayes_approach_parallel(
 
     logger.debug(f"bayes k is {bayes_k}")
     logger.debug(f"prob is {prob}")
-    ############################################################
-    # Getting issues when calculating prob, but it might be because the models are terrible and 
-    # calculate differences that are way too big to be computed, so I get Nan values instead of numerical values
-    # Will try with better models and real data
-    #############################################################
 
     logger.debug("Calculating fdr")
     # Calculate FDR
@@ -758,6 +713,7 @@ def identify_associations_multiprocess(config: MOVEConfig) -> None:
         config.data.continuous_names,
     )
 
+    logger.debug("Making train dataloader")
     train_dataloader = make_dataloader(
         cat_list,
         con_list,
@@ -765,7 +721,7 @@ def identify_associations_multiprocess(config: MOVEConfig) -> None:
         batch_size=task_config.batch_size,
         drop_last=True,
     )
-
+    logger.debug("Dataloader made")
     con_shapes = [con.shape[1] for con in con_list]
 
     num_samples = len(cast(Sized, train_dataloader.sampler))  # N
@@ -773,6 +729,7 @@ def identify_associations_multiprocess(config: MOVEConfig) -> None:
     logger.debug(f"# continuous features: {num_continuous}")
 
     # Creating the baseline dataloader:
+    logger.debug("Making baseline dataloader")
     baseline_dataloader = make_dataloader(
         cat_list, con_list, shuffle=False, batch_size=task_config.batch_size
     )
@@ -787,7 +744,7 @@ def identify_associations_multiprocess(config: MOVEConfig) -> None:
     logger.debug(f"# NaN values: {np.sum(nan_mask)}/{orig_con.numel()}")
     # np.sum(nan_mask) calculates the total number of NaN values using the nan_mask, and orig_con.numel() calculates the total number of elements in the original data.
     feature_mask = nan_mask
-
+    
     # Indentify associations between continuous features:
     logger.info(f"Perturbing dataset: '{task_config.target_dataset}'")
     if task_config.target_value in CONTINUOUS_TARGET_VALUE:
@@ -814,8 +771,10 @@ def identify_associations_multiprocess(config: MOVEConfig) -> None:
     target_idx = con_dataset_names.index(target_dataset_name)  # dataset index
     num_perturbed = baseline_dataset.con_shapes[target_idx] # Change accordingly, if it is desirable to try with less features
     logger.debug(f"Number of perturbed features: {num_perturbed}")
+    
 
     ################# APPROACH EVALUATION ##########################
+    num_perturbed = 50 # Change later, only for training the models now
 
     # Call _bayes_approach_parallel instead of _bayes_approach
     if task_type == "bayes":

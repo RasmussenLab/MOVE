@@ -200,45 +200,24 @@ def _categorical_importance_worker(args):
 
     logger = get_logger(__name__)
 
-    (i, dataset_name, mappings, config, test_dataset, test_dataloader,
-     model, num_samples, cat_list, cat_names, output_path, df_index) = args
-
-    #for i, dataset_name in enumerate(config.data.categorical_names):
-    logger.debug(f"Inside categorical multiprocessing. Generating plot: feature importance '{dataset_name}'")
-    na_value = one_hot_encode_single(mappings[dataset_name], None)
-    cat_dataset_names=config.data.categorical_names
-    target_idx = cat_dataset_names.index(dataset_name)
-    target_shape = test_dataset.cat_shapes[target_idx]
-    num_features = target_shape[0]  # Number of features in the current dataset
-
-    # We will use this inside the loop that iterates over all features:
-    # We create one diff per dataset, to not store all of them in memory
-    z = model.project(test_dataloader)
-    diffs = np.empty((num_samples, num_features))
-        
-    j= 0 # Index to keep count of the perturbed feature we are in
-
-    for index_pert_feat in range(num_features):
-        dataloader = perturb_categorical_data_one(
-        test_dataloader, config.data.categorical_names, dataset_name, na_value, index_pert_feat,
-        )
-        # We calculate the difference for each of the perturbed features, and store it in an object
-
-        z_perturb = model.project(dataloader)
-        diffs[:, j] = np.sum(z_perturb - z, axis=1)
-
-        j = j+1 #Increase j for the next iteration
+    (test_dataloader, categorical_names, dataset_name, na_value, 
+    index_pert_feat, num_features, model, z) = args
     
-    feature_mapping = {
-        str(code): category for category, code in mappings[dataset_name].items()
-    }
-    fig = viz.plot_categorical_feature_importance(
-        diffs, cat_list[i], cat_names[i], feature_mapping
+
+    # Diff will store the differences between z and z_perturb for the perturbed feature index_pert_feat
+    diff = np.empty((num_features))
+
+    logger.debug(f"Perturbing feature {index_pert_feat} for {dataset_name}")
+    dataloader = perturb_categorical_data_one(
+        test_dataloader, categorical_names, dataset_name, na_value, index_pert_feat,
     )
-    fig_path = str(output_path / f"feat_importance_{dataset_name}.png")
-    fig.savefig(fig_path, bbox_inches="tight")
-    fig_df = pd.DataFrame(diffs, columns=cat_names[i], index=df_index)
-    fig_df.to_csv(output_path / f"feat_importance_{dataset_name}.tsv", sep="\t")
+    logger.debug(f"Perturbation completed. Projecting perturbation on latent space for feature {index_pert_feat}, {dataset_name}")
+    z_perturb = model.project(dataloader)
+    logger.debug(f"Calculating diff for feature {index_pert_feat}, {dataset_name}")
+    diff = np.sum(z_perturb - z, axis=1)
+
+    logger.debug(f"Finished catagorical worker function for feature {index_pert_feat}, {dataset_name }")
+    return index_pert_feat, diff
 
 
 def _continuous_importance_worker(args):
@@ -249,38 +228,23 @@ def _continuous_importance_worker(args):
 
     logger = get_logger(__name__)
 
-    c = args
+    (test_dataloader, continuous_names, dataset_name, 
+    index_pert_feat, num_features, model, z) = args
 
-    logger.debug(f"Inside continuous multiprocessing. Generating plot: feature importance '{dataset_name}'")
-    con_dataset_names=config.data.continuous_names
-    target_idx = con_dataset_names.index(dataset_name)
-    #num_features = target_shape[0] 
-    num_features = test_dataset.con_shapes[target_idx]
-    #num_features = len(dataloaders)
+    # Diff will store the differences between z and z_perturb for the perturbed feature index_pert_feat
+    diff = np.empty((num_features))
 
-    # We will use this inside the loop that iterates over all features:
-    # We create one diff per dataset, to not store all of them in memory
-    z = model.project(test_dataloader)
-    diffs = np.empty((num_samples, num_features))
-    # Index to check the number of perturbed feature we are in now
-    j = 0
+    logger.debug(f"Perturbing feature {index_pert_feat} for {dataset_name}")
+    dataloader = perturb_continuous_data_one(
+        test_dataloader, continuous_names, dataset_name, 0.0, index_pert_feat,
+    )
+    logger.debug(f"Perturbation completed. Projecting perturbation on latent space for feature {index_pert_feat}, {dataset_name}")
+    z_perturb = model.project(dataloader)
+    logger.debug(f"Calculating diff for feature {index_pert_feat}, {dataset_name}")
+    diff = np.sum(z_perturb - z, axis=1)
 
-    for index_pert_feat in range(num_features):
-        dataloader = perturb_continuous_data_one(
-            test_dataloader, config.data.continuous_names, dataset_name, 0.0, index_pert_feat,
-        )
-    
-        z_perturb = model.project(dataloader)
-        diffs[:, j] = np.sum(z_perturb - z, axis=1)
-
-        j = j+1
-    
-    fig = viz.plot_continuous_feature_importance(diffs, con_list[i], con_names[i])
-    fig_path = str(output_path / f"feat_importance_{dataset_name}.png")
-    fig.savefig(fig_path, bbox_inches="tight")
-    fig_df = pd.DataFrame(diffs, columns=con_names[i], index=df_index)
-    fig_df.to_csv(output_path / f"feat_importance_{dataset_name}.tsv", sep="\t")
-
+    logger.debug(f"Finished continuous worker function for feature {index_pert_feat}, {dataset_name }")
+    return index_pert_feat, diff
 
 
 
@@ -452,20 +416,7 @@ def analyze_latent_multiprocess(config: MOVEConfig) -> None:
     logger.info("Computing feature importance")
     num_samples = len(cast(Sized, test_dataloader.sampler))
 
-    args = [(i, dataset_name, mappings, config, test_dataset, test_dataloader, model, num_samples, 
-             cat_list, cat_names, output_path, df_index) for i, dataset_name in enumerate(config.data.categorical_names)]
-    
-    #Paralelize categorical feature importance
-
-    with Pool(processes=torch.multiprocessing.cpu_count() - 1) as pool:
-        logger.debug("Inside the pool loop for categorical features")
-        # Map worker function to arguments
-        # We get the bayes_k matrix, filled for all the perturbed features
-        pool.map(_categorical_importance_worker, args)
-    
-    logger.info("Pool multiprocess for categorical features  completed. Starting pool process for continuous features")
-
-    '''
+    # START WITH IMPORTANCE FOR CATEGORICAL FEATURES. MADE CHANGES HERE
     for i, dataset_name in enumerate(config.data.categorical_names):
         logger.debug(f"Generating plot: feature importance '{dataset_name}'")
         na_value = one_hot_encode_single(mappings[dataset_name], None)
@@ -478,19 +429,21 @@ def analyze_latent_multiprocess(config: MOVEConfig) -> None:
         # We create one diff per dataset, to not store all of them in memory
         z = model.project(test_dataloader)
         diffs = np.empty((num_samples, num_features))
-        
-        j= 0 # Index to keep count of the perturbed feature we are in
 
-        for index_pert_feat in range(num_features):
-            dataloader = perturb_categorical_data_one(
-            test_dataloader, config.data.categorical_names, dataset_name, na_value, index_pert_feat,
-            )
-            # We calculate the difference for each of the perturbed features, and store it in an object
+        args = [(test_dataloader, config.data.categorical_names, dataset_name, na_value,
+                 index_pert_feat, num_features, model, z) for index_pert_feat in range(num_features)]
+    
+        with Pool(processes=torch.multiprocessing.cpu_count() - 1) as pool:
+            logger.debug("Inside the pool loop for categorical features")
+            # Map worker function to arguments
+            # We get the bayes_k matrix, filled for all the perturbed features
+            results = pool.map(_categorical_importance_worker, args)
 
-            z_perturb = model.project(dataloader)
-            diffs[:, j] = np.sum(z_perturb - z, axis=1)
+        # Unpack results
 
-            j = j+1 #Increase j for the next iteration
+        for j, diff in results:
+            diffs[:, j] = diff
+
         
         feature_mapping = {
             str(code): category for category, code in mappings[dataset_name].items()
@@ -502,23 +455,11 @@ def analyze_latent_multiprocess(config: MOVEConfig) -> None:
         fig.savefig(fig_path, bbox_inches="tight")
         fig_df = pd.DataFrame(diffs, columns=cat_names[i], index=df_index)
         fig_df.to_csv(output_path / f"feat_importance_{dataset_name}.tsv", sep="\t")
-        '''
-    
-    args = [(i, dataset_name, config, test_dataset, test_dataloader,
-     model, num_samples, con_list, con_names, output_path, df_index) for i, dataset_name in enumerate(config.data.continuous_names)]
-    
-    with Pool(processes=torch.multiprocessing.cpu_count() - 1) as pool:
-        logger.debug("Inside the pool loop for continuous features")
-        # Map worker function to arguments
-        # We get the bayes_k matrix, filled for all the perturbed features
-        pool.map(_continuous_importance_worker, args)
-    
-    logger.info("Pool multiprocess for continuous features  completed.")
 
+    logger.info("Pool multiprocess for categorical features  completed. Starting pool process for continuous features")
 
-    '''
-    # NOW, THE SAME BUT FOR CONTINUOUS DATA 
-
+    
+    # NOW, THE SAME BUT FOR CONTINUOUS DATA
     for i, dataset_name in enumerate(config.data.continuous_names):
         logger.debug(f"Generating plot: feature importance '{dataset_name}'")
         # NOT SURE IF IT WORKS THE SAME FOR CONTINUOUS FEATURES, CHECK THIS
@@ -529,28 +470,32 @@ def analyze_latent_multiprocess(config: MOVEConfig) -> None:
 
         num_features = test_dataset.con_shapes[target_idx]
 
-        #num_features = len(dataloaders)
-
         # We will use this inside the loop that iterates over all features:
         # We create one diff per dataset, to not store all of them in memory
         z = model.project(test_dataloader)
         diffs = np.empty((num_samples, num_features))
-        # Index to check the number of perturbed feature we are in now
-        j = 0
 
-        for index_pert_feat in range(num_features):
-            dataloader = perturb_continuous_data_one(
-                test_dataloader, config.data.continuous_names, dataset_name, 0.0, index_pert_feat,
-            )
-        
-            z_perturb = model.project(dataloader)
-            diffs[:, j] = np.sum(z_perturb - z, axis=1)
+        args = [(test_dataloader, config.data.continuous_names, dataset_name, 
+                 index_pert_feat, num_features, model, z) for index_pert_feat in range(num_features)]
+    
+        with Pool(processes=torch.multiprocessing.cpu_count() - 1) as pool:
+            logger.debug("Inside the pool loop for continuous features")
+            # Map worker function to arguments
+            # We get the bayes_k matrix, filled for all the perturbed features
+            results = pool.map(_continuous_importance_worker, args)
 
-            j = j+1        
+        # Unpack results
 
+        logger.debug(f"Unpacking results for dataset {dataset_name}")
+        for j, diff in results:
+            diffs[:, j] = diff
+
+        logger.debug(f"Generating plot for {dataset_name}")
         fig = viz.plot_continuous_feature_importance(diffs, con_list[i], con_names[i])
         fig_path = str(output_path / f"feat_importance_{dataset_name}.png")
         fig.savefig(fig_path, bbox_inches="tight")
         fig_df = pd.DataFrame(diffs, columns=con_names[i], index=df_index)
         fig_df.to_csv(output_path / f"feat_importance_{dataset_name}.tsv", sep="\t")
-        '''
+    
+    logger.info("Continuous features fisihed for all datasets")
+

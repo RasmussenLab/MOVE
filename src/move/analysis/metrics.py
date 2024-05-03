@@ -128,7 +128,8 @@ class ComputeAccuracyMetrics(CsvWriterMixin, SubTask):
         datasets = self.dataloader.datasets
         for batch in self.dataloader:
             batch_disc, batch_cont = self.model.split_input(batch[0])
-            recon_disc, recon_cont = self.model.reconstruct(batch[0])
+            recon = self.model.reconstruct(batch[0], as_one=True)
+            recon_disc, recon_cont = self.model.split_input(recon)
 
             scores_per_dataset = {}
             for i, dataset in enumerate(datasets[: len(batch_disc)]):

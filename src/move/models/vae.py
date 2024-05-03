@@ -127,8 +127,10 @@ class Vae(BaseVae):
     def project(self, batch: torch.Tensor) -> torch.Tensor:
         return self.encode(batch)[0]
 
-    def reconstruct(self, batch: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    def reconstruct(self, batch: torch.Tensor, as_one: bool = False):
         out = self(batch)["x_recon"]
+        if as_one:
+            return out
         out_disc, out_cont = self.split_output(out)
         recon_disc = torch.cat(
             [logits.flatten(start_dim=1) for logits in out_disc], dim=1

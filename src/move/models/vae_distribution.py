@@ -140,14 +140,17 @@ class VaeDistribution(BaseVae):
     def project(self, batch: torch.Tensor) -> torch.Tensor:
         return self.encode(batch)[0]
 
-    def reconstruct(self, batch: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    def reconstruct(self, batch: torch.Tensor, as_one: bool = False):
         out = self(batch)["x_recon"]
         out_disc, out_cont = self.split_output(out)
         out_cont = cast(ContinuousDistribution, out_cont)
         recon_disc = torch.cat(
             [logits.flatten(start_dim=1) for logits in out_disc], dim=1
         )
+        # get location only (mean)
         recon_cont = torch.cat([args["loc"] for args in out_cont], dim=1)
+        if as_one:
+            return torch.cat((recon_disc, recon_cont), dim=1)
         return recon_disc, recon_cont
 
     def forward(self, x: torch.Tensor) -> VaeOutput:

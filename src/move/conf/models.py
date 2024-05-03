@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 
 from move.conf.schema import get_fully_qualname
 from move.models.vae import Vae
+from move.models.vae_distribution import VaeDistribution
 from move.models.vae_t import VaeT
 
 
@@ -25,6 +26,13 @@ class VaeConfig(ModelConfig):
     kl_weight: float
     dropout_rate: float
     use_cuda: bool = False
+
+
+@dataclass
+class VaeNormalConfig(VaeConfig):
+    """Configure a t-distribution variational autoencoder."""
+
+    _target_: str = field(default=get_fully_qualname(VaeDistribution), init=False)
 
 
 @dataclass

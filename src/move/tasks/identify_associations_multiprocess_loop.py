@@ -464,7 +464,7 @@ def _bayes_approach_parallel(
     
     args = [(config, task_config, baseline_dataloader,
     num_samples, num_continuous, i, models_path,
-    continuous_shapes, categorical_shapes, nan_mask) for i in range(num_perturbed)]
+    continuous_shapes, categorical_shapes, nan_mask) for i in num_perturbed]
     #for i in range(1000, 1020)]
     
     #logger.debug(f"Arguments for workers are {args}")

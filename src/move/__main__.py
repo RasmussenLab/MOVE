@@ -15,7 +15,16 @@ from move.conf.schema import (
 from move.core.logging import get_logger
 
 import move.tasks.analyze_latent_fast
-import move.tasks.analyze_latent_multiprocessing
+
+import move.tasks.analyze_latent_multiprocess
+
+import move.tasks.identify_associations_selected
+
+import move.tasks.identify_associations_multiprocess
+
+import move.tasks.identify_associations_efficient
+
+import move.tasks.identify_associations_multiprocess_loop
 
 
 @hydra.main(
@@ -44,12 +53,18 @@ def main(config: MOVEConfig) -> None:
         if config.task.fast:
             move.tasks.analyze_latent_fast(config)
         elif config.task.multiprocess:
-            move.tasks.analyze_latent_multiprocessing(config)
+            move.tasks.analyze_latent_multiprocess(config)
         else:
             move.tasks.analyze_latent(config)
     elif issubclass(task_type, IdentifyAssociationsConfig):
         if config.task.multiprocess:
             move.tasks.identify_associations_multiprocess(config)
+        elif config.task.selected:
+            move.tasks.identify_associations_selected(config)
+        elif config.task.efficient:
+            move.tasks.identify_associations_efficient(config)
+        elif config.task.multiloop:
+            move.tasks.identify_associations_multiprocess_loop(config)
         else:
             move.tasks.identify_associations(config)
         #What we had before

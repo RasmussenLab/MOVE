@@ -4,6 +4,10 @@ from functools import reduce
 from os.path import exists
 from pathlib import Path
 from typing import Literal, Sized, Union, cast, Optional
+from move.data.preprocessing import feature_stats
+from move.visualization.dataset_distributions import plot_value_distributions
+ContinuousPerturbationType = Literal["minimum", "maximum", "plus_std", "minus_std"]
+
 
 import hydra
 import numpy as np
@@ -12,12 +16,6 @@ import torch
 from omegaconf import OmegaConf
 from scipy.stats import ks_2samp, pearsonr  # type: ignore
 from torch.utils.data import DataLoader
-
-from torch.utils.data import DataLoader
-
-from move.data.dataloaders import MOVEDataset
-from move.data.preprocessing import feature_stats
-from move.visualization.dataset_distributions import plot_value_distributions
 
 from move.analysis.metrics import get_2nd_order_polynomial
 
@@ -31,34 +29,37 @@ from move.conf.schema import (
 from move.core.logging import get_logger
 from move.core.typing import BoolArray, FloatArray, IntArray
 from move.data import io
-from move.data.dataloaders import MOVEDataset, make_dataloader
+
+from move.data.dataloaders import MOVEDataset, make_dataloader # Make dataloader with both continuous and categorical datasets
+
 from move.data.perturbations import (
     ContinuousPerturbationType,
     perturb_categorical_data,
-    #perturb_continuous_data_extended,
-)
-from move.data.preprocessing import one_hot_encode_single
-from move.models.vae import VAE
-from move.visualization.dataset_distributions import (
-    plot_correlations,
-    plot_cumulative_distributions,
-    plot_feature_association_graph,
-    plot_reconstruction_movement,
-)
+    perturb_continuous_data_extended,
+) # We input functions for perturbing either categorical data or continuous data.
+# perturb_continuous_data_extended takes as input:
+#    - baseline_dataloader: Baseline dataloader. It is the whole original dataloader, with all the continuous and categorical features
+#    - con_dataset_names: List of continuous dataset names
+#    - target_dataset_name: Target continuous dataset to perturb
+#    - perturbation_type: 'minimum', 'maximum', 'plus_std' or 'minus_std'.
+#    - output_subpath: path where the figure showing the perturbation will be saved
+# And returns:
+#  - List of dataloaders containing all perturbed datasets
+#  - Plot of the feature value distribution after the perturbation. All perturbations are collapsed into one single plot.
 
-TaskType = Literal["bayes", "ttest", "ks"]
-CONTINUOUS_TARGET_VALUE = ["minimum", "maximum", "plus_std", "minus_std"]
+# Instead of this, We are going to use a function that returns only one perturbed dataloader, not all of them. It is going to be
+# perturbed_continuous_extended_one :
 
-
-
-def perturb_continuous_data_extended(
+'''
+def perturb_continuous_data_extended_one( # We will keep the input almost the same, to make everything easier
+    # However, I have to introduce a variable that allows me to index the specific dataloader I want to create (index_pert_feat)
+    # And I eliminate the output directory, because I am not going to save any image
     baseline_dataloader: DataLoader,
     con_dataset_names: list[str],
     target_dataset_name: str,
     perturbation_type: ContinuousPerturbationType,
-    output_subpath: Optional[Path] = None,
-) -> list[DataLoader]:
-    logger = get_logger(__name__)
+    index_pert_feat: int,
+) -> DataLoader: # But we change the output from list[DataLoader] to just one DataLoader
 
     """Add perturbations to continuous data. For each feature in the target
     dataset, change the feature's value in all samples (in rows):
@@ -73,7 +74,7 @@ def perturb_continuous_data_extended(
         output_subpath: path where the figure showing the perturbation will be saved
 
     Returns:
-        - List of dataloaders containing all perturbed datasets
+        - Dataloader with the ith feature (index_pert_feat) perturbed.
         - Plot of the feature value distribution after the perturbation. Note that
           all perturbations are collapsed into one single plot.
 
@@ -82,158 +83,60 @@ def perturb_continuous_data_extended(
         datasets. Scaling is done per dataset, not per feature -> slightly different stds
         feature to feature.
     """
-    logger.debug("Inside perturb_extended, creating baseline dataset")
+
     baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
     assert baseline_dataset.con_shapes is not None
     assert baseline_dataset.con_all is not None
 
-    logger.debug("Creating target_ics, splits, and slice")
     target_idx = con_dataset_names.index(target_dataset_name)  # dataset index
     splits = np.cumsum([0] + baseline_dataset.con_shapes)
     slice_ = slice(*splits[target_idx : target_idx + 2])
 
-    #num_features = baseline_dataset.con_shapes[target_idx]
-    # CHANGED THIS TO TRY IT. CHANGE LATER
-    num_features = 5
-    logger.debug(f"number of feature to perturb is {num_features}")
+    num_features = baseline_dataset.con_shapes[target_idx]
     dataloaders = []
     perturbations_list = []
     # Change below.
     #num_features = 10
 
-    for i in range(num_features):
-        logger.debug(f"Getting perturbed dataset for feature {i}")
-        perturbed_con = baseline_dataset.con_all.clone()
-        target_dataset = perturbed_con[:, slice_]
-        # Change the desired feature value by:
-        min_feat_val_list, max_feat_val_list, std_feat_val_list = feature_stats(
-            target_dataset
-        )
-        if perturbation_type == "minimum":
-            target_dataset[:, i] = torch.FloatTensor([min_feat_val_list[i]])
-        elif perturbation_type == "maximum":
-            target_dataset[:, i] = torch.FloatTensor([max_feat_val_list[i]])
-        elif perturbation_type == "plus_std":
-            target_dataset[:, i] += torch.FloatTensor([std_feat_val_list[i]])
-        elif perturbation_type == "minus_std":
-            target_dataset[:, i] -= torch.FloatTensor([std_feat_val_list[i]])
+    # Now, instead of the for loop that iterates over all the features we want to perturb, we do it only for one feature, the one 
+    # indicated in index_pert_feat
 
-        #perturbations_list.append(target_dataset[:, i].numpy())
+    #for i in range(num_features):
+    perturbed_con = baseline_dataset.con_all.clone()
+    target_dataset = perturbed_con[:, slice_]
+    # Change the desired feature value by:
+    min_feat_val_list, max_feat_val_list, std_feat_val_list = feature_stats(
+        target_dataset
+    )
+    if perturbation_type == "minimum":
+        target_dataset[:, index_pert_feat] = torch.FloatTensor([min_feat_val_list[index_pert_feat]])
+    elif perturbation_type == "maximum":
+        target_dataset[:, index_pert_feat] = torch.FloatTensor([max_feat_val_list[index_pert_feat]])
+    elif perturbation_type == "plus_std":
+        target_dataset[:, index_pert_feat] += torch.FloatTensor([std_feat_val_list[index_pert_feat]])
+    elif perturbation_type == "minus_std":
+        target_dataset[:, index_pert_feat] -= torch.FloatTensor([std_feat_val_list[index_pert_feat]])
 
-        perturbed_dataset = MOVEDataset(
-            baseline_dataset.cat_all,
-            perturbed_con,
-            baseline_dataset.cat_shapes,
-            baseline_dataset.con_shapes,
-        )
+    # We used this for a plot I have removed, so no need to use it
+    # perturbations_list.append(target_dataset[:, i].numpy())
 
-        perturbed_dataloader = DataLoader(
-            perturbed_dataset,
-            shuffle=False,
-            batch_size=baseline_dataloader.batch_size,
-        )
-        dataloaders.append(perturbed_dataloader)
-    logger.debug("Finished perturb_continuous_data_extended function")
-
-    # Plot the perturbations for all features, collapsed in one plot:
-    #if output_subpath is not None:
-     #   fig = plot_value_distributions(np.array(perturbations_list).transpose())
-      #  fig_path = str(
-       #     output_subpath / f"perturbation_distribution_{target_dataset_name}.png"
-        #)
-        #fig.savefig(fig_path)
-
-    return dataloaders
-
-
-
-
-def _get_task_type(
-    task_config: IdentifyAssociationsConfig,
-) -> TaskType:
-    task_type = OmegaConf.get_type(task_config)
-    if task_type is IdentifyAssociationsBayesConfig:
-        return "bayes"
-    if task_type is IdentifyAssociationsTTestConfig:
-        return "ttest"
-    if task_type is IdentifyAssociationsKSConfig:
-        return "ks"
-    raise ValueError("Unsupported type of task!")
-
-
-def _validate_task_config(
-    task_config: IdentifyAssociationsConfig, task_type: TaskType
-) -> None:
-    if not (0.0 <= task_config.sig_threshold <= 1.0):
-        raise ValueError("Significance threshold must be within [0, 1].")
-    if task_type == "ttest":
-        task_config = cast(IdentifyAssociationsTTestConfig, task_config)
-        if len(task_config.num_latent) != 4:
-            raise ValueError("4 latent space dimensions required.")
-
-
-def prepare_for_categorical_perturbation(
-    config: MOVEConfig,
-    interim_path: Path,
-    baseline_dataloader: DataLoader,
-    cat_list: list[FloatArray],
-) -> tuple[list[DataLoader], BoolArray, BoolArray,]:
-    """
-    This function creates the required dataloaders and masks
-    for further categorical association analysis.
-
-    Args:
-        config: main configuration file
-        interim_path: path where the intermediate outputs are saved
-        baseline_dataloader: reference dataloader that will be perturbed
-        cat_list: list of arrays with categorical data
-
-    Returns:
-        dataloaders: all dataloaders, including baseline appended last.
-        nan_mask: mask for Nans
-        feature_mask: masks the column for the perturbed feature.
-    """
-
-    # Read original data and create perturbed datasets
-    task_config = cast(IdentifyAssociationsConfig, config.task)
-    logger = get_logger(__name__)
-
-    # Loading mappings:
-    mappings = io.load_mappings(interim_path / "mappings.json")
-    target_mapping = mappings[task_config.target_dataset]
-    target_value = one_hot_encode_single(target_mapping, task_config.target_value)
-    logger.debug(
-        f"Target value: {task_config.target_value} => {target_value.astype(int)[0]}"
+    perturbed_dataset = MOVEDataset(
+        baseline_dataset.cat_all,
+        perturbed_con,
+        baseline_dataset.cat_shapes,
+        baseline_dataset.con_shapes,
     )
 
-    dataloaders = perturb_categorical_data(
-        baseline_dataloader,
-        config.data.categorical_names,
-        task_config.target_dataset,
-        target_value,
+    perturbed_dataloader = DataLoader(
+        perturbed_dataset,
+        shuffle=False,
+        batch_size=baseline_dataloader.batch_size,
     )
-    dataloaders.append(baseline_dataloader)
+    #dataloaders.append(perturbed_dataloader)
 
-    baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
+    return perturbed_dataloader
 
-    assert baseline_dataset.con_all is not None
-    orig_con = baseline_dataset.con_all
-    nan_mask = (orig_con == 0).numpy()  # NaN values encoded as 0s
-    logger.debug(f"# NaN values: {np.sum(nan_mask)}/{orig_con.numel()}")
-
-    target_dataset_idx = config.data.categorical_names.index(task_config.target_dataset)
-    target_dataset = cat_list[target_dataset_idx]
-    feature_mask = np.all(target_dataset == target_value, axis=2)  # 2D: N x P
-    feature_mask |= np.sum(target_dataset, axis=2) == 0
-
-    return (
-        dataloaders,
-        nan_mask,
-        feature_mask,
-    )
-
-
-
+'''
 def perturb_continuous_data_extended_one( # We will keep the input almost the same, to make everything easier
     # However, I have to introduce a variable that allows me to index the specific dataloader I want to create (index_pert_feat)
     # And I eliminate the output directory, because I am not going to save any image
@@ -268,7 +171,6 @@ def perturb_continuous_data_extended_one( # We will keep the input almost the sa
         feature to feature.
     """
     logger.debug(f"Inside perturb_continuous_data_extended_one for feature {index_pert_feat}")
-    
     baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
     assert baseline_dataset.con_shapes is not None
     assert baseline_dataset.con_all is not None
@@ -288,6 +190,10 @@ def perturb_continuous_data_extended_one( # We will keep the input almost the sa
     #for i in range(num_features):
     logger.debug(f"Setting up perturbed_con for feature {index_pert_feat}")
 
+    ###################################################################
+    # WE MIGHT HAVE A PROBLEM HERE. UP TO HERE, IT RUNS WITHOUT PROBLEM
+    ###################################################################
+    
     perturbed_con = baseline_dataset.con_all.clone()
     target_dataset = perturbed_con[:, slice_]
 
@@ -328,11 +234,116 @@ def perturb_continuous_data_extended_one( # We will keep the input almost the sa
 
     return perturbed_dataloader
 
-def prepare_for_continuous_perturbation(
+
+from move.data.preprocessing import one_hot_encode_single
+from move.models.vae import VAE
+from move.visualization.dataset_distributions import (
+    plot_correlations,
+    plot_cumulative_distributions,
+    plot_feature_association_graph,
+    plot_reconstruction_movement,
+)
+
+# We can do three types of statistical tests
+TaskType = Literal["bayes", "ttest", "ks"]
+
+# Possible values for continuous pertrubation
+CONTINUOUS_TARGET_VALUE = ["minimum", "maximum", "plus_std", "minus_std"]
+
+def _get_task_type(
+    task_config: IdentifyAssociationsConfig,
+) -> TaskType:
+    task_type = OmegaConf.get_type(task_config)
+    if task_type is IdentifyAssociationsBayesConfig:
+        return "bayes"
+    if task_type is IdentifyAssociationsTTestConfig:
+        return "ttest"
+    if task_type is IdentifyAssociationsKSConfig:
+        return "ks"
+    raise ValueError("Unsupported type of task!")
+
+
+def _validate_task_config(
+    task_config: IdentifyAssociationsConfig, task_type: TaskType
+) -> None:
+    if not (0.0 <= task_config.sig_threshold <= 1.0):
+        raise ValueError("Significance threshold must be within [0, 1].")
+    if task_type == "ttest":
+        task_config = cast(IdentifyAssociationsTTestConfig, task_config)
+        if len(task_config.num_latent) != 4:
+            raise ValueError("4 latent space dimensions required.")
+
+
+# I don't care about this, because I am not going to to categorical perturbation
+def prepare_for_categorical_perturbation(
     config: MOVEConfig,
-    output_subpath: Path,
+    interim_path: Path,
     baseline_dataloader: DataLoader,
+    cat_list: list[FloatArray],
 ) -> tuple[list[DataLoader], BoolArray, BoolArray,]:
+    """
+    This function creates the required dataloaders and masks
+    for further categorical association analysis.
+
+    Args:
+        config: main configuration file
+        interim_path: path where the intermediate outputs are saved
+        baseline_dataloader: reference dataloader that will be perturbed
+        cat_list: list of arrays with categorical data
+
+    Returns:
+        dataloaders: all dataloaders, including baseline appended last.
+        nan_mask: mask for Nans
+        feature_mask: masks the column for the perturbed feature.
+    """
+
+    # Read original data and create perturbed datasets
+    task_config = cast(IdentifyAssociationsConfig, config.task)
+    logger = get_logger(__name__)
+
+    # Loading mappings:
+    mappings = io.load_mappings(interim_path / "mappings.json")
+    target_mapping = mappings[task_config.target_dataset]
+    target_value = one_hot_encode_single(target_mapping, task_config.target_value)
+    logger.debug(
+        f"Target value: {task_config.target_value} => {target_value.astype(int)[0]}"
+    )
+
+    dataloaders = perturb_categorical_data(
+        baseline_dataloader,
+        config.data.categorical_names,
+        task_config.target_dataset,
+        target_value,
+    )
+    dataloaders.append(baseline_dataloader) # If we only perturb 10 features, we will only have 10 dataloaders, plus the baseline
+
+    baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
+
+    assert baseline_dataset.con_all is not None
+    orig_con = baseline_dataset.con_all
+    nan_mask = (orig_con == 0).numpy()  # NaN values encoded as 0s
+    logger.debug(f"# NaN values: {np.sum(nan_mask)}/{orig_con.numel()}")
+
+    target_dataset_idx = config.data.categorical_names.index(task_config.target_dataset)
+    target_dataset = cat_list[target_dataset_idx]
+    feature_mask = np.all(target_dataset == target_value, axis=2)  # 2D: N x P
+    feature_mask |= np.sum(target_dataset, axis=2) == 0
+
+    return (
+        dataloaders,
+        nan_mask,
+        feature_mask,
+    )
+
+
+
+# I will also have to change this, so that it only returns one dataloader, not all of them
+def prepare_for_continuous_perturbation_one(
+    config: MOVEConfig,
+    # output_subpath: Path, Remove this
+    baseline_dataloader: DataLoader,
+    index_pert_feat,
+) -> tuple[DataLoader, BoolArray, BoolArray,]: # change list[DataLoader] to only one dataloader
     """
     This function creates the required dataloaders and masks
     for further continuous association analysis.
@@ -358,35 +369,35 @@ def prepare_for_continuous_perturbation(
     logger = get_logger(__name__)
     task_config = cast(IdentifyAssociationsConfig, config.task)
 
-    dataloaders = perturb_continuous_data_extended(
+    # Change this to create only one perturbed dataloader
+    #dataloaders = perturb_continuous_data_extended(
+     #   baseline_dataloader,
+      #  config.data.continuous_names,
+       # task_config.target_dataset,
+        #cast(ContinuousPerturbationType, task_config.target_value),
+        #output_subpath,
+    #)
+    #dataloaders.append(baseline_dataloader) # Append the baseline to the list of perturbed dataloaders
+
+    dataloaders = perturb_continuous_data_extended_one(
         baseline_dataloader,
         config.data.continuous_names,
         task_config.target_dataset,
         cast(ContinuousPerturbationType, task_config.target_value),
-        output_subpath,
-    )
-    dataloaders.append(baseline_dataloader)
+        index_pert_feat, # I will have to use this in a loop that iterates over all features in the target dataset
+    ) # We will get only one dataloader for each iteration of the for loop
+    #dataloaders.append(baseline_dataloader) # Add the baseline dataloader to the perturbed dataloader
 
-    #dataloaders =[]
-
-    #for i in range(5):
-     #   perturbed_dataloader = perturb_continuous_data_extended_one(
-      #      baseline_dataloader=baseline_dataloader,
-       #     con_dataset_names=config.data.continuous_names,
-        #    target_dataset_name=task_config.target_dataset,
-         #   perturbation_type=cast(ContinuousPerturbationType, task_config.target_value),
-          #  index_pert_feat=i,) # Like this, I get only one perturbed dataloader, and the nan and feature masks
-        #logger.debug
-
-        #dataloaders.append(perturbed_dataloader)
-    logger.debug(f"Dataloaders length is {len(dataloaders)}")
-
+    # Get the baseline dataset
     baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
 
     assert baseline_dataset.con_all is not None
-    orig_con = baseline_dataset.con_all
-    nan_mask = (orig_con == 0).numpy()  # NaN values encoded as 0s
+    orig_con = baseline_dataset.con_all # Original continuous data of the baseline dataset (all data)
+    nan_mask = (orig_con == 0).numpy()  # Creates a mask to identify NaN values in the original data. 
+    # In this case, NaN values are encoded as 0s. The expression (orig_con == 0) creates a boolean mask where True indicates 
+    # the presence of NaN values, and False indicates non-NaN values. .numpy() converts this boolean mask to a numpy array.
     logger.debug(f"# NaN values: {np.sum(nan_mask)}/{orig_con.numel()}")
+    # np.sum(nan_mask) calculates the total number of NaN values using the nan_mask, and orig_con.numel() calculates the total number of elements in the original data.
     feature_mask = nan_mask
 
     return (dataloaders, nan_mask, feature_mask)
@@ -397,44 +408,67 @@ def _bayes_approach(
     task_config: IdentifyAssociationsBayesConfig,
     train_dataloader: DataLoader,
     baseline_dataloader: DataLoader,
-    dataloaders: list[DataLoader],
+    #dataloaders: list[DataLoader], I eliminate this, because I am not going to use it
     models_path: Path,
-    num_perturbed: int,
+    num_perturbed: int, # In this case, should it be only 1, or we keep the original? I should be the original
     num_samples: int,
     num_continuous: int,
     nan_mask: BoolArray,
     feature_mask: BoolArray,
 ) -> tuple[Union[IntArray, FloatArray], ...]:
 
+    # I can use GPU for this?
     assert task_config.model is not None
     device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
 
     # Train models
     logger = get_logger(__name__)
     logger.info("Training models")
+
+    # mean_diff collects the values for all perturbed features. Let's see if we can store only the values for 1 perturbed
+    # feature at a time, in mean_diff_one
     mean_diff = np.zeros((num_perturbed, num_samples, num_continuous))
-    normalizer = 1 / task_config.num_refits
+    mean_diff_one = np.zeros((num_samples, num_perturbed))
+
+    # The first index refers to the feature we are perturbing. We will have one for each feature in the target dataset (or selected, if we do the short version)
+    # For each pertrubed feature, we create a second dimension for the samples.
+    # Finally, for each sample in each perturbed feature, we will have a third dimension for each continuous features.
+    
+    # For example, if we had 2 features to perturb, 3 samples and 5 continuous features, the array mean_diff would look like this:
+    # array([[[0., 0., 0., 0., 0.], Here we have the differences for the first perturbed feature, for all samples
+    #    [0., 0., 0., 0., 0.],      and all continuous features
+    #    [0., 0., 0., 0., 0.]],
+
+    #   [[0., 0., 0., 0., 0.],      Here we have the differences for the second perturbed feature, for all samples and all
+    #    [0., 0., 0., 0., 0.],      continuous features
+    #    [0., 0., 0., 0., 0.]]])
+
+    # In mean_diff_one, we will only have two dimensions, because we will only calculate it for one perturbed feature at a time
+
+    normalizer = 1 / task_config.num_refits # Divide by the number of refits. All the refits will have the same importance
 
     # Last appended dataloader is the baseline
     baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
 
-    for j in range(task_config.num_refits):
+    for j in range(task_config.num_refits): # WE create as many models as indicated in the config file (for stability?)
+        # For each j (number of refits) we train a different model, but on the same data
         # Initialize model
         model: VAE = hydra.utils.instantiate(
             task_config.model,
             continuous_shapes=baseline_dataset.con_shapes,
             categorical_shapes=baseline_dataset.cat_shapes,
         )
-        if j == 0:
+        if j == 0: # But first, we see if the models are already created (if we trained them before). for each j, we check if
+        # model number j has already been created.
             logger.debug(f"Model: {model}")
 
         # Train/reload model
         model_path = models_path / f"model_{task_config.model.num_latent}_{j}.pt"
-        if model_path.exists():
+        if model_path.exists(): # If the models were already created, we load them
             logger.debug(f"Re-loading refit {j + 1}/{task_config.num_refits}")
             model.load_state_dict(torch.load(model_path))
             model.to(device)
-        else:
+        else: # Otherwise, he have to train them, with the parameters we indicated in the config file
             logger.debug(f"Training refit {j + 1}/{task_config.num_refits}")
             model.to(device)
             hydra.utils.call(
@@ -444,138 +478,174 @@ def _bayes_approach(
             )
             if task_config.save_refits:
                 torch.save(model.state_dict(), model_path)
+
+        # Independently of whether we loaded the models or trained them, we go into evaluation mode        
         model.eval()
 
         # Calculate baseline reconstruction
-        reconstruction_path = models_path / f"baseline_recon_{task_config.model.num_latent}_{j}.pt"
-        if reconstruction_path.exists():
-            logger.debug(f"Loading baseline reconstruction from {reconstruction_path}, in the worker function")
-            baseline_recon = torch.load(reconstruction_path)
-        else:
-            _, baseline_recon = model.reconstruct(baseline_dataloader)
-        
+        # For each model j, we get a different reconstruction for the baseline. We haven't perturbed anything yet, we are just
+        # getting the reconstruction for the baseline
+        _, baseline_recon = model.reconstruct(baseline_dataloader)
+
+        # min_feat will be an array with 2 dim. The first dimension (rows) is the number of perturbed features (features in the target dataset),
+        # and the second dimension (columns) is the number of total continuous features
+        # max_feat will have the same dimensions. Each row is one pertrubed feature, and each column one of the continuous features in the whole dataset
+        # Let's see what we fill them with
         min_feat, max_feat = np.zeros((num_perturbed, num_continuous)), np.zeros(
             (num_perturbed, num_continuous)
         )
+        # If we want to do it for one perturbed feature at a time, it would be 
+        min_feat_one, max_feat_one = np.zeros((num_continuous)), np.zeros(
+            (num_continuous)
+        )
+
+        # min_baseline contains the minimum values observed across each feature in the reconstructed baseline dataset
+        # max_baseline contains the maximum values observed across each feature in the reconstructed baseline dataset.
         min_baseline, max_baseline = np.min(baseline_recon, axis=0), np.max(
             baseline_recon, axis=0
         )
 
         # Calculate perturb reconstruction => keep track of mean difference
+
+        # We are still in the j loop, so we do the following for each of the model refits
+        # For each of the features in the target dataset, which we are going to perturb
         for i in range(num_perturbed):
-            _, perturb_recon = model.reconstruct(dataloaders[i])
+            # Instead of directly having the dataloaders, I create one here
+            perturbed_dataloader, nan_mask, feature_mask = prepare_for_continuous_perturbation_one(
+                config=config,
+                baseline_dataloader = baseline_dataloader,
+                index_pert_feat= i
+            ) # Like this, I get only one perturbed dataloader, and the nan and feature masks
+
+            # Reconstruction for the dataset with the i^th perturbed feature
+            _, perturb_recon = model.reconstruct(perturbed_dataloader) # Instead of dataloaders[i], create the perturbed one here and use it only here?
+            # diff is a matrix with the same dimensions as perturb_recon and baselin_recon (rows are samples and columns all the continuous features)
             diff = perturb_recon - baseline_recon  # 2D: N x C
+
+            # Now, we divide the difference by the number of refits, and add it to the previously calculated differences for other models, which
+            # were also normalized. This way, we get the mean of differences for all trained models
+            # Remember that we also do this for each pertrubed feature, we are inside the i loop
             mean_diff[i, :, :] += diff * normalizer
 
+            # If we do it only for one perturbed feature, we don't have to index by the number of perturbed feature
+            mean_diff_one += diff * normalizer
+
+
+            # min_perturb will contain the minimum value for each continuous feature in the ith perturbed reconstruction
+            # max_pertrub will contain the maximum value for each continuous feature in the ith pertrubed reconstruction
             min_perturb, max_perturb = np.min(perturb_recon, axis=0), np.max(
                 perturb_recon, axis=0
             )
+            # Remember that min_feat and max_feat have as many rows as pertrubed features, and as many columns and continuous features in the baseline dataset
+            # Here, we fill each column of the ith row (ith pertrubation) with the minimun and maximum value accross all samples, icluding also the values in the baseline
+            # This way, we get the max and min values for each continuous feature after each pertrubation and corresponding reconstruction.
             min_feat[i, :], max_feat[i, :] = np.min(
                 [min_baseline, min_perturb], axis=0
             ), np.max([max_baseline, max_perturb], axis=0)
+            # If we are only doing it for one perturbation, we don't need to index
+            min_feat_one, max_feat_one = np.min(
+                [min_baseline, min_perturb], axis=0
+            ), np.max([max_baseline, max_perturb], axis=0)
 
+        
+    # NOW WE ARE OUT OF BOTH LOOPS, J (MODEL REFITS), AND I (PERTURBATIONS) WE HAVE ALL THE DATA FOR ALL PERTRUBATIONS, 
+    # COMBINING ALL REFITS
     # Calculate Bayes factors
     logger.info("Identifying significant features")
+
+    # bayes_k has 2 dimensions. The number of rows is the number of perturbed features, and the number of columns the total number of continuous features in the dataset
+    # We will get a bayes factor for each feature of each perturbed dataset
     bayes_k = np.empty((num_perturbed, num_continuous))
+    # bayes_mask has the same shape as bayes_k (num_perturbed, num_continuous), but is filled with zeros instead
     bayes_mask = np.zeros(np.shape(bayes_k))
+
+    # i is the numbe of perturbed features (again)
     for i in range(num_perturbed):
+        # mask is a matrix with the same shape as the baseline
         mask = feature_mask[:, [i]] | nan_mask  # 2D: N x C
-        diff = np.ma.masked_array(mean_diff[i, :, :], mask=mask)  # 2D: N x C        
+        # diff will be the same as before (rows represent perturbed features, columns represent continuous features, 
+        # and we sore the differnece between ith perturbed and baseline), but now we will mask the NaN values, to not take them into account
+        diff = np.ma.masked_array(mean_diff[i, :, :], mask=mask)  # 2D: N x C
+
         prob = np.ma.compressed(np.mean(diff > 1e-8, axis=0))  # 1D: C
+        # diff > 1e-8: This expression creates a boolean mask where True indicates that the corresponding element in the diff array is greater than 1e-8, 
+        #              and False otherwise. Here, 1e-8 is a small threshold value used to filter out very small differences.
+        # np.mean(diff > 1e-8, axis=0): This calculates the mean along the axis 0 (features). For each feature, it computes the proportion of data points 
+        #              where the difference in diff is greater than 1e-8. So, it returns a 1D with the proportion of values that have a significant difference for each feature
+        # np.ma.compressed(): This function is used to compress a masked array, removing the masked elements and returning a 1D array containing only the non-masked values. 
+        #              In this case, it removes the masked elements from the array returned by np.mean().
+        # So, prob will be an array with as many elements as number of features, and it contains the probability that that feautre is significant for ith feature (the one we are perturbating now)
+
+        # Now we calculate the Bayes Factor (bayes_k) for the i-th perturbed feature.
+        # We compute the logarithm of the ratio of the probabilities for each feature being associated with a perturbation.
+        #Adding a small constant (1e-8) is a numerical stability measure to avoid taking the logarithm of zero.
         bayes_k[i, :] = np.log(prob + 1e-8) - np.log(1 - prob + 1e-8)
+        # Each element in bayes_k contains the bayes factor for a particular feature and perturbation combination.
+        
+        
+        # bayes_mask is assigned the differences between corresponding continuous features of the baseline dataset and the i-th perturbed dataset
         if task_config.target_value in CONTINUOUS_TARGET_VALUE:
+            # This is not very efficient, as i have todo it again, but it is the only way I can think of not storing that huge
+            # list of dataloaders:
+            perturbed_dataloader, nan_mask, feature_mask = prepare_for_continuous_perturbation_one(
+                config=config,
+                baseline_dataloader = baseline_dataloader,
+                index_pert_feat= i
+            ) # Like this, I get only one perturbed dataloader, and the nan and feature masks
             bayes_mask[i, :] = (
                 baseline_dataloader.dataset.con_all[0, :]
-                - dataloaders[i].dataset.con_all[0, :]
+                - perturbed_dataloader.dataset.con_all[0, :]
             )
-    # Save diff as a file
-    # Extract the data and mask separately
-    data = diff.data  # Extract the data from the masked array
-    mask = diff.mask  # Extract the mask from the masked array
-    # Replace masked values with a placeholder (e.g., np.nan)
-    data[mask] = np.nan
-    # Define the file path to save the TSV file
-    output_path = Path(config.data.results_path) / "identify_associations"
-    file_path = output_path / "diff_normal.tsv"
-    # Save the data to the TSV fil
-    #logger.debug(f"Saving diff to {file_path}")
-    np.savetxt(file_path, diff, delimiter='\t')
+            # ASK CHANGENOTE: I MIGHT HAVE AN ISSUE, BECAUSE IN THE ORIGINAL SCRIPT THE LAST DATALOADER APPENDED TO DATALOADERS IS THE BASELINE
+            # I MIGHT NEED TO CREATE AN IF LOOP WERE, IF WE ARE IN THE LAST ITERATION, WE GET THE BASELINE
 
 
-    #data = prob.data  # Extract the data from the masked array
-    #mask = prob.mask  # Extract the mask from the masked array
-    # Replace masked values with a placeholder (e.g., np.nan)
-    #data[mask] = np.nan
-    # Define the file path to save the TSV file
-    output_path = Path(config.data.results_path) / "identify_associations"
-    file_path = output_path / "prob_original_script.tsv"
-    # Save the data to the TSV fil
-    logger.debug(f"Saving prob to {file_path}")
-    np.savetxt(file_path, prob, delimiter='\t')
-    logger.debug(f"prob is {prob}")
-
-    file_path = output_path / "bayes_k_original_all.tsv"
-    logger.debug(f"Saving bayes_k (not worker, all) to {file_path}")
-    np.savetxt(file_path, bayes_k, delimiter='\t')
-
-    bayes_mask[bayes_mask != 0] = 1
+    # Each element in bayes_mask represents the difference in the continuous feature values between the baseline dataset and 
+    # the perturbed dataset for a specific feature.
+    # I think that the difference with mean_diff is that here we compare the original baseline dataset and the pertrubed one, but not the reconstructions
+    # with the real baseline, and not its reconstruction. Hence, all will be zeros but the column corresponding to the perturbed feature (ith)???
+            
+    bayes_mask[bayes_mask != 0] = 1 # Mask. Each row is a perturbed feature. In each row, we have all columns with 0 except the one that is perturbed, which has a 1
     bayes_mask = np.array(bayes_mask, dtype=bool)
 
     # Calculate Bayes probabilities
-    bayes_abs = np.abs(bayes_k)
-    file_path = output_path / "bayes_abs_original.tsv"
-    logger.debug(f"Saving bayes_abs to {file_path}")
-    np.savetxt(file_path, bayes_abs, delimiter='\t')
-
-
-
-    
+    bayes_abs = np.abs(bayes_k) # Absolute value of the Bayes factors
+    # Calculate probabilities.
     bayes_p = np.exp(bayes_abs) / (1 + np.exp(bayes_abs))  # 2D: N x C
-    file_path = output_path / "bayes_p_original.tsv"
-    logger.debug(f"Saving bayes_p to {file_path}")
-    np.savetxt(file_path, bayes_p, delimiter='\t')
-    
-    #bayes_abs[bayes_mask] = np.min(
-     #   bayes_abs
-    #)  # Bring feature_i feature_i associations to minimum
+
+
+    # for all features and perturbations where non-zero differences exist (bayes_mask is True), the Bayes Factor is set to the minimum 
+    # value of Bayes Factors (np.min(bayes_abs)). This effectively brings the associations with non-zero differences to a minimum, ensuring that 
+    #these associations do not overly influence subsequent steps of the analysis, potentially avoiding false positives or exaggerated significance in the results.
+    bayes_abs[bayes_mask] = np.min(
+        bayes_abs
+    )  # Bring feature_i feature_i associations to minimum
+
     sort_ids = np.argsort(bayes_abs, axis=None)[::-1]  # 1D: N x C
-    file_path = output_path / "sort_ids_original_script.tsv"
-    logger.debug(f"Saving sort_ids to {file_path}")
-    np.savetxt(file_path, sort_ids, delimiter='\t')
-    logger.debug(f"sort_ids are {sort_ids}")
-    
     prob = np.take(bayes_p, sort_ids)  # 1D: N x C
-    file_path = output_path / "prob_original_final.tsv"
-    logger.debug(f"Saving prob to {file_path}")
-    np.savetxt(file_path, prob, delimiter='\t')
     logger.debug(f"Bayes proba range: [{prob[-1]:.3f} {prob[0]:.3f}]")
 
-    # Sort Bayes
+    # Sort bayes_k in descending order, aligning with the sorted bayes_abs.
     bayes_k = np.take(bayes_k, sort_ids)  # 1D: N x C
-    file_path = output_path / "sorted_bayes_k_original_script.tsv"
-    logger.debug(f"Saving sorted_bayes_k to {file_path}")
-    np.savetxt(file_path, bayes_k, delimiter='\t')
 
     # Calculate FDR
     fdr = np.cumsum(1 - prob) / np.arange(1, prob.size + 1)  # 1D
-    file_path = output_path / "fdr_original_script.tsv"
-    logger.debug(f"Saving fdr to {file_path}")
-    np.savetxt(file_path, fdr, delimiter='\t')
     idx = np.argmin(np.abs(fdr - task_config.sig_threshold))
-    logger.debug(f"Index is {idx}")
-    #file_path = output_path / "idx_original_script.tsv"
-    #logger.debug(f"Saving idx to {file_path}")
-    #np.savetxt(file_path, idx, delimiter='\t')
     logger.debug(f"FDR range: [{fdr[0]:.3f} {fdr[-1]:.3f}]")
 
     return sort_ids[:idx], prob[:idx], fdr[:idx], bayes_k[:idx]
+    # sort_ids[:idx]: Indices of features sorted by significance.
+    # prob[:idx]: Probabilities of significant associations for selected features.
+    # fdr[:idx]: False Discovery Rate values for selected features.
+    # bayes_k[:idx]: Bayes Factors indicating the strength of evidence for selected associations.
 
 
 def _ttest_approach(
+    config: MOVEConfig,
     task_config: IdentifyAssociationsTTestConfig,
     train_dataloader: DataLoader,
     baseline_dataloader: DataLoader,
-    dataloaders: list[DataLoader],
+    #dataloaders: list[DataLoader],
     models_path: Path,
     interim_path: Path,
     num_perturbed: int,
@@ -593,10 +663,13 @@ def _ttest_approach(
     # Train models
     logger = get_logger(__name__)
     logger.info("Training models")
+
+    # The pvalues array will have 4 dimensions: the number of latent feature we are trying, the number of models to train (refits),
+    # the number of perturbed features, and the number of all continuous features.
     pvalues = np.empty(
         (
-            len(task_config.num_latent),
-            task_config.num_refits,
+            4, #len(task_config.num_latent),
+            10, #task_config.num_refits,
             num_perturbed,
             num_continuous,
         )
@@ -605,9 +678,10 @@ def _ttest_approach(
     # Last appended dataloader is the baseline
     baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
 
-    for k, num_latent in enumerate(task_config.num_latent):
-        for j in range(task_config.num_refits):
+    for k, num_latent in enumerate(task_config.num_latent): # For all the latent spaces we try (ASK, can we try only one?)
+        for j in range(task_config.num_refits): # Go over the different refits
 
+            # As before, we train j models unless we have already trained them before, in which case we just load them
             # Initialize model
             model: VAE = hydra.utils.instantiate(
                 task_config.model,
@@ -634,34 +708,62 @@ def _ttest_approach(
                 )
                 if task_config.save_refits:
                     torch.save(model.state_dict(), model_path)
+            
+            # After training or loading the models, we go into evaluation mode.
             model.eval()
 
             # Get baseline reconstruction and baseline difference
+            # First, reconstruct the baseline
             _, baseline_recon = model.reconstruct(baseline_dataloader)
+
+            # I think, here CHANGE 10 for a variable we can change more easily. The first dimension is the number of times we reconstruct a baseline, the second
+            # the number of samples, and the third dimension the continuous feature for which we are doing the comparison,
+            # So, we get as many first dimensions as features we perturb. In each of them, we have the differences for all the samples and all the continuous features 
             baseline_diff = np.empty((10, num_samples, num_continuous))
             for i in range(10):
                 _, recon = model.reconstruct(baseline_dataloader)
                 baseline_diff[i, :, :] = recon - baseline_recon
+            
+            # Here, we get the mean difference between real baseline and baseline reconstruction for each of the features. We see how the reconstruction of the baseline is,
+            # taking into account 10 different reconstructions that use the same model?
             baseline_diff = np.mean(baseline_diff, axis=0)  # 2D: N x C
+            # And we mask the NaN values, to not use them in the future
             baseline_diff = np.where(nan_mask, np.nan, baseline_diff)
 
             # T-test between baseline and perturb difference
-            for i in range(num_perturbed):
-                _, perturb_recon = model.reconstruct(dataloaders[i])
+            # SAME HERE, ASK IF I CAN CREATE THE PERTURBED DATALOADER HERE, ONE AT A TIME, SO THAT I DON'T HAVE TO STORE THE LIST
+            for i in range(num_perturbed): 
+                #_, perturb_recon = model.reconstruct(dataloaders[i]) # Instead of doing dataloaders[i], I would actually create the dataloader here
+                perturbed_dataloader, nan_mask, feature_mask = prepare_for_continuous_perturbation_one(
+                    config=config,
+                    baseline_dataloader = baseline_dataloader,
+                    index_pert_feat= i)
+                _, perturb_recon = model.reconstruct(perturbed_dataloader)
                 perturb_diff = perturb_recon - baseline_recon
                 mask = feature_mask[:, [i]] | nan_mask  # 2D: N x C
+
+            # Before, we calculated the difference between baseline and baseline reconstruction. Now, difference between perturb reconstruction and baseline reconstruction.
+            # We do this to make sure that the difference we see is due to perturbation, and not to reconstruction. If we see a difference between perturbed and baseline but
+            # it is the same as baseline and baseline reconstruction, it won't be meaningful
+
+                # k  es el number_latent que estamos probando. En el archivo por defecto, prueban con 4 valores distintos, así que aquí habría 4 dimensiones
+                # j es el número del refit. En el ejemplo, entrenan 10 modelos para cada número de num_latent
+                # i es el número de feature que estamos perturbando
+                # La última dimensión corresponde a todos los continuous values
+                # What we do is compare, for each perturbed feature, if the difference between perturb_diff and baseline_diff is significant
                 _, pvalues[k, j, i, :] = ttest_rel(
                     a=np.where(mask, np.nan, perturb_diff),
                     b=np.where(mask, np.nan, baseline_diff),
                     axis=0,
                     nan_policy="omit",
                 )
-
+    # WE are out of all the loops. WE have completed all the info for all the latent spaces and all the models.
     # Correct p-values (Bonferroni)
     pvalues = np.minimum(pvalues * num_continuous, 1.0)
     np.save(interim_path / "pvals.npy", pvalues)
 
-    # Find significant hits
+    # Find significant hits. I think we use all latent spaces to compare, and see if we find a certain significant difference
+    # in enough of them, and not only in one.
     overlap_thres = task_config.num_refits // 2
     reject = pvalues <= task_config.sig_threshold  # 4D: L x R x P x C
     overlap = reject.sum(axis=1) >= overlap_thres  # 3D: L x P x C
@@ -674,7 +776,7 @@ def _ttest_approach(
     masked_pvalues = np.ma.median(masked_pvalues, axis=0)  # 2D
     sig_pvalues = np.ma.compressed(np.take(masked_pvalues, sig_ids))  # 1D
 
-    return sig_ids, sig_pvalues
+    return sig_ids, sig_pvalues # We get the significant ids and the significant p-values
 
 
 def _ks_approach(
@@ -1059,8 +1161,9 @@ def identify_associations(config: MOVEConfig) -> None:
         logger.info(f"Perturbation type: {task_config.target_value}")
         output_subpath = Path(output_path) / "perturbation_visualization"
         output_subpath.mkdir(exist_ok=True, parents=True)
-        (dataloaders, nan_mask, feature_mask,) = prepare_for_continuous_perturbation(
-            config, output_subpath, baseline_dataloader
+        (dataloaders, nan_mask, feature_mask,) = prepare_for_continuous_perturbation_one(
+            config, baseline_dataloader, index_pert_feat=1 # I indicate 1 as index because I don't mind, I am only interested in
+            # createing the masks, the dataloaders I will create inside def_bayes and def_ttest, one at a time
         )
 
     # Identify associations between categorical and continuous features:
@@ -1070,7 +1173,12 @@ def identify_associations(config: MOVEConfig) -> None:
             config, interim_path, baseline_dataloader, cat_list
         )
 
-    num_perturbed = 5 #len(dataloaders) - 1  # P
+    num_perturbed = 50 # len(dataloaders) - 1  # P CHANGE THIS ACCORDINGLY VERY IMPORTANT. mAYBE TRY TO A
+    # AUTOMATE IT LATER SO TAHT IT GETS THE LENGTH OF FEATURES IN THE TARGET DATASET. For now I only wnat to 
+    # see it it works, así que voy a hacer un poco una chapuza y poner directamente el número. 
+
+
+    # Perfect, no tengo que cambiar esto
     logger.debug(f"# perturbed features: {num_perturbed}")
 
     ################# APPROACH EVALUATION ##########################
@@ -1082,7 +1190,7 @@ def identify_associations(config: MOVEConfig) -> None:
             task_config,
             train_dataloader,
             baseline_dataloader,
-            dataloaders,
+            #dataloaders, I will create it inside
             models_path,
             num_perturbed,
             num_samples,
@@ -1096,10 +1204,11 @@ def identify_associations(config: MOVEConfig) -> None:
     elif task_type == "ttest":
         task_config = cast(IdentifyAssociationsTTestConfig, task_config)
         sig_ids, *extra_cols = _ttest_approach(
+            config,
             task_config,
             train_dataloader,
             baseline_dataloader,
-            dataloaders,
+            #dataloaders, I will create it inside
             models_path,
             interim_path,
             num_perturbed,

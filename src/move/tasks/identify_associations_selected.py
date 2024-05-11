@@ -1,4 +1,4 @@
-__all__ = ["identify_associations_multiprocess"]
+__all__ = ["identify_associations_selected"]
 
 
 from functools import reduce
@@ -198,7 +198,7 @@ def _bayes_approach_worker(args):
     # Unpack arguments, this step works. Later, get rid of the arguments that are not used
     (config, task_config, baseline_dataloader,
     num_samples, num_continuous, i, models_path,
-    continuous_shapes, categorical_shapes, nan_mask) = args
+    continuous_shapes, categorical_shapes, nan_mask, indexes) = args
     # Initialize logging
     logger = get_logger(__name__)
     logger.debug(f"Inside the worker function for num_perturbed {i}")  
@@ -226,103 +226,103 @@ def _bayes_approach_worker(args):
     # Now, we get the perturbed dataloader. I will keep prepare_for continuous_perturbatio_one in case someone wants to use
     # this in the future for categorical perturbation? Let's see
 
-    #if i in indexes: # We will only waste time doing this if i is in indexes
-    #logger.debug(f"{i} is in indexes. We will calculate the real diff")
+    if i in indexes: # We will only waste time doing this if i is in indexes
+        logger.debug(f"{i} is in indexes. We will calculate the real diff")
 
-    perturbed_dataloader = perturb_continuous_data_extended_one(
-        baseline_dataloader=baseline_dataloader,
-        con_dataset_names=config.data.continuous_names,
-        target_dataset_name=task_config.target_dataset,
-        perturbation_type=cast(ContinuousPerturbationType, task_config.target_value),
-        index_pert_feat=i,) # Like this, I get only one perturbed dataloader, and the nan and feature masks
-    logger.debug(f"created perturbed dataloader for feature {i}")
-    
-    for j in range(task_config.num_refits):
-        #CHANGE HERE, SUGGESTED BY HENRY. Also better to add the results to mean_diff one by one for the refits
-
-        model_path = models_path / f"model_{task_config.model.num_latent}_{j}.pt"
-        reconstruction_path = models_path / f"baseline_recon_{task_config.model.num_latent}_{j}.pt"
-
-        if reconstruction_path.exists():
-            logger.debug(f"Loading baseline reconstruction from {reconstruction_path}, in the worker function")
-            baseline_recon = torch.load(reconstruction_path)
-                
-        logger.debug(f"Loading model {model_path}, using load function")
-        model: VAE = hydra.utils.instantiate(
-            task_config.model,
-            continuous_shapes=continuous_shapes,
-            categorical_shapes=categorical_shapes,
-        )
-        device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
-        logger.debug(f"Loading model from {model_path}")
-        model.load_state_dict(torch.load(model_path))
-        logger.debug(f"Loaded model from {model_path} in the load_model function")
-        model.to(device)
-        model.eval()
-    
-        logger.debug(f"Reconstructing num_perturbed {i}, with model {model_path}")
-        _, perturb_recon = model.reconstruct(perturbed_dataloader) # Instead of dataloaders[i], create the perturbed one here and use it only here
-        logger.debug(f"Perturbed reconstruction succesful for feature {i}, model {model}")
+        perturbed_dataloader = perturb_continuous_data_extended_one(
+            baseline_dataloader=baseline_dataloader,
+            con_dataset_names=config.data.continuous_names,
+            target_dataset_name=task_config.target_dataset,
+            perturbation_type=cast(ContinuousPerturbationType, task_config.target_value),
+            index_pert_feat=i,) # Like this, I get only one perturbed dataloader, and the nan and feature masks
+        logger.debug(f"created perturbed dataloader for feature {i}")
         
-        # diff is a matrix with the same dimensions as perturb_recon and baseline_recon (rows are samples and columns all the continuous features)    
-        logger.debug(f"Calculating diff for num_perturbed {i}, with model {model}")
-        diff = perturb_recon - baseline_recon
-        logger.debug(f"Calculating mean_diff  for num_perturbed {i}, with model {model}")
-        mean_diff += diff * normalizer
-        logger.debug(f"Deleting model {model_path}, to see if I can free up space?")
-        del model
-        logger.debug(f"Deleted model {model_path} in worker {i} to save some space")
+        for j in range(task_config.num_refits):
+            #CHANGE HERE, SUGGESTED BY HENRY. Also better to add the results to mean_diff one by one for the refits
 
+            model_path = models_path / f"model_{task_config.model.num_latent}_{j}.pt"
+            reconstruction_path = models_path / f"baseline_recon_{task_config.model.num_latent}_{j}.pt"
 
-    logger.debug(f"mean_diff for feature {i}, calculated, using all refits and nan_mask")
-    mean_diff_shape = mean_diff.shape
-    logger.debug(f"Returning mean_diff for feature {i}. Its shape is {mean_diff_shape}")
+            if reconstruction_path.exists():
+                logger.debug(f"Loading baseline reconstruction from {reconstruction_path}, in the worker function")
+                baseline_recon = torch.load(reconstruction_path)
+                    
+            logger.debug(f"Loading model {model_path}, using load function")
+            model: VAE = hydra.utils.instantiate(
+                task_config.model,
+                continuous_shapes=continuous_shapes,
+                categorical_shapes=categorical_shapes,
+            )
+            device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
+            logger.debug(f"Loading model from {model_path}")
+            model.load_state_dict(torch.load(model_path))
+            logger.debug(f"Loaded model from {model_path} in the load_model function")
+            model.to(device)
+            model.eval()
         
+            logger.debug(f"Reconstructing num_perturbed {i}, with model {model_path}")
+            _, perturb_recon = model.reconstruct(perturbed_dataloader) # Instead of dataloaders[i], create the perturbed one here and use it only here
+            logger.debug(f"Perturbed reconstruction succesful for feature {i}, model {model}")
+            
+            # diff is a matrix with the same dimensions as perturb_recon and baseline_recon (rows are samples and columns all the continuous features)    
+            logger.debug(f"Calculating diff for num_perturbed {i}, with model {model}")
+            diff = perturb_recon - baseline_recon
+            logger.debug(f"Calculating mean_diff  for num_perturbed {i}, with model {model}")
+            mean_diff += diff * normalizer
+            logger.debug(f"Deleting model {model_path}, to see if I can free up space?")
+            del model
+            logger.debug(f"Deleted model {model_path} in worker {i} to save some space")
+    
 
-    diff_mask = np.ma.masked_array(mean_diff, mask=nan_mask)
-    diff_mask_shape = diff_mask.shape
-    logger.debug(f"Calculated diff_masked for feature {i}. Its shape is {diff_mask_shape}")
-    prob = np.ma.compressed(np.mean(diff_mask > 1e-8, axis=0))
-    logger.debug(f"prob calculated for feature {i}. Starting to calculate bayes_k")
+        logger.debug(f"mean_diff for feature {i}, calculated, using all refits and nan_mask")
+        mean_diff_shape = mean_diff.shape
+        logger.debug(f"Returning mean_diff for feature {i}. Its shape is {mean_diff_shape}")
+            
 
-    data = diff_mask.data  # Extract the data from the masked array
-    mask = diff_mask.mask  # Extract the mask from the masked array
-    # Replace masked values with a placeholder (e.g., np.nan)
-    data[mask] = np.nan
-    # Define the file path to save the TSV file
-    output_path = Path(config.data.results_path) / "identify_associations_multiprocess"
-    #file_path = output_path / "diff_multi.tsv"
-    # Save the data to the TSV fil
-    #logger.debug(f"Saving diff to {file_path}")
-    #np.savetxt(file_path, diff_mask, delimiter='\t')
+        diff_mask = np.ma.masked_array(mean_diff, mask=nan_mask)
+        diff_mask_shape = diff_mask.shape
+        logger.debug(f"Calculated diff_masked for feature {i}. Its shape is {diff_mask_shape}")
+        prob = np.ma.compressed(np.mean(diff_mask > 1e-8, axis=0))
+        logger.debug(f"prob calculated for feature {i}. Starting to calculate bayes_k")
 
-
-    # data = prob.data  # Extract the data from the masked array
-    #mask = prob.mask  # Extract the mask from the masked array
-    # Replace masked values with a placeholder (e.g., np.nan)
-    #data[mask] = np.nan
-    # Define the file path to save the TSV file
-    #output_path = Path(config.data.results_path) / "identify_associations_selected"
-    #file_path = output_path / "prob_multi_script.tsv"
-    # Save the data to the TSV fil
-    #logger.debug(f"Saving prob to {file_path}")
-    #np.savetxt(file_path, prob, delimiter='\t')
-    #logger.debug(f"prob is {prob}")
+        data = diff_mask.data  # Extract the data from the masked array
+        mask = diff_mask.mask  # Extract the mask from the masked array
+        # Replace masked values with a placeholder (e.g., np.nan)
+        data[mask] = np.nan
+        # Define the file path to save the TSV file
+        #output_path = Path(config.data.results_path) / "identify_associations_selected"
+        #file_path = output_path / "diff_multi.tsv"
+        # Save the data to the TSV fil
+        #logger.debug(f"Saving diff to {file_path}")
+        #np.savetxt(file_path, diff_mask, delimiter='\t')
 
 
-    # Calculate bayes factor
-    bayes_k_worker = np.log(prob + 1e-8) - np.log(1 - prob + 1e-8)
-    #shared_bayes_k[i, :] = np.log(prob + 1e-8) - np.log(1 - prob + 1e-8)
-    #shared_bayes_k = Array('d', bayes_k)
-    #file_path = output_path / f"bayes_k_multi_worker_{i}.tsv"
-    #logger.debug(f"Saving bayes_k_worker {i} to {file_path}")
-    #np.savetxt(file_path, bayes_k_worker, delimiter='\t')
+       # data = prob.data  # Extract the data from the masked array
+        #mask = prob.mask  # Extract the mask from the masked array
+        # Replace masked values with a placeholder (e.g., np.nan)
+        #data[mask] = np.nan
+        # Define the file path to save the TSV file
+        #output_path = Path(config.data.results_path) / "identify_associations_selected"
+        #file_path = output_path / "prob_multi_script.tsv"
+        # Save the data to the TSV fil
+        #logger.debug(f"Saving prob to {file_path}")
+        #np.savetxt(file_path, prob, delimiter='\t')
+        logger.debug(f"prob is {prob}")
 
-    #else:
-     #   #logger.debug(f"{i} is not in indexes. Thus, diff will be mean_diff will be all zeros, {mean_diff}, as we defined it")
-      #  #mean_diff = mean_diff
-       # bayes_k_worker += 0.0001
-        #logger.debug(f"{i} is not in indexes. Thus, bayes_k will be small, {bayes_k_worker}")
+
+        # Calculate bayes factor
+        bayes_k_worker = np.log(prob + 1e-8) - np.log(1 - prob + 1e-8)
+        #shared_bayes_k[i, :] = np.log(prob + 1e-8) - np.log(1 - prob + 1e-8)
+        #shared_bayes_k = Array('d', bayes_k)
+        #file_path = output_path / f"bayes_k_multi_worker_{i}.tsv"
+        #logger.debug(f"Saving bayes_k_worker {i} to {file_path}")
+        #np.savetxt(file_path, bayes_k_worker, delimiter='\t')
+    
+    else:
+        #logger.debug(f"{i} is not in indexes. Thus, diff will be mean_diff will be all zeros, {mean_diff}, as we defined it")
+        #mean_diff = mean_diff
+        bayes_k_worker += 0.0001
+        logger.debug(f"{i} is not in indexes. Thus, bayes_k will be small, {bayes_k_worker}")
         
 
 
@@ -343,7 +343,7 @@ def _bayes_approach_parallel(
     num_samples, 
     num_continuous, 
     models_path,
-    #indexes,
+    indexes,
 ):
     logger = get_logger(__name__)
     logger.debug("Inside the bayes_parallel function")
@@ -456,7 +456,7 @@ def _bayes_approach_parallel(
     # COLUMN INTO ACCOUNT OR NOT)   
     #I have subtracted 2, for python indexing and first column
                                                             # MAYBE I HAVE TO CHANGE AND SUBTRACT ONLY 1.
-    #logger.debug(f"Indexes are {indexes}")
+    logger.debug(f"Indexes are {indexes}")
 
     ### CHECK FROM HERE ########
     logger.debug("Starting parallelization")
@@ -464,7 +464,7 @@ def _bayes_approach_parallel(
     
     args = [(config, task_config, baseline_dataloader,
     num_samples, num_continuous, i, models_path,
-    continuous_shapes, categorical_shapes, nan_mask) for i in range(num_perturbed)]
+    continuous_shapes, categorical_shapes, nan_mask, indexes) for i in range(num_perturbed)]
     #for i in range(1000, 1020)]
     
     #logger.debug(f"Arguments for workers are {args}")
@@ -508,7 +508,7 @@ def _bayes_approach_parallel(
     
     logger.info("Pool multiprocess completed. Calculating bayes_abs and bayes_p")
     # Process the results
-    #num_perturbations = len(indexes)
+    num_perturbations = len(indexes)
     #logger.debug(f"bayes_k will have the dimensions num_perturbations={num_perturbations}, num_continuous={num_continuous}")
     bayes_k = np.empty((num_perturbed, num_continuous)) #Change later
     # Store the real indexes, because in the table it will look like they are 0, 1, 2 ,3 ...
@@ -523,9 +523,9 @@ def _bayes_approach_parallel(
 
         h=h+1 # Update count. Instead of the actual index in the total dataset, we will get the relative index,
         # within selected features, but we can look after in the index file
-    #output_path = Path(config.data.results_path) / "identify_associations_multiprocess"
+    #output_path = Path(config.data.results_path) / "identify_associations_selected"
     #file_path = output_path / "bayes_k_multi_all.tsv"
-    #ogger.debug(f"Saving bayes_k (all, not the worker) to {file_path}")
+    #logger.debug(f"Saving bayes_k (all, not the worker) to {file_path}")
     #np.savetxt(file_path, bayes_k, delimiter='\t')
     
 
@@ -624,6 +624,7 @@ def save_results(
     sig_ids,
     extra_cols,
     extra_colnames,
+    num_perturbed,
 ) -> None:
     """
     This function saves the obtained associations in a TSV file containing
@@ -694,7 +695,7 @@ def save_results(
         for col, colname in zip(extra_cols, extra_colnames):
             results[colname] = col
         results.to_csv(
-            output_path / f"results_sig_assoc_{task_type}_multiprocess_all_{pert_type}.tsv", sep="\t", index=False
+            output_path / f"results_sig_assoc_{task_type}_{pert_type}_perturb_{num_perturbed}_multi.tsv", sep="\t", index=False
         )
 
 
@@ -706,7 +707,7 @@ def save_results(
 
 
 
-def identify_associations_multiprocess(config: MOVEConfig) -> None:
+def identify_associations_selected(config: MOVEConfig) -> None:
     """
     Leads to the execution of the appropriate association
     identification tasks. The function is organized in three
@@ -729,7 +730,7 @@ def identify_associations_multiprocess(config: MOVEConfig) -> None:
     if task_config.save_refits:
         models_path.mkdir(exist_ok=True)
 
-    output_path = Path(config.data.results_path) / "identify_associations_multiprocess"
+    output_path = Path(config.data.results_path) / "identify_associations_selected"
     output_path.mkdir(exist_ok=True, parents=True)
 
     # Load datasets:
@@ -775,23 +776,15 @@ def identify_associations_multiprocess(config: MOVEConfig) -> None:
         )
 
     
-    #logger.debug("Getting indexes of TFs to perturb")
+    logger.debug("Getting indexes of TFs to perturb")
     #with open('/projects/rasmussen/data/tcga_isoforms/Kristoffer_selection_perturb/index_TFs_20.txt') as index_file:
      #   indexes = [int(line.strip()) for line in index_file]
     #indexes = [1027, 1029, 1054, 1071, 1076, 1105, 1106, 1150, 1153]
     #indexes = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15] # ALL IN INDEXES, TO SEE IF I GET SOME RESULT
-    #indexes = [0,1,2,3,4,5,6,7,8,9,12]
-    
-    #num_perturbed = 5
-    baseline_dataset = baseline_dataloader.dataset
-    con_shapes = [con.shape[1] for con in con_list]
-    logger.debug(f"con_shapes is {con_shapes}")
-    target_dataset_name=task_config.target_dataset
-    con_dataset_names=config.data.continuous_names
-    target_idx = con_dataset_names.index(target_dataset_name)
-    logger.debug(f"Target idx is {target_idx}")
+    indexes = list(range(101))
 
-    num_perturbed = baseline_dataset.con_shapes[target_idx]
+    
+    num_perturbed = len(indexes)
     logger.debug(f"# perturbed features: {num_perturbed}")
 
     ################# APPROACH EVALUATION ##########################
@@ -808,7 +801,7 @@ def identify_associations_multiprocess(config: MOVEConfig) -> None:
             num_samples,
             num_continuous,
             models_path,
-            #indexes,
+            indexes,
         )
         logger.debug("Completed bayes task (parallel function in main function (identify_associations_selected))")
 
@@ -864,14 +857,15 @@ def identify_associations_multiprocess(config: MOVEConfig) -> None:
         sig_ids,
         extra_cols,
         extra_colnames,
+        num_perturbed,
     )
     logger.debug("Results tsv created")
     pert_type = task_config.pert_type
-    logger.debug(f"pert type is {pert_type}")
+    logger.debug("Creating associations plots")
 
-    if exists(output_path / f"results_sig_assoc_{task_type}_multiprocess_all_{pert_type}.tsv"):
+    if exists(output_path / f"results_sig_assoc_{task_type}_{pert_type}_perturb_{num_perturbed}_multi.tsv"):
         association_df = pd.read_csv(
-            output_path / f"results_sig_assoc_{task_type}_multiprocess_all_{pert_type}.tsv", sep="\t"
+            output_path / f"results_sig_assoc_{task_type}_{pert_type}_perturb_{num_perturbed}_multi.tsv", sep="\t"
         )
         plot_feature_association_graph(association_df, output_path)
         plot_feature_association_graph(

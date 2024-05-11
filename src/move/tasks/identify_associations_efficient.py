@@ -1,4 +1,4 @@
-__all__ = ["identify_associations_multiprocess"]
+__all__ = ["identify_associations_efficient"]
 
 
 from functools import reduce
@@ -285,12 +285,12 @@ def _bayes_approach_worker(args):
     prob = np.ma.compressed(np.mean(diff_mask > 1e-8, axis=0))
     logger.debug(f"prob calculated for feature {i}. Starting to calculate bayes_k")
 
-    data = diff_mask.data  # Extract the data from the masked array
-    mask = diff_mask.mask  # Extract the mask from the masked array
+    #data = diff_mask.data  # Extract the data from the masked array
+    #mask = diff_mask.mask  # Extract the mask from the masked array
     # Replace masked values with a placeholder (e.g., np.nan)
-    data[mask] = np.nan
+    #data[mask] = np.nan
     # Define the file path to save the TSV file
-    output_path = Path(config.data.results_path) / "identify_associations_multiprocess"
+    #output_path = Path(config.data.results_path) / "identify_associations_multiprocess"
     #file_path = output_path / "diff_multi.tsv"
     # Save the data to the TSV fil
     #logger.debug(f"Saving diff to {file_path}")
@@ -459,77 +459,91 @@ def _bayes_approach_parallel(
     #logger.debug(f"Indexes are {indexes}")
 
     ### CHECK FROM HERE ########
-    logger.debug("Starting parallelization")
+    logger.debug("Starting the calculation of bayes_k_(worker)")
     # Define arguments for each worker, and iterate over models and perturbed features
-    
-    args = [(config, task_config, baseline_dataloader,
-    num_samples, num_continuous, i, models_path,
-    continuous_shapes, categorical_shapes, nan_mask) for i in range(num_perturbed)]
-    #for i in range(1000, 1020)]
-    
-    #logger.debug(f"Arguments for workers are {args}")
-    
-    
-    # Create a Pool with multiprocessing.cpu_count() - 1 processes
-    # CHANGED the maxtaskperchild thanks to perplexity
-    #with Pool(processes=torch.multiprocessing.cpu_count() - 1, maxtasksperchild=1) as pool:
-    with Pool(processes=torch.multiprocessing.cpu_count() - 1) as pool:
-        logger.debug("Inside the pool loop?")
-        # Map worker function to arguments
-        # We get the bayes_k matrix, filled for all the perturbed features
-        results = pool.map(_bayes_approach_worker, args)
-    
-    '''
-    # Start a separate process for each task
-    results_queue = Queue()
-    processes = []
-    for arg in args:
-        logger.debug(f"arg is {arg}")
-        process = Process(target=_worker_process, args=(results_queue, arg))
-        process.start()
-        processes.append(process)
 
-    # Wait for all processes to finish and collect results
-    results = []
-    for process in processes:
-        process.join()
-        result = results_queue.get()
-        results.append(result)
-    '''
+    # We will store the result of each num_perturbed in bayes_k
+    bayes_k = np.empty((num_perturbed, num_continuous))
 
+    for i in range(num_perturbed):
+        logger.debug(f"Inside the worker function for num_perturbed {i}") 
+        logger.debug(f"Setting up mean_diff and normalizer for feature {i}")
+        # Now we are inside the num_perturbed loop, we will do this for each of the perturbed features
+        # Now, mean_diff will not have a first dimension for num_perturbed, because we will not store it for each perturbed feature
+        # we will use it in each loop for calculating the bayes factors, and then overwrite its content with a new perturbed feature
+        # mean_diff will contain the differences between the baseline and the perturbed reconstruction for feature i, taking into account
+        # all refits (all refits have the same importance)
+        # We also set up bayes_k, which has the same dimensions as mean_diff
+        mean_diff = np.zeros((num_samples, num_continuous))
+        # Create a memory array for bayes_k within each worker process
+        bayes_k_worker = np.zeros((num_continuous)) # This will be what we will put in bayes_k[i,:]
+        # Set the normalizer
+        normalizer = 1 / task_config.num_refits # Divide by the number of refits. All the refits will have the same importance 
+        logger.debug(f"Creating perturbed dataloader for feature {i}")
+        # Now, we get the perturbed dataloader. I will keep prepare_for continuous_perturbatio_one in case someone wants to use
+        # this in the future for categorical perturbation? Let's see
 
-    #with Pool(processes=torch.multiprocessing.cpu_count() - 1, maxtasksperchild=1) as pool:
-     # results = []
-      #for arg in args:
-       #   logger.debug((f"Current arguments: {arg}") )
-        #  async_result = pool.apply_async(_bayes_approach_worker, arg)
-         # results.append(async_result.get())  # Wait for each worker to finish
+        perturbed_dataloader = perturb_continuous_data_extended_one(
+            baseline_dataloader=baseline_dataloader,
+            con_dataset_names=config.data.continuous_names,
+            target_dataset_name=task_config.target_dataset,
+            perturbation_type=cast(ContinuousPerturbationType, task_config.target_value),
+            index_pert_feat=i,) # Like this, I get only one perturbed dataloader, and the nan and feature masks
+        logger.debug(f"created perturbed dataloader for feature {i}")
+        
+        for j in range(task_config.num_refits):
+            #CHANGE HERE, SUGGESTED BY HENRY. Also better to add the results to mean_diff one by one for the refits
 
-    
-    logger.info("Pool multiprocess completed. Calculating bayes_abs and bayes_p")
-    # Process the results
-    #num_perturbations = len(indexes)
-    #logger.debug(f"bayes_k will have the dimensions num_perturbations={num_perturbations}, num_continuous={num_continuous}")
-    bayes_k = np.empty((num_perturbed, num_continuous)) #Change later
-    # Store the real indexes, because in the table it will look like they are 0, 1, 2 ,3 ...
-    #real_index_bayes_k = np.empty((num_perturbations))
-    h = 0
-    for i, computed_bayes_k in results:
-        logger.debug(f"i is {i}, j for accesing bayes is {h}")
-        logger.debug(f"{i} has bayes_k worker {computed_bayes_k}")
-        bayes_k[i, :] = computed_bayes_k
-        #real_index_bayes_k[h] = i
-        #logger.debug(f"The real index for {h} is {i}, same as {real_index_bayes_k[h]}")
+            model_path = models_path / f"model_{task_config.model.num_latent}_{j}.pt"
+            reconstruction_path = models_path / f"baseline_recon_{task_config.model.num_latent}_{j}.pt"
 
-        h=h+1 # Update count. Instead of the actual index in the total dataset, we will get the relative index,
-        # within selected features, but we can look after in the index file
-    #output_path = Path(config.data.results_path) / "identify_associations_multiprocess"
-    #file_path = output_path / "bayes_k_multi_all.tsv"
-    #ogger.debug(f"Saving bayes_k (all, not the worker) to {file_path}")
-    #np.savetxt(file_path, bayes_k, delimiter='\t')
-    
+            if reconstruction_path.exists():
+                logger.debug(f"Loading baseline reconstruction from {reconstruction_path}, in the worker function")
+                baseline_recon = torch.load(reconstruction_path)
+                    
+            logger.debug(f"Loading model {model_path}, using load function")
+            model: VAE = hydra.utils.instantiate(
+                task_config.model,
+                continuous_shapes=continuous_shapes,
+                categorical_shapes=categorical_shapes,
+            )
+            device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
+            logger.debug(f"Loading model from {model_path}")
+            model.load_state_dict(torch.load(model_path))
+            logger.debug(f"Loaded model from {model_path} in the load_model function")
+            model.to(device)
+            model.eval()
+        
+            logger.debug(f"Reconstructing num_perturbed {i}, with model {model_path}")
+            _, perturb_recon = model.reconstruct(perturbed_dataloader) # Instead of dataloaders[i], create the perturbed one here and use it only here
+            logger.debug(f"Perturbed reconstruction succesful for feature {i}, model {model}")
+            
+            # diff is a matrix with the same dimensions as perturb_recon and baseline_recon (rows are samples and columns all the continuous features)    
+            logger.debug(f"Calculating diff for num_perturbed {i}, with model {model}")
+            diff = perturb_recon - baseline_recon
+            logger.debug(f"Calculating mean_diff  for num_perturbed {i}, with model {model}")
+            mean_diff += diff * normalizer
+            logger.debug(f"Deleting model {model_path}, to see if I can free up space?")
+            del model
+            logger.debug(f"Deleted model {model_path} in worker {i} to save some space")
 
 
+        logger.debug(f"mean_diff for feature {i}, calculated, using all refits and nan_mask")
+        mean_diff_shape = mean_diff.shape
+        logger.debug(f"Returning mean_diff for feature {i}. Its shape is {mean_diff_shape}")
+            
+
+        diff_mask = np.ma.masked_array(mean_diff, mask=nan_mask)
+        diff_mask_shape = diff_mask.shape
+        logger.debug(f"Calculated diff_masked for feature {i}. Its shape is {diff_mask_shape}")
+        prob = np.ma.compressed(np.mean(diff_mask > 1e-8, axis=0))
+        logger.debug(f"prob calculated for feature {i}. Starting to calculate bayes_k")
+
+        # Calculate bayes factor
+        logger.debug(f"Calculating bayes_k for feature {i}")
+        bayes_k_worker = np.log(prob + 1e-8) - np.log(1 - prob + 1e-8)
+        bayes_k[i, :] = bayes_k_worker
+        logger.debug(f"bayes factor calculated for feature {i}. Iteration in i loop for {i} finished")
 
     # Once we have the Bayes factors for all features, we can calculate Bayes probabilities
     bayes_abs = np.abs(bayes_k) # Dimensions are (num_perturbed, num_continuous)
@@ -694,7 +708,7 @@ def save_results(
         for col, colname in zip(extra_cols, extra_colnames):
             results[colname] = col
         results.to_csv(
-            output_path / f"results_sig_assoc_{task_type}_multiprocess_all_{pert_type}.tsv", sep="\t", index=False
+            output_path / f"results_sig_assoc_{task_type}_efficient_{num_perturbed}_{pert_type}.tsv", sep="\t", index=False
         )
 
 
@@ -706,7 +720,7 @@ def save_results(
 
 
 
-def identify_associations_multiprocess(config: MOVEConfig) -> None:
+def identify_associations_efficient(config: MOVEConfig) -> None:
     """
     Leads to the execution of the appropriate association
     identification tasks. The function is organized in three
@@ -791,7 +805,8 @@ def identify_associations_multiprocess(config: MOVEConfig) -> None:
     target_idx = con_dataset_names.index(target_dataset_name)
     logger.debug(f"Target idx is {target_idx}")
 
-    num_perturbed = baseline_dataset.con_shapes[target_idx]
+    #num_perturbed = baseline_dataset.con_shapes[target_idx]
+    num_perturbed = 100
     logger.debug(f"# perturbed features: {num_perturbed}")
 
     ################# APPROACH EVALUATION ##########################
@@ -869,9 +884,9 @@ def identify_associations_multiprocess(config: MOVEConfig) -> None:
     pert_type = task_config.pert_type
     logger.debug(f"pert type is {pert_type}")
 
-    if exists(output_path / f"results_sig_assoc_{task_type}_multiprocess_all_{pert_type}.tsv"):
+    if exists(output_path / f"results_sig_assoc_{task_type}_efficient_{num_perturbed}_{pert_type}.tsv"):
         association_df = pd.read_csv(
-            output_path / f"results_sig_assoc_{task_type}_multiprocess_all_{pert_type}.tsv", sep="\t"
+            output_path / f"results_sig_assoc_{task_type}_efficient_{num_perturbed}_{pert_type}.tsv", sep="\t"
         )
         plot_feature_association_graph(association_df, output_path)
         plot_feature_association_graph(

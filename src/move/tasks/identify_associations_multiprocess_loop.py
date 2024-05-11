@@ -1,4 +1,4 @@
-__all__ = ["identify_associations_multiprocess"]
+__all__ = ["identify_associations_multiprocess_loop"]
 
 
 from functools import reduce
@@ -624,6 +624,7 @@ def save_results(
     sig_ids,
     extra_cols,
     extra_colnames,
+    index_pert,
 ) -> None:
     """
     This function saves the obtained associations in a TSV file containing
@@ -694,7 +695,7 @@ def save_results(
         for col, colname in zip(extra_cols, extra_colnames):
             results[colname] = col
         results.to_csv(
-            output_path / f"results_sig_assoc_{task_type}_multiprocess_all_{pert_type}.tsv", sep="\t", index=False
+            output_path / f"results_sig_assoc_{task_type}_multiprocess_all_{pert_type}_num_perturbed_{index_pert}.tsv", sep="\t", index=False
         )
 
 
@@ -706,7 +707,7 @@ def save_results(
 
 
 
-def identify_associations_multiprocess(config: MOVEConfig) -> None:
+def identify_associations_multiprocess_loop(config: MOVEConfig) -> None:
     """
     Leads to the execution of the appropriate association
     identification tasks. The function is organized in three
@@ -791,89 +792,103 @@ def identify_associations_multiprocess(config: MOVEConfig) -> None:
     target_idx = con_dataset_names.index(target_dataset_name)
     logger.debug(f"Target idx is {target_idx}")
 
-    num_perturbed = baseline_dataset.con_shapes[target_idx]
-    logger.debug(f"# perturbed features: {num_perturbed}")
+    num_features = baseline_dataset.con_shapes[target_idx]
+    
+    # Getting list of features to perturb
+    num_perturbed_list = [list(range(start, min(start + 100, num_features))) for start in range(0, num_features, 100)]
 
-    ################# APPROACH EVALUATION ##########################
 
-    if task_type == "bayes":
-        task_config = cast(IdentifyAssociationsBayesConfig, task_config)
-        sig_ids, *extra_cols = _bayes_approach_parallel(
+    for index_pert, sublist in enumerate(num_perturbed_list):
+
+        logger.debug(f"Calling bayes_parallel for num_perturbed_list[{index_pert}]")
+        logger.debug(f"The features to perturb will be {sublist}")
+
+        num_perturbed = sublist
+
+    
+        logger.debug(f"# perturbed features: {num_perturbed}")
+
+        ################# APPROACH EVALUATION ##########################
+
+        if task_type == "bayes":
+            task_config = cast(IdentifyAssociationsBayesConfig, task_config)
+            sig_ids, *extra_cols = _bayes_approach_parallel(
+                config,
+                task_config,
+                train_dataloader,
+                baseline_dataloader,
+                #dataloaders, I will create it inside
+                num_perturbed,
+                num_samples,
+                num_continuous,
+                models_path,
+                #indexes,
+            )
+            logger.debug("Completed bayes task (parallel function in main function (identify_associations_selected))")
+
+            extra_colnames = ["proba", "fdr", "bayes_k"]
+
+        elif task_type == "ttest":
+            task_config = cast(IdentifyAssociationsTTestConfig, task_config)
+            sig_ids, *extra_cols = _ttest_approach(
+                config,
+                task_config,
+                train_dataloader,
+                baseline_dataloader,
+                #dataloaders, I will create it inside
+                models_path,
+                interim_path,
+                num_perturbed,
+                num_samples,
+                num_continuous,
+                nan_mask,
+                feature_mask,
+            )
+
+            extra_colnames = ["p_value"]
+
+        elif task_type == "ks":
+            task_config = cast(IdentifyAssociationsKSConfig, task_config)
+            sig_ids, *extra_cols = _ks_approach(
+                config,
+                task_config,
+                train_dataloader,
+                baseline_dataloader,
+                dataloaders,
+                models_path,
+                num_perturbed,
+                num_samples,
+                num_continuous,
+                con_names,
+                output_path,
+            )
+
+            extra_colnames = ["ks_distance"]
+
+        else:
+            raise ValueError()
+
+        ###################### RESULTS ################################
+        save_results(
             config,
-            task_config,
-            train_dataloader,
-            baseline_dataloader,
-            #dataloaders, I will create it inside
-            num_perturbed,
-            num_samples,
-            num_continuous,
-            models_path,
-            #indexes,
-        )
-        logger.debug("Completed bayes task (parallel function in main function (identify_associations_selected))")
-
-        extra_colnames = ["proba", "fdr", "bayes_k"]
-
-    elif task_type == "ttest":
-        task_config = cast(IdentifyAssociationsTTestConfig, task_config)
-        sig_ids, *extra_cols = _ttest_approach(
-            config,
-            task_config,
-            train_dataloader,
-            baseline_dataloader,
-            #dataloaders, I will create it inside
-            models_path,
-            interim_path,
-            num_perturbed,
-            num_samples,
-            num_continuous,
-            nan_mask,
-            feature_mask,
-        )
-
-        extra_colnames = ["p_value"]
-
-    elif task_type == "ks":
-        task_config = cast(IdentifyAssociationsKSConfig, task_config)
-        sig_ids, *extra_cols = _ks_approach(
-            config,
-            task_config,
-            train_dataloader,
-            baseline_dataloader,
-            dataloaders,
-            models_path,
-            num_perturbed,
-            num_samples,
-            num_continuous,
+            con_shapes,
+            cat_names,
             con_names,
             output_path,
+            sig_ids,
+            extra_cols,
+            extra_colnames,
+            index_pert,
         )
+        logger.debug("Results tsv created")
+        pert_type = task_config.pert_type
+        logger.debug(f"pert type is {pert_type}")
 
-        extra_colnames = ["ks_distance"]
-
-    else:
-        raise ValueError()
-
-    ###################### RESULTS ################################
-    save_results(
-        config,
-        con_shapes,
-        cat_names,
-        con_names,
-        output_path,
-        sig_ids,
-        extra_cols,
-        extra_colnames,
-    )
-    logger.debug("Results tsv created")
-    pert_type = task_config.pert_type
-    logger.debug(f"pert type is {pert_type}")
-
-    if exists(output_path / f"results_sig_assoc_{task_type}_multiprocess_all_{pert_type}.tsv"):
-        association_df = pd.read_csv(
-            output_path / f"results_sig_assoc_{task_type}_multiprocess_all_{pert_type}.tsv", sep="\t"
-        )
-        plot_feature_association_graph(association_df, output_path)
-        plot_feature_association_graph(
-            association_df, output_path, layout="spring"
-        )
+        if exists(output_path / f"results_sig_assoc_{task_type}_multiprocess_all_{pert_type}_num_perturbed_{index_pert}.tsv"):
+            association_df = pd.read_csv(
+                output_path / f"results_sig_assoc_{task_type}_multiprocess_all_{pert_type}_num_perturbed_{index_pert}.tsv", sep="\t"
+            )
+            plot_feature_association_graph(association_df, output_path)
+            plot_feature_association_graph(
+                association_df, output_path, layout="spring"
+            )

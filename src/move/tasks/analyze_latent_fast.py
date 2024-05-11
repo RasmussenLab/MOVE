@@ -1,7 +1,7 @@
 # Now it is analyze_latent_efficient.py
 
 
-__all__ = ["analyze_latent"]
+__all__ = ["analyze_latent_fast"]
 
 import re
 from pathlib import Path
@@ -186,7 +186,7 @@ def _validate_task_config(task_config: AnalyzeLatentConfig) -> None:
         raise ValueError("Reducer class not specified properly.")
 
 
-def analyze_latent(config: MOVEConfig) -> None:
+def analyze_latent_fast(config: MOVEConfig) -> None:
     """Train one model to inspect its latent space projections."""
 
     logger = get_logger(__name__)
@@ -196,7 +196,11 @@ def analyze_latent(config: MOVEConfig) -> None:
 
     raw_data_path = Path(config.data.raw_data_path)
     interim_path = Path(config.data.interim_data_path)
-    output_path = Path(config.data.results_path) / "latent_space"
+
+    number_al = task_config.number_al
+    #output_path = Path(config.data.results_path) / "latent_space_fast"
+    # CHANGED THIS TO SAVE THE MODELS IN DIFFERENT DIRECTORIES AND NOT OVERWRITE THEM
+    output_path = Path(f"results/latent_space_fast_5000_100_{number_al}/")
     output_path.mkdir(exist_ok=True, parents=True)
 
     logger.debug("Reading data")
@@ -206,17 +210,22 @@ def analyze_latent(config: MOVEConfig) -> None:
         config.data.categorical_names,
         config.data.continuous_names,
     )
+
+    logger.debug("Making train dataloader")
     test_dataloader = make_dataloader(
         cat_list,
         con_list,
         shuffle=False,
         batch_size=task_config.batch_size,
     )
+
     test_dataset = cast(MOVEDataset, test_dataloader.dataset)
     df_index = pd.Index(sample_names, name="sample")
 
     assert task_config.model is not None
     device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
+
+    logger.debug("Instantiating the model")
     model: VAE = hydra.utils.instantiate(
         task_config.model,
         continuous_shapes=test_dataset.con_shapes,
@@ -225,7 +234,9 @@ def analyze_latent(config: MOVEConfig) -> None:
 
     logger.debug(f"Model: {model}")
 
-    model_path = output_path / "model.pt"
+    #model_path = output_path / "model.pt"
+    model_path = Path("/projects/rasmussen/data/tcga_isoforms/final_data/interim_data/models/") / f"model_{task_config.model.num_latent}_{number_al}.pt"
+    logger.debug(f"Training or reloading model in {model_path}")
     if model_path.exists():
         logger.debug("Re-loading model")
         model.load_state_dict(torch.load(model_path))
@@ -247,7 +258,7 @@ def analyze_latent(config: MOVEConfig) -> None:
             train_dataloader=train_dataloader,
         )
         losses = output[:-1]
-        torch.save(model.state_dict(), model_path)
+        torch.save(model.state_dict(), model_path, pickle_protocol=4)
         logger.info("Generating visualizations")
         logger.debug("Generating plot: loss curves")
         fig = viz.plot_loss_curves(losses)
@@ -275,7 +286,7 @@ def analyze_latent(config: MOVEConfig) -> None:
         columns=["dim0", "dim1"],
         index=df_index,
     )
-
+    '''
     for feature_name in task_config.feature_names:
         logger.debug(f"Generating plot: latent space + '{feature_name}'")
         is_categorical = False
@@ -323,7 +334,7 @@ def analyze_latent(config: MOVEConfig) -> None:
         fig.savefig(fig_path, bbox_inches="tight")
 
     fig_df.to_csv(output_path / "latent_space.tsv", sep="\t")
-
+    '''
     logger.info("Reconstructing")
     cat_recons, con_recons = model.reconstruct(test_dataloader)
     con_recons = np.split(con_recons, np.cumsum(model.continuous_shapes[:-1]), axis=1)
@@ -345,6 +356,9 @@ def analyze_latent(config: MOVEConfig) -> None:
     fig.savefig(fig_path, bbox_inches="tight")
     fig_df = pd.DataFrame(dict(zip(labels, scores)), index=df_index)
     fig_df.to_csv(output_path / "reconstruction_metrics.tsv", sep="\t")
+
+    # We will not do this here, because it takes a long time, and I just want to see the reconstruction metrics for the moment
+    '''
 
     logger.info("Computing feature importance")
     num_samples = len(cast(Sized, test_dataloader.sampler))
@@ -427,3 +441,4 @@ def analyze_latent(config: MOVEConfig) -> None:
         fig.savefig(fig_path, bbox_inches="tight")
         fig_df = pd.DataFrame(diffs, columns=con_names[i], index=df_index)
         fig_df.to_csv(output_path / f"feat_importance_{dataset_name}.tsv", sep="\t")
+'''

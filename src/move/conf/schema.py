@@ -131,6 +131,7 @@ class AnalyzeLatentConfig(TaskConfig):
     reducer: dict[str, Any] = MISSING
     fast: bool = False  # Default value is False
     multiprocess: bool = False
+    number_al: int = 1
 
 
 
@@ -168,6 +169,10 @@ class IdentifyAssociationsConfig(TaskConfig):
 class IdentifyAssociationsBayesConfig(IdentifyAssociationsConfig):
     """Configure the probabilistic approach to identify associations."""
     multiprocess: bool = False  # Default value is False
+    selected: bool = False
+    pert_type: str = MISSING
+    efficient: bool = False
+    multiloop: bool = False
 
     ...
 

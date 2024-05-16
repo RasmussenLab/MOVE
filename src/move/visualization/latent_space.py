@@ -159,8 +159,8 @@ def plot_3D_latent_and_displacement(
     ax.view_init(altitude, azimuth)
 
     if show_baseline:
-        vmin, vmax = np.min(feature_values[::step]), np.max(feature_values[::step])
-        abs_max = np.max([abs(vmin), abs(vmax)])
+        # vmin, vmax = np.min(feature_values[::step]), np.max(feature_values[::step])
+        # abs_max = np.max([abs(vmin), abs(vmax)])
         ax.scatter(
             mu_baseline[::step, 0],
             mu_baseline[::step, 1],
@@ -192,10 +192,14 @@ def plot_3D_latent_and_displacement(
         v = mu_perturbed[::step, 1] - mu_baseline[::step, 1]
         w = mu_perturbed[::step, 2] - mu_baseline[::step, 2]
 
-        module = np.sqrt(u * u + v * v + w * w)
+        # module = np.sqrt(u * u + v * v + w * w)
 
         max_u, max_v, max_w = np.max(abs(u)), np.max(abs(v)), np.max(abs(w))
-        # Arrow colors will be weighted contributions of red -> dim1, green -> dim2, and blue-> dim3. I.e. purple arrow means movement in dims 1 and 3
+        # Arrow colors will be weighted contributions of
+        # red -> dim1,
+        # green -> dim2,
+        # and blue-> dim3.
+        # I.e. purple arrow means movement in dims 1 and 3
         colors = [
             (abs(du) / max_u, abs(dv) / max_v, abs(dw) / max_w, 0.7)
             for du, dv, dw in zip(u, v, w)

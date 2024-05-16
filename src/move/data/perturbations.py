@@ -11,7 +11,6 @@ from move.data.dataloaders import MOVEDataset
 from move.data.preprocessing import feature_stats
 from move.visualization.dataset_distributions import plot_value_distributions
 
-
 ContinuousPerturbationType = Literal["minimum", "maximum", "plus_std", "minus_std"]
 
 
@@ -42,7 +41,7 @@ def perturb_categorical_data(
     splits = np.cumsum(
         [0] + [int.__mul__(*shape) for shape in baseline_dataset.cat_shapes]
     )
-    slice_ = slice(*splits[target_idx : target_idx + 2])
+    slice_ = slice(*splits[target_idx: target_idx + 2])
 
     target_shape = baseline_dataset.cat_shapes[target_idx]
     num_features = target_shape[0]  # CHANGE
@@ -94,7 +93,7 @@ def perturb_continuous_data(
 
     target_idx = con_dataset_names.index(target_dataset_name)
     splits = np.cumsum([0] + baseline_dataset.con_shapes)
-    slice_ = slice(*splits[target_idx : target_idx + 2])
+    slice_ = slice(*splits[target_idx: target_idx + 2])
 
     num_features = baseline_dataset.con_shapes[target_idx]
 
@@ -155,7 +154,7 @@ def perturb_continuous_data_extended(
 
     target_idx = con_dataset_names.index(target_dataset_name)  # dataset index
     splits = np.cumsum([0] + baseline_dataset.con_shapes)
-    slice_ = slice(*splits[target_idx : target_idx + 2])
+    slice_ = slice(*splits[target_idx: target_idx + 2])
 
     num_features = baseline_dataset.con_shapes[target_idx]
     dataloaders = []

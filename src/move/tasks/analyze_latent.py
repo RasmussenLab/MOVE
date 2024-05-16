@@ -48,17 +48,17 @@ def find_feature_values(
         Tuple containing (1) index of dataset containing feature and (2)
         values corresponding to the feature
     """
-    dataset_index, feature_index = [None] * 2
-    for dataset_index, feature_names in enumerate(feature_names_lists):
+    _dataset_index, feature_index = [None] * 2
+    for _dataset_index, feature_names in enumerate(feature_names_lists):
         try:
             feature_index = feature_names.index(feature_name)
         except ValueError:
             continue
         break
-    if dataset_index is not None and feature_index is not None:
+    if _dataset_index is not None and feature_index is not None:
         return (
-            dataset_index,
-            np.take(feature_values[dataset_index], feature_index, axis=1),
+            _dataset_index,
+            np.take(feature_values[_dataset_index], feature_index, axis=1),
         )
     raise KeyError(f"Feature '{feature_name}' not in any dataset.")
 
@@ -98,7 +98,7 @@ def analyze_latent(config: MOVEConfig) -> None:
     df_index = pd.Index(sample_names, name="sample")
 
     assert task_config.model is not None
-    device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
+    device = torch.device("cuda" if task_config.model.cuda else "cpu")
     model: VAE = hydra.utils.instantiate(
         task_config.model,
         continuous_shapes=test_dataset.con_shapes,

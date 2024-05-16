@@ -23,14 +23,18 @@ def dilate_batch(dataloader: DataLoader) -> DataLoader:
     return DataLoader(dataset, batch_size, shuffle=True, drop_last=True)
 
 
+BATCH_DILATION_STEPS = []
+KLD_WARMUP_STEPS = []
+
+
 def training_loop(
     model: VAE,
     train_dataloader: DataLoader,
     valid_dataloader: Optional[DataLoader] = None,
     lr: float = 1e-4,
     num_epochs: int = 100,
-    batch_dilation_steps: list[int] = [],
-    kld_warmup_steps: list[int] = [],
+    batch_dilation_steps: list[int] = BATCH_DILATION_STEPS,
+    kld_warmup_steps: list[int] = KLD_WARMUP_STEPS,
     early_stopping: bool = False,
     patience: int = 0,
 ) -> TrainingLoopOutput:
@@ -41,13 +45,17 @@ def training_loop(
     Args:
         model (VAE): trained VAE model object
         train_dataloader (DataLoader):  An object feeding data to the VAE with training data
-        valid_dataloader (Optional[DataLoader], optional): An object feeding data to the VAE with validation data. Defaults to None.
+        valid_dataloader (Optional[DataLoader], optional): An object feeding data to the VAE with validation data.
+                                                           Defaults to None.
         lr (float, optional): learning rate. Defaults to 1e-4.
         num_epochs (int, optional): number of epochs. Defaults to 100.
-        batch_dilation_steps (list[int], optional): a list with integers corresponding to epochs when batch size is increased. Defaults to [].
-        kld_warmup_steps (list[int], optional):  a list with integers corresponding to epochs when kld is decreased by the selected rate. Defaults to [].
+        batch_dilation_steps (list[int], optional): a list with integers corresponding to epochs when batch size is
+                                                    increased. Defaults to [].
+        kld_warmup_steps (list[int], optional):  a list with integers corresponding to epochs when kld is decreased by
+                                                 the selected rate. Defaults to [].
         early_stopping (bool, optional):  boolean if use early stopping . Defaults to False.
-        patience (int, optional): number of epochs to wait before early stop if no progress on the validation set . Defaults to 0.
+        patience (int, optional): number of epochs to wait before early stop if no progress on the validation set.
+                                  Defaults to 0.
 
     Returns:
         (tuple): a tuple containing:

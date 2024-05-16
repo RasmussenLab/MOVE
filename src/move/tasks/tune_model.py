@@ -1,7 +1,6 @@
 __all__ = ["tune_model"]
 
 from pathlib import Path
-from random import shuffle
 from typing import Any, Literal, cast
 
 import hydra
@@ -26,7 +25,7 @@ from move.conf.schema import (
     TuneModelStabilityConfig,
 )
 from move.core.logging import get_logger
-from move.core.typing import BoolArray, FloatArray
+from move.core.typing import BoolArray
 from move.data import io
 from move.data.dataloaders import MOVEDataset, make_dataloader, split_samples
 from move.models.vae import VAE
@@ -87,7 +86,7 @@ def tune_model(config: MOVEConfig) -> float:
     )
 
     assert task_config.model is not None
-    device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
+    device = torch.device("cuda" if task_config.model.cuda is True else "cpu")
 
     def _tune_stability(
         task_config: TuneModelStabilityConfig,

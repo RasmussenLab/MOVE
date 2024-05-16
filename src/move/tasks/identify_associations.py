@@ -14,7 +14,6 @@ from scipy.stats import ks_2samp, pearsonr  # type: ignore
 from torch.utils.data import DataLoader
 
 from move.analysis.metrics import get_2nd_order_polynomial
-
 from move.conf.schema import (
     IdentifyAssociationsBayesConfig,
     IdentifyAssociationsConfig,
@@ -202,7 +201,7 @@ def _bayes_approach(
 ) -> tuple[Union[IntArray, FloatArray], ...]:
 
     assert task_config.model is not None
-    device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
+    device = torch.device("cuda" if task_config.model.cuda else "cpu")
 
     # Train models
     logger = get_logger(__name__)
@@ -319,7 +318,7 @@ def _ttest_approach(
     from scipy.stats import ttest_rel
 
     assert task_config.model is not None
-    device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
+    device = torch.device("cuda" if task_config.model.cuda else "cpu")
 
     # Train models
     logger = get_logger(__name__)
@@ -463,7 +462,7 @@ def _ks_approach(
     """
 
     assert task_config.model is not None
-    device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
+    device = torch.device("cuda" if task_config.model.cuda else "cpu")
     figure_path = output_path / "figures"
     figure_path.mkdir(exist_ok=True, parents=True)
 
@@ -524,7 +523,7 @@ def _ks_approach(
         min_baseline = np.min(baseline_recon, axis=0)
         max_baseline = np.max(baseline_recon, axis=0)
 
-        ############ QC of feature's reconstruction ##############################
+        # QC of feature's reconstruction ##############################
         logger.debug("Calculating quality control of the feature reconstructions")
         # Correlation and slope for each feature's reconstruction
         feature_names = reduce(list.__add__, con_names)
@@ -549,7 +548,7 @@ def _ks_approach(
                     dpi=50,
                 )
 
-        ################## Calculate perturbed reconstruction and shifts #############################
+        # Calculate perturbed reconstruction and shifts #############################
         logger.debug("Computing KS scores")
 
         # Save original latent space for first refit:
@@ -646,7 +645,7 @@ def _ks_approach(
     qc_df = pd.DataFrame({"Feature names": feature_names})
     qc_df["slope"] = np.nanmean(slope, axis=0)
     qc_df["reconstruction_correlation"] = np.nanmean(rec_corr, axis=0)
-    qc_df.to_csv(output_path / f"QC_summary_KS.tsv", sep="\t", index=False)
+    qc_df.to_csv(output_path / "QC_summary_KS.tsv", sep="\t", index=False)
 
     # Return first idx associations: redefined for reasonable threshold
 
@@ -739,8 +738,8 @@ def identify_associations(config: MOVEConfig) -> None:
         2) Evaluate associations using bayes or ttest approach.
         3) Save results.
     """
-    #################### DATA PREPARATION ######################
-    ####### Read original data and create perturbed datasets####
+    # DATA PREPARATION ######################
+    # Read original data and create perturbed datasets####
 
     logger = get_logger(__name__)
     task_config = cast(IdentifyAssociationsConfig, config.task)
@@ -811,7 +810,7 @@ def identify_associations(config: MOVEConfig) -> None:
     num_perturbed = len(dataloaders) - 1  # P
     logger.debug(f"# perturbed features: {num_perturbed}")
 
-    ################# APPROACH EVALUATION ##########################
+    # APPROACH EVALUATION ##########################
 
     if task_type == "bayes":
         task_config = cast(IdentifyAssociationsBayesConfig, task_config)
@@ -870,7 +869,7 @@ def identify_associations(config: MOVEConfig) -> None:
     else:
         raise ValueError()
 
-    ###################### RESULTS ################################
+    # RESULTS ################################
     save_results(
         config,
         con_shapes,

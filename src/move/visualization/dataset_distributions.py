@@ -70,9 +70,9 @@ def plot_reconstruction_diff(
     Plot the reconstruction differences as a heatmap.
     """
     with style_settings(style):
-        if vmin == None:
+        if vmin is None:
             vmin = np.min(diff_array)
-        elif vmax == None:
+        elif vmax is None:
             vmax = np.max(diff_array)
         fig = plt.figure(layout="constrained", figsize=(7, 7))
         plt.imshow(diff_array, cmap=colormap, vmin=vmin, vmax=vmax)
@@ -140,7 +140,7 @@ def plot_feature_association_graph(
             with_labels = True
         elif layout == "circular":
             pos = nx.circular_layout(G)
-            texts = [
+            _ = [
                 plt.text(
                     pos[node][0],
                     pos[node][1],
@@ -269,7 +269,7 @@ def plot_cumulative_distributions(
             (edges[:-1] + edges[1:]) / 2,
             np.cumsum(hist_pert),
             color="red",
-            label=f"Perturbed",
+            label="Perturbed",
             alpha=0.5,
         )
 

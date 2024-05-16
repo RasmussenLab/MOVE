@@ -23,7 +23,29 @@ jobs:
         run: pip install flake8 flake8-bugbear
       - name: Lint with flake8  
         run: flake8 src
-
+  run-tutorial:
+    name: Run tutorial
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install .
+      - name: Prepare tutorial data
+        run: |
+          cd tutorial
+          move-dl data=random_small task=encode_data
+      - name: Train model and analyze latent space
+        run: |
+          cd tutorial
+          move-dl data=random_small task=random_small__latent
+      - name: Identify associations
+        run: |
+          cd tutorial
+          move-dl data=random_small task=random_small__id_assoc_ttest
+          move-dl data=random_small task=random_small__id_assoc_bayes
   publish:
     name: Publish package
     runs-on: ubuntu-latest
@@ -32,10 +54,8 @@ jobs:
       - format
       - lint
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
       - name: Install twine and build

@@ -71,7 +71,7 @@ SETTINGS = {
 }
 
 COR_THRES = 0.02
-PAIRS_OF_INTEREST = [(1,2),(3,4)]  # ,(77,75),(99,70),(38,2),(67,62)]
+PAIRS_OF_INTEREST = [(1, 2), (3, 4)]  # ,(77,75),(99,70),(38,2),(67,62)]
 
 # Path to store output files
 outpath = Path("./") / f"dataset_creation_outputs_{PROJECT_NAME}"
@@ -248,12 +248,12 @@ if __name__ == "__main__":
     )
     fig.savefig(outpath / f"Covariance_matrix_{PROJECT_NAME}.png")
 
-#    dataset = np.array(
-#        [
-#            list(np.random.multivariate_normal(feat_means, covariance_matrix))
-#            for _ in range(N_SAMPLES)
-#        ]
-#    )
+    #    dataset = np.array(
+    #        [
+    #            list(np.random.multivariate_normal(feat_means, covariance_matrix))
+    #            for _ in range(N_SAMPLES)
+    #        ]
+    #    )
 
     dataset = np.random.multivariate_normal(feat_means, covariance_matrix, N_SAMPLES)
     print(dataset.shape)

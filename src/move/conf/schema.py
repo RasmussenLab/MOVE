@@ -28,6 +28,10 @@ class InputConfig:
     name: str
     weight: int = 1
 
+@dataclass
+class ContinuousInputConfig(InputConfig):
+    scale: bool = True
+
 
 @dataclass
 class DataConfig:
@@ -36,7 +40,7 @@ class DataConfig:
     results_path: str = MISSING
     sample_names: str = MISSING
     categorical_inputs: list[InputConfig] = MISSING
-    continuous_inputs: list[InputConfig] = MISSING
+    continuous_inputs: list[ContinuousInputConfig] = MISSING
     categorical_names: list[str] = MISSING
     continuous_names: list[str] = MISSING
     categorical_weights: list[int] = MISSING

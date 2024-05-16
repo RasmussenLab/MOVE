@@ -42,9 +42,11 @@ def encode_data(config: DataConfig):
     if mappings:
         io.dump_mappings(interim_data_path / "mappings.json", mappings)
 
-    for dataset_name in config.continuous_names:
-        logger.info(f"Encoding '{dataset_name}'")
-        filepath = raw_data_path / f"{dataset_name}.tsv"
+    for input_config in config.continuous_inputs:
+        scale = not hasattr(input_config, "scale") or input_config.scale
+        action_name = "Encoding" if scale else "Reading"
+        logger.info(f"{action_name} '{input_config.name}'")
+        filepath = raw_data_path / f"{input_config.name}.tsv"
         names, values = io.read_tsv(filepath, sample_names)
 
         # Plotting the value distribution for all continuous datasets before preprocessing:
@@ -64,3 +66,10 @@ def encode_data(config: DataConfig):
         fig = plot_value_distributions(values)
         fig_path = str(output_path / f"Value_distribution_{dataset_name}.png")
         fig.savefig(fig_path)
+
+        if scale:
+            values, mask_1d = preprocessing.scale(values)
+            names = names[mask_1d]
+            logger.debug(f"Columns with zero variance: {np.sum(~mask_1d)}")
+        io.dump_names(interim_data_path / f"{input_config.name}.txt", names)
+        np.save(interim_data_path / f"{input_config.name}.npy", values)

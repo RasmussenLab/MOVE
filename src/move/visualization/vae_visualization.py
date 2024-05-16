@@ -26,7 +26,6 @@ def plot_vae(
     mu: Optional[torch.Tensor] = None,
     logvar: Optional[torch.Tensor] = None,
 ):
-
     """
     This function is aimed to visualize MOVE's architecture.
 

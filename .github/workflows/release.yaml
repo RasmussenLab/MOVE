@@ -1,14 +1,29 @@
 name: release on pypi
 on:
   push:
-    branches:
-      - main
+    # branches:
+    #   - main
+  
 jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: psf/black@stable 
   publish:
     name: Publish package
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install twine and build
+        run: python -m pip install --upgrade twine build
+      - name: Build
+        run: python -m build
       - name: Publish package
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags')
         uses: pypa/gh-action-pypi-publish@release/v1

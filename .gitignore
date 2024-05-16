@@ -69,3 +69,4 @@ docs/source/_templates/
 !/pyproject.toml
 !/requirements.txt
 !/setup.cfg
+!/.github

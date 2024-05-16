@@ -73,7 +73,11 @@ def prepare_for_categorical_perturbation(
     interim_path: Path,
     baseline_dataloader: DataLoader,
     cat_list: list[FloatArray],
-) -> tuple[list[DataLoader], BoolArray, BoolArray,]:
+) -> tuple[
+    list[DataLoader],
+    BoolArray,
+    BoolArray,
+]:
     """
     This function creates the required dataloaders and masks
     for further categorical association analysis.
@@ -133,7 +137,11 @@ def prepare_for_continuous_perturbation(
     config: MOVEConfig,
     output_subpath: Path,
     baseline_dataloader: DataLoader,
-) -> tuple[list[DataLoader], BoolArray, BoolArray,]:
+) -> tuple[
+    list[DataLoader],
+    BoolArray,
+    BoolArray,
+]:
     """
     This function creates the required dataloaders and masks
     for further continuous association analysis.
@@ -413,7 +421,6 @@ def _ks_approach(
     con_names: list[list[str]],
     output_path: Path,
 ) -> tuple[Union[IntArray, FloatArray], ...]:
-
     """
     Find associations between continuous features using Kolmogorov-Smirnov distances.
     When perturbing feature A, this function measures the shift of the reconstructed
@@ -478,9 +485,7 @@ def _ks_approach(
     logger = get_logger(__name__)
     logger.info("Training models")
 
-    target_dataset_idx = config.data.continuous_names.index(
-        task_config.target_dataset
-    )
+    target_dataset_idx = config.data.continuous_names.index(task_config.target_dataset)
     perturbed_names = con_names[target_dataset_idx]
 
     for j in range(task_config.num_refits):  # Train num_refits models
@@ -624,7 +629,9 @@ def _ks_approach(
 
     # Take the median of KS values (with sign) over refits.
     final_stats = np.nanmedian(stats * stat_signs, axis=0)
-    final_stats[ks_mask] = 0.0 # Zero all masked values, placing them at end of the ranking
+    final_stats[ks_mask] = (
+        0.0  # Zero all masked values, placing them at end of the ranking
+    )
 
     # KS-threshold:
     ks_thr = np.sqrt(-np.log(task_config.sig_threshold / 2) * 1 / (num_samples))
@@ -782,14 +789,22 @@ def identify_associations(config: MOVEConfig) -> None:
         logger.info(f"Perturbation type: {task_config.target_value}")
         output_subpath = Path(output_path) / "perturbation_visualization"
         output_subpath.mkdir(exist_ok=True, parents=True)
-        (dataloaders, nan_mask, feature_mask,) = prepare_for_continuous_perturbation(
+        (
+            dataloaders,
+            nan_mask,
+            feature_mask,
+        ) = prepare_for_continuous_perturbation(
             config, output_subpath, baseline_dataloader
         )
 
     # Identify associations between categorical and continuous features:
     else:
         logger.info("Beginning task: identify associations categorical")
-        (dataloaders, nan_mask, feature_mask,) = prepare_for_categorical_perturbation(
+        (
+            dataloaders,
+            nan_mask,
+            feature_mask,
+        ) = prepare_for_categorical_perturbation(
             config, interim_path, baseline_dataloader, cat_list
         )
 
@@ -872,6 +887,4 @@ def identify_associations(config: MOVEConfig) -> None:
             output_path / f"results_sig_assoc_{task_type}.tsv", sep="\t"
         )
         plot_feature_association_graph(association_df, output_path)
-        plot_feature_association_graph(
-            association_df, output_path, layout="spring"
-        )
+        plot_feature_association_graph(association_df, output_path, layout="spring")

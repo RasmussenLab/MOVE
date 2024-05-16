@@ -126,7 +126,6 @@ def perturb_continuous_data_extended(
     perturbation_type: ContinuousPerturbationType,
     output_subpath: Optional[Path] = None,
 ) -> list[DataLoader]:
-
     """Add perturbations to continuous data. For each feature in the target
     dataset, change the feature's value in all samples (in rows):
     1,2) substituting this feature in all samples by the feature's minimum/maximum value.

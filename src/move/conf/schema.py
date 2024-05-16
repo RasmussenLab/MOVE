@@ -28,6 +28,7 @@ class InputConfig:
     name: str
     weight: int = 1
 
+
 @dataclass
 class ContinuousInputConfig(InputConfig):
     scale: bool = True
@@ -192,14 +193,14 @@ class IdentifyAssociationsKSConfig(IdentifyAssociationsConfig):
     Args:
         perturbed_feature_names: names of the perturbed features of interest.
         target_feature_names: names of the target features of interest.
-        
+
     Description:
     For each perturbed feature - target feature pair, we will plot:
-            - Input vs. reconstruction correlation plot: to assess reconstruction 
+            - Input vs. reconstruction correlation plot: to assess reconstruction
               quality of both target and perturbed features.
-            - Distribution of reconstruction values for the target feature before 
+            - Distribution of reconstruction values for the target feature before
               and after the perturbation of the perturbed feature.
-            
+
     """
 
     perturbed_feature_names: list[str] = field(default_factory=list)

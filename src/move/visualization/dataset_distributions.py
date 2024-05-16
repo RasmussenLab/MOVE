@@ -13,6 +13,7 @@ from move.visualization.style import (
     style_settings,
 )
 
+
 def plot_value_distributions(
     feature_values: FloatArray,
     style: str = "fast",
@@ -59,7 +60,11 @@ def plot_value_distributions(
 
 
 def plot_reconstruction_diff(
-    diff_array: FloatArray, vmin=None, vmax=None, style: str = DEFAULT_PLOT_STYLE, colormap: str = DEFAULT_DIVERGING_PALETTE,
+    diff_array: FloatArray,
+    vmin=None,
+    vmax=None,
+    style: str = DEFAULT_PLOT_STYLE,
+    colormap: str = DEFAULT_DIVERGING_PALETTE,
 ) -> matplotlib.figure.Figure:
     """
     Plot the reconstruction differences as a heatmap.
@@ -78,7 +83,9 @@ def plot_reconstruction_diff(
     return fig
 
 
-def plot_feature_association_graph(association_df, output_path, layout="circular", style: str = DEFAULT_PLOT_STYLE):
+def plot_feature_association_graph(
+    association_df, output_path, layout="circular", style: str = DEFAULT_PLOT_STYLE
+):
     """
     This function plots a graph where each node corresponds to a feature and the edges
     represent the associations between features. Edge width represents the probability of
@@ -117,8 +124,16 @@ def plot_feature_association_graph(association_df, output_path, layout="circular
         nodes = list(G.nodes)
 
         datasets = association_df["feature_b_dataset"].unique()
-        color_map = {dataset : (np.random.uniform(),np.random.uniform(),np.random.uniform()) for dataset in datasets}
-        node_dataset_map = {target_feature: dataset for (target_feature, dataset) in zip(association_df["feature_b_name"],association_df["feature_b_dataset"])}
+        color_map = {
+            dataset: (np.random.uniform(), np.random.uniform(), np.random.uniform())
+            for dataset in datasets
+        }
+        node_dataset_map = {
+            target_feature: dataset
+            for (target_feature, dataset) in zip(
+                association_df["feature_b_name"], association_df["feature_b_dataset"]
+            )
+        }
 
         if layout == "spring":
             pos = nx.spring_layout(G)
@@ -140,14 +155,23 @@ def plot_feature_association_graph(association_df, output_path, layout="circular
             with_labels = False
 
         else:
-            raise ValueError("Graph layout (layout argument) must be either 'circular' or 'spring'.")
+            raise ValueError(
+                "Graph layout (layout argument) must be either 'circular' or 'spring'."
+            )
 
         nx.draw(
             G,
             pos=pos,
             with_labels=with_labels,
             node_size=2000,
-            node_color=[color_map[node_dataset_map[feature]] if feature in node_dataset_map.keys() else "white" for feature in G.nodes],
+            node_color=[
+                (
+                    color_map[node_dataset_map[feature]]
+                    if feature in node_dataset_map.keys()
+                    else "white"
+                )
+                for feature in G.nodes
+            ],
             edge_color=list(nx.get_edge_attributes(G, "weight").values()),
             font_color="black",
             font_size=10,
@@ -156,10 +180,14 @@ def plot_feature_association_graph(association_df, output_path, layout="circular
         )
 
         plt.tight_layout()
-        fig.savefig(output_path / f"Feature_association_graph_{layout}.png", format="png")
+        fig.savefig(
+            output_path / f"Feature_association_graph_{layout}.png", format="png"
+        )
 
 
-def plot_feature_mean_median(array: FloatArray, axis=0, style: str = DEFAULT_PLOT_STYLE) -> matplotlib.figure.Figure:
+def plot_feature_mean_median(
+    array: FloatArray, axis=0, style: str = DEFAULT_PLOT_STYLE
+) -> matplotlib.figure.Figure:
     """
     Plot feature values together with the mean, median, min and max values at each array position.
     """
@@ -181,7 +209,10 @@ def plot_feature_mean_median(array: FloatArray, axis=0, style: str = DEFAULT_PLO
 
 
 def plot_reconstruction_movement(
-    baseline_recon: FloatArray , perturb_recon: FloatArray, k:int, style: str = DEFAULT_PLOT_STYLE,
+    baseline_recon: FloatArray,
+    perturb_recon: FloatArray,
+    k: int,
+    style: str = DEFAULT_PLOT_STYLE,
 ) -> matplotlib.figure.Figure:
     """
     Plot, for each sample, the change in value from the unperturbed reconstruction to the perturbed reconstruction.
@@ -211,13 +242,17 @@ def plot_reconstruction_movement(
 
 
 def plot_cumulative_distributions(
-    edges, hist_base, hist_pert, title, style: str = DEFAULT_PLOT_STYLE,
+    edges,
+    hist_base,
+    hist_pert,
+    title,
+    style: str = DEFAULT_PLOT_STYLE,
 ) -> matplotlib.figure.Figure:
     """
-    Plot the cumulative distribution of the histograms for the baseline 
-    and perturbed reconstructions. This is useful to visually assess the 
+    Plot the cumulative distribution of the histograms for the baseline
+    and perturbed reconstructions. This is useful to visually assess the
     magnitude of the shift corresponding to the KS score.
-    
+
     """
 
     with style_settings(style):
@@ -246,7 +281,9 @@ def plot_cumulative_distributions(
     return fig
 
 
-def plot_correlations(x, y, x_pol, y_pol, a2, a1, a, k, style: str = DEFAULT_PLOT_STYLE):
+def plot_correlations(
+    x, y, x_pol, y_pol, a2, a1, a, k, style: str = DEFAULT_PLOT_STYLE
+):
     """
     Plot y vs x and the corresponding polynomial fit.
     """
@@ -279,6 +316,6 @@ def get_2nd_order_polynomial(x_array, y_array, n_points=100):
     a2, a1, a = np.polyfit(x_array, y_array, deg=2)
 
     x_pol = np.linspace(np.min(x_array), np.max(x_array), n_points)
-    y_pol = a2 * x_pol ** 2 + a1 * x_pol + a 
+    y_pol = a2 * x_pol**2 + a1 * x_pol + a
 
     return x_pol, y_pol, (a2, a1, a)

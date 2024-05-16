@@ -116,7 +116,7 @@ def tune_model(config: MOVEConfig) -> float:
         cosine_sim0 = None
         cosine_sim_diffs = []
         for j in range(task_config.num_refits):
-            logger.debug(f"Refit: {j+1}/{task_config.num_refits}")
+            logger.debug(f"Refit: {j + 1}/{task_config.num_refits}")
             model: VAE = hydra.utils.instantiate(
                 task_config.model,
                 continuous_shapes=train_dataset.con_shapes,

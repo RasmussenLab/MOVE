@@ -598,11 +598,11 @@ def _ks_approach(
                         edges,
                         hist_base,
                         hist_pert,
-                        f"Cumulative_perturbed_{i}_measuring_{k}_stats_{stats[j,i,k]}",
+                        f"Cumulative_perturbed_{i}_measuring_{k}_stats_{stats[j, i, k]}",
                     )
                     fig.savefig(
                         figure_path
-                        / f"Cumulative_refit_{j}_perturbed_{i}_measuring_{k}_stats_{stats[j,i,k]}.png"
+                        / f"Cumulative_refit_{j}_perturbed_{i}_measuring_{k}_stats_{stats[j, i, k]}.png"
                     )
 
                     # Feature changes:

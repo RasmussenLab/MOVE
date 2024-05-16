@@ -190,7 +190,7 @@ class VAE(nn.Module):
         cat_out = []
         pos = 0
         for cat_shape in self.categorical_shapes:
-            cat_dataset = cat_tmp[:, pos: (cat_shape[0] * cat_shape[1] + pos)]
+            cat_dataset = cat_tmp[:, pos : (cat_shape[0] * cat_shape[1] + pos)]
 
             cat_out_tmp = cat_dataset.view(
                 cat_dataset.shape[0], cat_shape[0], cat_shape[1]
@@ -287,7 +287,7 @@ class VAE(nn.Module):
         cat_errors = []
         pos = 0
         for cat_shape in self.categorical_shapes:
-            cat_dataset = cat_in[:, pos: (cat_shape[0] * cat_shape[1] + pos)]
+            cat_dataset = cat_in[:, pos : (cat_shape[0] * cat_shape[1] + pos)]
 
             cat_dataset = cat_dataset.view(cat_in.shape[0], cat_shape[0], cat_shape[1])
             cat_target = cat_dataset
@@ -327,8 +327,8 @@ class VAE(nn.Module):
         total_shape = 0
         con_errors_list: list[torch.Tensor] = []
         for s in self.continuous_shapes:
-            c_in = con_in[:, total_shape: (s + total_shape - 1)]
-            c_re = con_out[:, total_shape: (s + total_shape - 1)]
+            c_in = con_in[:, total_shape : (s + total_shape - 1)]
+            c_re = con_out[:, total_shape : (s + total_shape - 1)]
             error = loss(c_re, c_in) / batch_size
             con_errors_list.append(error)
             total_shape += s
@@ -451,7 +451,9 @@ class VAE(nn.Module):
             elif self.num_continuous > 0:
                 tensor = con
             else:
-                raise ValueError("Must have at least 1 categorial or 1 continuous feature")
+                raise ValueError(
+                    "Must have at least 1 categorial or 1 continuous feature"
+                )
 
             optimizer.zero_grad()
 
@@ -538,21 +540,21 @@ class VAE(nn.Module):
         shape_1 = 0
         for cat_shape in self.categorical_shapes:
             # Get input categorical data
-            cat_in_tmp = cat[:, pos: (cat_shape[0] * cat_shape[1] + pos)]
+            cat_in_tmp = cat[:, pos : (cat_shape[0] * cat_shape[1] + pos)]
             cat_in_tmp = cat_in_tmp.view(cat.shape[0], cat_shape[0], cat_shape[1])
 
             # Calculate target values for input
             cat_target_tmp = cat_in_tmp
             cat_target_tmp = torch.argmax(cat_target_tmp.detach(), dim=2)
             cat_target_tmp[cat_in_tmp.sum(dim=2) == 0] = -1
-            cat_target[:, shape_1: (cat_shape[0] + shape_1)] = (
+            cat_target[:, shape_1 : (cat_shape[0] + shape_1)] = (
                 cat_target_tmp  # .numpy()
             )
 
             # Get reconstructed categorical data
             cat_out_tmp = cat_out[count]
             cat_out_tmp = cat_out_tmp.transpose(1, 2)
-            cat_out_class[:, shape_1: (cat_shape[0] + shape_1)] = torch.argmax(
+            cat_out_class[:, shape_1 : (cat_shape[0] + shape_1)] = torch.argmax(
                 cat_out_tmp, dim=2
             )  # .numpy()
 
@@ -694,7 +696,9 @@ class VAE(nn.Module):
             elif self.num_continuous > 0:
                 tensor = con
             else:
-                raise ValueError("Must have at least 1 categorial or 1 continuous feature")
+                raise ValueError(
+                    "Must have at least 1 categorial or 1 continuous feature"
+                )
 
             # Evaluate
             cat_out, con_out, mu, logvar = self(tensor)
@@ -713,14 +717,14 @@ class VAE(nn.Module):
                 cat_out_class, cat_target = self.get_cat_recon(
                     batch, cat_total_shape, cat, cat_out
                 )
-                cat_recon[row: row + len(cat_out_class)] = torch.Tensor(cat_out_class)
-                cat_class[row: row + len(cat_target)] = torch.Tensor(cat_target)
+                cat_recon[row : row + len(cat_out_class)] = torch.Tensor(cat_out_class)
+                cat_class[row : row + len(cat_target)] = torch.Tensor(cat_target)
 
             if self.num_continuous > 0:
-                con_recon[row: row + len(con_out)] = con_out
+                con_recon[row : row + len(con_out)] = con_out
 
-            latent_var[row: row + len(logvar)] = logvar
-            latent[row: row + len(mu)] = mu
+            latent_var[row : row + len(logvar)] = logvar
+            latent[row : row + len(mu)] = mu
             row += len(mu)
 
         test_loss /= len(dataloader)

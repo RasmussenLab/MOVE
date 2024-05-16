@@ -32,6 +32,7 @@ def encode_data(config: DataConfig):
 
     mappings = {}
     for dataset_name in config.categorical_names:
+        # ! the string representation seems to be the variable value (here a string)
         logger.info(f"Encoding '{dataset_name}'")
         filepath = raw_data_path / f"{dataset_name}.tsv"
         names, values = io.read_tsv(filepath, sample_names)
@@ -45,8 +46,9 @@ def encode_data(config: DataConfig):
     for input_config in config.continuous_inputs:
         scale = not hasattr(input_config, "scale") or input_config.scale
         action_name = "Encoding" if scale else "Reading"
-        logger.info(f"{action_name} '{input_config.name}'")
-        filepath = raw_data_path / f"{input_config.name}.tsv"
+        dataset_name = input_config.name
+        logger.info(f"{action_name} '{dataset_name}'")
+        filepath = raw_data_path / f"{dataset_name}.tsv"
         names, values = io.read_tsv(filepath, sample_names)
 
         # Plotting the value distribution for all continuous datasets before preprocessing:

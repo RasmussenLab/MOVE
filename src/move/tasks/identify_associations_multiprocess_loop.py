@@ -509,8 +509,9 @@ def _bayes_approach_parallel(
     logger.info("Pool multiprocess completed. Calculating bayes_abs and bayes_p")
     # Process the results
     #num_perturbations = len(indexes)
+    num_perturbed_len = len(num_perturbed)
     #logger.debug(f"bayes_k will have the dimensions num_perturbations={num_perturbations}, num_continuous={num_continuous}")
-    bayes_k = np.empty((num_perturbed, num_continuous)) #Change later
+    bayes_k = np.empty((num_perturbed_len, num_continuous)) #Change later
     # Store the real indexes, because in the table it will look like they are 0, 1, 2 ,3 ...
     #real_index_bayes_k = np.empty((num_perturbations))
     h = 0

@@ -18,25 +18,9 @@ SplitData = Union[
 ]
 
 SUPPORTED_DISTRIBUTIONS = [
-    "Beta,"
-    "Cauchy,"
-    "Chi2,"
-    "Exponential,"
-    "FisherSnedecor,"
-    "Gamma,"
-    "Gumbel,"
-    "HalfCauchy,"
-    "HalfNormal,"
-    "Kumaraswamy,"
-    "LKJCholesky,"
-    "Laplace,"
-    "LogNormal,"
-    "LogisticNormal,"
-    "Normal,"
-    "Pareto,"
-    "StudentT,"
-    "VonMises,"
-    "Weibull,"
+    "Normal",
+    "StudentT",
+    # other distributions possible but untested
 ]
 
 T = TypeVar("T", bound="SplitOutput")

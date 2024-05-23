@@ -6,7 +6,7 @@ from typing import Literal, Optional, Union
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
-from move.conf.schema import get_fully_qualname
+from move.core.qualname import get_fully_qualname
 
 
 @dataclass

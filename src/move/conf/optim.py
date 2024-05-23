@@ -16,7 +16,7 @@ from torch.optim.lr_scheduler import (
     ReduceLROnPlateau,
 )
 
-from move.conf.schema import get_fully_qualname
+from move.core.qualname import get_fully_qualname
 
 
 @dataclass

@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from move.conf.optim import LrSchedulerConfig, OptimizerConfig
-from move.conf.schema import get_fully_qualname
+from move.core.qualname import get_fully_qualname
 from move.data.dataloader import MoveDataLoader
 from move.training.loop import (
     AnnealingFunction,

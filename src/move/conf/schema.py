@@ -15,18 +15,11 @@ from typing import Any, Optional, Type
 from hydra.core.config_store import ConfigStore
 from omegaconf import MISSING, OmegaConf
 
+from move.core.qualname import get_fully_qualname
 from move.data.dataloader import MoveDataLoader
 from move.data.preprocessing import PreprocessingOpName
 from move.models.vae_legacy import VAE
 from move.training.training_loop import training_loop
-
-
-def get_fully_qualname(sth: Any) -> str:
-    if not isinstance(sth, Type):
-        class_ = type(sth)
-    else:
-        class_ = sth
-    return ".".join((class_.__module__, class_.__qualname__))
 
 
 @dataclass

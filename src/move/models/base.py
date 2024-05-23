@@ -18,7 +18,7 @@ from typing import (
 import torch
 from torch import nn
 
-from move.conf.schema import get_fully_qualname
+from move.core.qualname import get_fully_qualname
 from move.models.layers.chunk import SplitInput, SplitOutput
 
 T = TypeVar("T", bound="BaseVae")

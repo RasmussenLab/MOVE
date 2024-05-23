@@ -2,7 +2,7 @@ __all__ = ["VaeConfig", "VaeTConfig"]
 
 from dataclasses import dataclass, field
 
-from move.conf.schema import get_fully_qualname
+from move.core.qualname import get_fully_qualname
 from move.models.vae import Vae
 from move.models.vae_distribution import VaeDistribution
 from move.models.vae_t import VaeT

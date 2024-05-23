@@ -1,4 +1,4 @@
-__all__ = ["VaeDistribution"]
+__all__ = ["VaeDistribution", "VaeNormal"]
 
 import itertools
 import operator
@@ -16,7 +16,11 @@ from torch.distributions import (
 
 from move.core.exceptions import CudaIsNotAvailable, ShapeAndWeightMismatch
 from move.models.base import BaseVae, LossDict, VaeOutput
-from move.models.layers.chunk import ContinuousDistribution, SplitInput, SplitOutput
+from move.models.layers.chunk import (
+    ContinuousDistribution,
+    SplitInput,
+    SplitOutput,
+)
 from move.models.layers.encoder_decoder import Decoder, Encoder
 
 
@@ -225,3 +229,6 @@ class VaeDistribution(BaseVae):
             "kl_div": reg_loss,
             "kl_weight": kl_weight,
         }
+
+
+VaeNormal = VaeDistribution

@@ -4,7 +4,16 @@ import inspect
 from abc import ABC, abstractmethod
 from importlib import import_module
 from pathlib import Path
-from typing import Any, OrderedDict, Type, TypedDict, TypeVar, Union, cast, overload
+from typing import (
+    Any,
+    OrderedDict,
+    Type,
+    TypedDict,
+    TypeVar,
+    Union,
+    cast,
+    overload,
+)
 
 import torch
 from torch import nn

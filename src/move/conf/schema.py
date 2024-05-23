@@ -16,27 +16,12 @@ from hydra.core.config_store import ConfigStore
 from omegaconf import MISSING, OmegaConf
 
 from move.core.qualname import get_fully_qualname
+from move.conf.tasks import InputConfig
 from move.data.dataloader import MoveDataLoader
-from move.data.preprocessing import PreprocessingOpName
+
 from move.models.vae_legacy import VAE
+from move.tasks.encode_data import EncodeData
 from move.training.training_loop import training_loop
-
-
-@dataclass
-class InputConfig:
-    name: str
-    weight: int = 1
-    preprocessing: PreprocessingOpName = "none"
-
-
-@dataclass
-class DiscreteInputConfig(InputConfig):
-    preprocessing: PreprocessingOpName = "one_hot_encoding"
-
-
-@dataclass
-class ContinuousInputConfig(InputConfig):
-    preprocessing: PreprocessingOpName = "standardization"
 
 
 @dataclass
@@ -93,7 +78,9 @@ class TaskConfig:
 class EncodeDataConfig(TaskConfig):
     """Configure data encoding."""
 
-    _target_: str
+    _target_: str = field(
+        default=get_fully_qualname(EncodeData), init=False, repr=False
+    )
     raw_data_path: str
     interim_data_path: str
     sample_names_filename: str
@@ -208,16 +195,6 @@ class MOVEConfig:
     seed: Optional[int] = None
 
 
-def extract_weights(configs: list[InputConfig]) -> list[int]:
-    """Extracts the weights from a list of input configs."""
-    return [1 if not hasattr(item, "weight") else item.weight for item in configs]
-
-
-def extract_names(configs: list[InputConfig]) -> list[str]:
-    """Extracts the weights from a list of input configs."""
-    return [item.name for item in configs]
-
-
 # Store config schema
 cs = ConfigStore.instance()
 cs.store(name="config_schema", node=MOVEConfig)
@@ -252,7 +229,3 @@ cs.store(
     name="identify_associations_ttest_schema",
     node=IdentifyAssociationsTTestConfig,
 )
-
-# Register custom resolvers
-OmegaConf.register_new_resolver("weights", extract_weights)
-OmegaConf.register_new_resolver("names", extract_names)

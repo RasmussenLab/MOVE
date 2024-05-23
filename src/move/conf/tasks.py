@@ -1,12 +1,30 @@
-__all__ = ["PcaConfig", "TsneConfig"]
+__all__ = ["PcaConfig", "TsneConfig", "PerturbationConfig"]
 
 from dataclasses import dataclass, field
-from typing import Literal, Optional, Union
+from typing import Optional, Union
 
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
 from move.core.qualname import get_fully_qualname
+from move.data.preprocessing import PreprocessingOpName
+
+
+@dataclass
+class InputConfig:
+    name: str
+    weight: int = 1
+    preprocessing: PreprocessingOpName = "none"
+
+
+@dataclass
+class DiscreteInputConfig(InputConfig):
+    preprocessing: PreprocessingOpName = "one_hot_encoding"
+
+
+@dataclass
+class ContinuousInputConfig(InputConfig):
+    preprocessing: PreprocessingOpName = "standardization"
 
 
 @dataclass

@@ -1,11 +1,9 @@
 __all__ = ["EncodeData"]
 
-from typing import TypedDict
-
 import numpy as np
 import torch
 
-from move.conf.schema import InputConfig
+from move.conf.tasks import InputConfig
 from move.core.typing import PathLike
 from move.data import io, preprocessing
 from move.tasks.base import ParentTask

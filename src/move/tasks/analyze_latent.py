@@ -15,7 +15,8 @@ from move.analysis.metrics import (
     calculate_accuracy,
     calculate_cosine_similarity,
 )
-from move.conf.schema import AnalyzeLatentConfig, MOVEConfig
+from move.conf.legacy import AnalyzeLatentConfig
+from move.conf.schema import MOVEConfig
 from move.core.logging import get_logger
 from move.core.typing import FloatArray
 from move.data import io

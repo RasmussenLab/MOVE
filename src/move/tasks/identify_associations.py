@@ -10,12 +10,12 @@ import pandas as pd
 import torch
 from omegaconf import OmegaConf
 
-from move.conf.schema import (
+from move.conf.legacy import (
     IdentifyAssociationsBayesConfig,
     IdentifyAssociationsConfig,
     IdentifyAssociationsTTestConfig,
-    MOVEConfig,
 )
+from move.conf.schema import MOVEConfig
 from move.core.logging import get_logger
 from move.core.typing import FloatArray, IntArray
 from move.data import io

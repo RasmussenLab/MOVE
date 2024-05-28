@@ -19,12 +19,12 @@ from move.analysis.metrics import (
     calculate_accuracy,
     calculate_cosine_similarity,
 )
-from move.conf.schema import (
-    MOVEConfig,
+from move.conf.legacy import (
     TuneModelConfig,
     TuneModelReconstructionConfig,
     TuneModelStabilityConfig,
 )
+from move.conf.schema import MOVEConfig
 from move.core.logging import get_logger
 from move.core.typing import BoolArray, FloatArray
 from move.data import io

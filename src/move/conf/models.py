@@ -2,6 +2,7 @@ __all__ = ["VaeConfig", "VaeTConfig"]
 
 from dataclasses import dataclass, field
 
+from move.conf.config_store import config_store
 from move.core.qualname import get_fully_qualname
 from move.models.vae import Vae
 from move.models.vae_distribution import VaeDistribution
@@ -40,3 +41,16 @@ class VaeTConfig(VaeConfig):
     """Configure a t-distribution variational autoencoder."""
 
     _target_: str = field(default=get_fully_qualname(VaeT), init=False)
+
+
+config_store.store(
+    group="task/model_config",
+    name="vae",
+    node=VaeConfig,
+)
+
+config_store.store(
+    group="task/model_config",
+    name="vae_normal",
+    node=VaeNormalConfig,
+)

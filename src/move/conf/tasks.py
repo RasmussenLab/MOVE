@@ -6,6 +6,7 @@ from typing import Optional, Union
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
+from move.conf.config_store import config_store
 from move.core.qualname import get_fully_qualname
 from move.data.preprocessing import PreprocessingOpName
 
@@ -61,3 +62,15 @@ class PerturbationConfig:
     target_dataset_name: str
     target_feature_name: Optional[str]
     target_value: Union[float, int, str]
+
+
+config_store.store(
+    group="task/reducer_config",
+    name="tsne",
+    node=TsneConfig,
+)
+config_store.store(
+    group="task/reducer_config",
+    name="pca",
+    node=PcaConfig,
+)

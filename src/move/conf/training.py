@@ -8,14 +8,13 @@ __all__ = [
 from dataclasses import dataclass, field
 from typing import Optional
 
+from omegaconf import MISSING
+
+from move.conf.config_store import config_store
 from move.conf.optim import LrSchedulerConfig, OptimizerConfig
 from move.core.qualname import get_fully_qualname
 from move.data.dataloader import MoveDataLoader
-from move.training.loop import (
-    AnnealingFunction,
-    AnnealingSchedule,
-    TrainingLoop,
-)
+from move.training.loop import TrainingLoop
 
 
 @dataclass
@@ -56,17 +55,29 @@ class TrainingLoopConfig:
         default=get_fully_qualname(TrainingLoop), init=False, repr=False
     )
 
-    max_epochs: int
+    max_epochs: int = MISSING
 
-    optimizer_config: OptimizerConfig
+    optimizer_config: OptimizerConfig = MISSING
     lr_scheduler_config: Optional[LrSchedulerConfig] = None
 
     max_grad_norm: Optional[float] = None
 
     annealing_epochs: int = 0
-    annealing_function: AnnealingFunction = "linear"
-    annealing_schedule: AnnealingSchedule = "monotonic"
+    annealing_function: str = "linear"
+    annealing_schedule: str = "monotonic"
 
     prog_every_n_epoch: Optional[int] = 10
 
     log_grad: bool = False
+
+
+config_store.store(
+    group="task/training_loop_config",
+    name="schema_training_loop",
+    node=TrainingLoopConfig,
+)
+config_store.store(
+    group="task/training_dataloader_config",
+    name="schema_dataloader",
+    node=DataLoaderConfig,
+)

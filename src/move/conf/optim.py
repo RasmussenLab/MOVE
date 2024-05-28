@@ -16,6 +16,7 @@ from torch.optim.lr_scheduler import (
     ReduceLROnPlateau,
 )
 
+from move.conf.config_store import config_store
 from move.core.qualname import get_fully_qualname
 
 
@@ -83,3 +84,40 @@ class ReduceLrOnPlateauConfig(LrSchedulerConfig):
     improving."""
 
     _target_: str = field(default=get_fully_qualname(ReduceLROnPlateau), init=False)
+
+
+config_store.store(
+    group="task/training_loop_config/optimizer_config",
+    name="optim_adam",
+    node=AdamConfig,
+)
+config_store.store(
+    group="task/training_loop_config/optimizer_config",
+    name="optim_adamw",
+    node=AdamWConfig,
+)
+config_store.store(
+    group="task/training_loop_config/optimizer_config",
+    name="optim_sgd",
+    node=SgdConfig,
+)
+config_store.store(
+    group="task/training_loop_config/lr_scheduler_config",
+    name="optim_lr_scheduler",
+    node=LrSchedulerConfig,
+)
+config_store.store(
+    group="task/training_loop_config/lr_scheduler_config",
+    name="optim_cosine_annealing_lr",
+    node=CosineAnnealingLrConfig,
+)
+config_store.store(
+    group="task/training_loop_config/lr_scheduler_config",
+    name="optim_exponential_lr",
+    node=ExponentialLrConfig,
+)
+config_store.store(
+    group="task/training_loop_config/lr_scheduler_config",
+    name="optim_reduce_lr_on_plateau",
+    node=ReduceLrOnPlateauConfig,
+)

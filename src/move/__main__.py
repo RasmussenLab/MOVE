@@ -6,11 +6,8 @@ from omegaconf import OmegaConf
 import move.tasks
 from move import HYDRA_VERSION_BASE
 from move.conf.schema import (
-    AnalyzeLatentConfig,
     EncodeDataConfig,
-    IdentifyAssociationsConfig,
     MOVEConfig,
-    TuneModelConfig,
 )
 from move.core.logging import get_logger
 from move.tasks.base import Task
@@ -36,12 +33,6 @@ def main(config: MOVEConfig) -> None:
     elif task_type is EncodeDataConfig:
         task: Task = hydra.utils.instantiate(config.task)
         task.run()
-    elif issubclass(task_type, TuneModelConfig):
-        move.tasks.tune_model(config)
-    elif task_type is AnalyzeLatentConfig:
-        move.tasks.analyze_latent(config)
-    elif issubclass(task_type, IdentifyAssociationsConfig):
-        move.tasks.identify_associations(config)
     else:
         raise ValueError("Unsupported type of task.")
 

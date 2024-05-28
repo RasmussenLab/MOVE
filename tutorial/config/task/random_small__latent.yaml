@@ -1,18 +1,33 @@
 defaults:
-  - analyze_latent
+  - task_latent_space
+  - model_config: vae
+  - training_loop_config/optimizer_config: optim_adam
+  - training_loop_config/lr_scheduler_config: null
+  - override reducer_config: pca
 
-batch_size: 10
-
-feature_names:
+features_to_plot:
   - drugs_20
   - metagenomics_174
   - proteomics_195
 
-model:
+compute_accuracy_metrics: true
+compute_feature_importance: true
+
+model_config:
   num_hidden:
     - 1000
   num_latent: 150
+  kl_weight: 1e-4
+  dropout_rate: 0.1
 
-training_loop:
-  lr: 1e-4
-  num_epochs: 40
+training_dataloader_config:
+  batch_size: 10
+
+training_loop_config:
+  max_epochs: 40
+  log_grad: false
+
+  # change type of optimizer above
+  optimizer_config:
+    lr: 1e-4
+    weight_decay: 0

@@ -9,19 +9,16 @@ from typing import Any, Optional
 from hydra.core.config_store import ConfigStore
 from omegaconf import MISSING
 
-
-from move.core.qualname import get_fully_qualname
-
 from move.conf.config_store import config_store
 from move.conf.models import ModelConfig
 from move.conf.resolvers import register_resolvers
 from move.conf.tasks import InputConfig, ReducerConfig
 from move.conf.training import (
     DataLoaderConfig,
-    TrainingLoopConfig,
     TrainingDataLoaderConfig,
+    TrainingLoopConfig,
 )
-
+from move.core.qualname import get_fully_qualname
 from move.tasks.encode_data import EncodeData
 from move.tasks.latent_space_analysis import LatentSpaceAnalysis
 

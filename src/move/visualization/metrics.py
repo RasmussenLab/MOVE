@@ -1,11 +1,11 @@
 __all__ = ["plot_metrics_boxplot"]
 
 from collections.abc import Sequence
-from typing import Union, Optional, cast
+from typing import Optional, Union, cast
 
-import pandas as pd
 import matplotlib
 import matplotlib.figure
+import pandas as pd
 
 from move.core.typing import FloatArray
 from move.visualization.figure import create_figure

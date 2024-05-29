@@ -1,7 +1,7 @@
 __all__ = ["plot_metrics_boxplot"]
 
 from collections.abc import Sequence
-from typing import Union
+from typing import Union, Optional, cast
 
 import pandas as pd
 import matplotlib
@@ -19,7 +19,7 @@ from move.visualization.style import (
 
 def plot_metrics_boxplot(
     scores: Union[Sequence[FloatArray], pd.DataFrame],
-    labels: Sequence[str],
+    labels: Optional[Sequence[str]],
     style: str = DEFAULT_PLOT_STYLE,
     colormap: str = DEFAULT_QUALITATIVE_PALETTE,
 ) -> matplotlib.figure.Figure:
@@ -28,14 +28,19 @@ def plot_metrics_boxplot(
 
     Args:
         scores: List of dataset metrics or DataFrame
-        labels: List of dataset names
+        labels: List of dataset names. If None, DataFrame column names will be used.
         style: Name of style to apply to the plot
         colormap: Name of colormap to use for the boxes
 
     Returns:
         Figure
     """
-    values = scores.values if isinstance(scores, pd.DataFrame) else scores
+    is_df = isinstance(scores, pd.DataFrame)
+    values = scores.values if is_df else scores
+    if labels is None:
+        if not is_df:
+            raise ValueError("Label names missing")
+        labels = cast(Sequence[str], scores.columns)
     with style_settings(style), color_cycle(colormap):
         labelcolor = matplotlib.rcParams["axes.labelcolor"]
         fig, ax = create_figure()

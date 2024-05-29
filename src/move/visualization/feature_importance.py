@@ -10,11 +10,11 @@ from matplotlib.cm import ScalarMappable
 from matplotlib.colors import TwoSlopeNorm
 
 from move.core.typing import FloatArray
+from move.visualization.figure import create_figure
 from move.visualization.style import (
     DEFAULT_DIVERGING_PALETTE,
     DEFAULT_PLOT_STYLE,
     DEFAULT_QUALITATIVE_PALETTE,
-    color_cycle,
     style_settings,
 )
 
@@ -87,8 +87,10 @@ def plot_categorical_feature_importance(
         )
     )
     with style_settings(style):
-        fig, ax = plt.subplots(figsize=figsize)
-        sns.stripplot(data=data, x="x", y="y", hue="category", size=1, ax=ax, palette=colormap)
+        fig, ax = create_figure(figsize=figsize)
+        sns.stripplot(
+            data=data, x="x", y="y", hue="category", size=1, ax=ax, palette=colormap
+        )
         ax.set(xlabel="Impact on latent space", ylabel="Feature")
         # Fix labels in legend
         legend = ax.get_legend()
@@ -165,14 +167,15 @@ def plot_continuous_feature_importance(
     vmin, vmax = data["value"].min(), data["value"].max()
     norm = TwoSlopeNorm(0.0, vmin, vmax)
     sm = ScalarMappable(norm, colormap)
-    data["category"] = np.ma.compressed(norm(data["value"]) * 25).astype(int)
+    category_values = np.multiply(norm(data["value"]), 25)
+    data["category"] = np.ma.compressed(category_values).astype(int)
     palette = np.empty((25, 4))  # 25 colors x 4 channels
     palette[:13, :] = sm.to_rgba(np.linspace(vmin, 0, 13))  # first slope
     palette[12:, :] = sm.to_rgba(np.linspace(0, vmax, 13))  # second slope
     palette = palette.tolist()  # NDArray not always supported
 
     with style_settings(style):
-        fig, ax = plt.subplots(figsize=figsize)
+        fig, ax = create_figure(figsize=figsize)
         sns.stripplot(
             data=data, x="x", y="y", hue="category", ax=ax, palette=palette, size=2
         )

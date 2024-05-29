@@ -14,6 +14,7 @@ from move.core.qualname import get_fully_qualname
 
 from move.conf.config_store import config_store
 from move.conf.models import ModelConfig
+from move.conf.resolvers import register_resolvers
 from move.conf.tasks import InputConfig, ReducerConfig
 from move.conf.training import (
     DataLoaderConfig,
@@ -113,3 +114,4 @@ config_store.store(
     name="task_latent_space",
     node=LatentSpaceAnalysisConfig,
 )
+register_resolvers()

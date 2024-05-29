@@ -29,9 +29,9 @@ class LatentSpaceAnalysis(MoveTask):
 
         1. Train a model (or reload it if it already exists).
         2. Obtain latent representation of input data.
-        3. If configured, reduce latent representation to 2 dimensions.
-        4. If configured, compute how accurately each dataset can be reconstructed.
-        5. If configured, compute the feature importance in the latent space.
+        3. If set, reduce latent representation to 2 dimensions (e.g. using t-SNE or PCA).
+        4. If set, compute how accurately each dataset can be reconstructed.
+        5. If set, compute the feature importance in the latent space.
 
     Args:
         interim_data_path:
@@ -91,6 +91,10 @@ class LatentSpaceAnalysis(MoveTask):
         model_path = self.output_dir / self.model_filename
 
         if model_path.exists():
+            self.logger.warning(
+                f"A model file was found: '{model_path}' and will be reloaded. "
+                "Erase the file if you wish to train a new model."
+            )
             self.logger.debug("Re-loading model")
             model = BaseVae.reload(model_path)
         else:

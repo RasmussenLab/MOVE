@@ -8,6 +8,7 @@ import torch
 import move.visualization as viz
 from move.core.exceptions import UnsetProperty
 from move.data.dataloader import MoveDataLoader
+from move.data.dataset import DiscreteDataset
 from move.data.io import sanitize_filename
 from move.models.base import BaseVae
 from move.tasks.base import CsvWriterMixin, ParentTask, SubTask
@@ -22,7 +23,8 @@ class FeatureImportance(CsvWriterMixin, SubTask):
     Feature importance is computed as the sum of differences in latent
     variables generated when a feature is present/removed."""
 
-    filename_fmt = "feature_importance_{}.csv"
+    data_filename_fmt: str = "feature_importance_{}.csv"
+    plot_filename_fmt: str = "feature_importance_{}.png"
 
     def __init__(
         self, parent: ParentTask, model: BaseVae, dataloader: MoveDataLoader
@@ -32,7 +34,32 @@ class FeatureImportance(CsvWriterMixin, SubTask):
         self.dataloader = dataloader
 
     def plot(self) -> None:
-        raise NotImplementedError()
+        if self.parent is None:
+            return
+        for dataset in self.dataloader.datasets:
+            sanitized_name = sanitize_filename(dataset.name)
+            csv_filename = self.data_filename_fmt.format(sanitized_name)
+            csv_filepath = self.parent.output_dir / csv_filename
+            fig_filename = self.plot_filename_fmt.format(sanitized_name)
+            fig_filepath = self.parent.output_dir / fig_filename
+
+            diffs = pd.read_csv(csv_filepath)
+
+            if dataset.data_type == "continuous":
+                fig = viz.plot_continuous_feature_importance(
+                    diffs.values, dataset.tensor.numpy(), dataset.feature_names
+                )
+            else:
+                # Categorical dataset is re-shaped to 3D shape
+                dataset_shape = getattr(dataset, "original_shape")
+                fig = viz.plot_categorical_feature_importance(
+                    diffs.values,
+                    dataset.tensor.reshape(-1, *dataset_shape).numpy(),
+                    dataset.feature_names,
+                    getattr(dataset, "mapping"),
+                )
+
+            fig.savefig(fig_filepath, bbox_inches="tight")
 
     @torch.no_grad()
     def run(self) -> None:
@@ -41,7 +68,7 @@ class FeatureImportance(CsvWriterMixin, SubTask):
             # Create a file for each dataset
             # File is transposed; each column is a sample, each row a feature
             if self.parent:
-                csv_filename = sanitize_filename(self.filename_fmt.format(dataset))
+                csv_filename = sanitize_filename(self.data_filename_fmt.format(dataset))
                 csv_filepath = self.parent.output_dir / csv_filename
                 colnames = ["feature_name"] + [""] * len(self.dataloader.dataset)
                 self.init_csv_writer(

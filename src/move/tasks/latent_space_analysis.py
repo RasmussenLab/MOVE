@@ -125,6 +125,7 @@ class LatentSpaceAnalysis(MoveTask):
         if self.compute_feature_importance:
             subtask = FeatureImportance(self, model, test_dataloader)
             subtask.run()
+            subtask.plot()
 
 
 class Project(CsvWriterMixin, SubTask):

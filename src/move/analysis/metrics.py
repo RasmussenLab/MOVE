@@ -97,7 +97,8 @@ class ComputeAccuracyMetrics(CsvWriterMixin, SubTask):
     """Compute accuracy metrics between original input and reconstruction (use
     cosine similarity for continuous dataset reconstructions)."""
 
-    filename = "reconstruction_metrics.csv"
+    data_filename: str = "reconstruction_metrics.csv"
+    plot_filename: str = "reconstruction_metrics.png"
 
     def __init__(
         self, parent: ParentTask, model: BaseVae, dataloader: MoveDataLoader
@@ -109,12 +110,14 @@ class ComputeAccuracyMetrics(CsvWriterMixin, SubTask):
     def plot(self) -> None:
         if self.parent and self.csv_filepath:
             scores = pd.read_csv(self.csv_filepath, index_col=None)
-            viz.plot_metrics_boxplot(scores, labels=None)
+            fig = viz.plot_metrics_boxplot(scores, labels=None)
+            fig_path = self.parent.output_dir / self.plot_filename
+            fig.savefig(fig_path, bbox_inches="tight")
 
     @torch.no_grad()
     def run(self) -> None:
         if self.parent:
-            csv_filepath = self.parent.output_dir / self.filename
+            csv_filepath = self.parent.output_dir / self.data_filename
             colnames = self.dataloader.dataset.names
             self.init_csv_writer(
                 csv_filepath, fieldnames=colnames, extrasaction="ignore"

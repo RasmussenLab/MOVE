@@ -123,7 +123,8 @@ class TrainingLoop(CsvWriterMixin, SubTask):
     def plot(self) -> None:
         if self.parent is not None and self.csv_filepath is not None:
             data = pd.read_csv(self.csv_filepath)
-            losses = [data[key].to_list() for key in LossDict.__annotations__.keys()]
+            data["kl_div"] *= data["kl_weight"]
+            losses = data[LossDict.__annotations__.keys()]
             fig = viz.plot_loss_curves(losses, xlabel="Step")
             fig_path = str(self.parent.output_dir / "loss_curve.png")
             fig.savefig(fig_path, bbox_inches="tight")

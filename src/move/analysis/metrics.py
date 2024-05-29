@@ -108,9 +108,8 @@ class ComputeAccuracyMetrics(CsvWriterMixin, SubTask):
 
     def plot(self) -> None:
         if self.parent and self.csv_filepath:
-            fig_df = pd.read_csv(self.csv_filepath, index_col=None)
-            scores = [fig_df[col].to_list() for col in fig_df.columns]
-            # TODO: viz.plot_metrics_boxplot(scores, fig_df.columns)
+            scores = pd.read_csv(self.csv_filepath, index_col=None)
+            viz.plot_metrics_boxplot(scores, labels=None)
 
     @torch.no_grad()
     def run(self) -> None:

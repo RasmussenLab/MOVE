@@ -120,6 +120,7 @@ class LatentSpaceAnalysis(MoveTask):
         if self.compute_accuracy_metrics:
             subtask = ComputeAccuracyMetrics(self, model, test_dataloader)
             subtask.run()
+            subtask.plot()
 
         if self.compute_feature_importance:
             subtask = FeatureImportance(self, model, test_dataloader)

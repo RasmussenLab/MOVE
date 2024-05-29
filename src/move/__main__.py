@@ -7,6 +7,7 @@ import move.tasks
 from move import HYDRA_VERSION_BASE
 from move.conf.schema import (
     EncodeDataConfig,
+    LatentSpaceAnalysisConfig,
     MOVEConfig,
 )
 from move.core.logging import get_logger
@@ -30,8 +31,8 @@ def main(config: MOVEConfig) -> None:
     if task_type is None:
         logger = get_logger("move")
         logger.info("No task specified.")
-    elif task_type is EncodeDataConfig:
-        task: Task = hydra.utils.instantiate(config.task)
+    elif issubclass(task_type, (EncodeDataConfig, LatentSpaceAnalysisConfig)):
+        task: Task = hydra.utils.instantiate(config.task, _recursive_=False)
         task.run()
     else:
         raise ValueError("Unsupported type of task.")

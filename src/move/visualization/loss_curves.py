@@ -42,7 +42,7 @@ def plot_loss_curves(
         Figure
     """
     is_df = isinstance(losses, pd.DataFrame)
-    num_epochs = len(losses[0])
+    num_epochs = len(losses) if is_df else len(losses[0])
     epochs = np.arange(num_epochs)
     with style_settings(style), color_cycle(colormap):
         fig, ax = create_figure()

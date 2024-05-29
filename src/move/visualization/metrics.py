@@ -1,12 +1,14 @@
 __all__ = ["plot_metrics_boxplot"]
 
 from collections.abc import Sequence
+from typing import Union
 
+import pandas as pd
 import matplotlib
 import matplotlib.figure
-import matplotlib.pyplot as plt
 
 from move.core.typing import FloatArray
+from move.visualization.figure import create_figure
 from move.visualization.style import (
     DEFAULT_PLOT_STYLE,
     DEFAULT_QUALITATIVE_PALETTE,
@@ -16,7 +18,7 @@ from move.visualization.style import (
 
 
 def plot_metrics_boxplot(
-    scores: Sequence[FloatArray],
+    scores: Union[Sequence[FloatArray], pd.DataFrame],
     labels: Sequence[str],
     style: str = DEFAULT_PLOT_STYLE,
     colormap: str = DEFAULT_QUALITATIVE_PALETTE,
@@ -25,7 +27,7 @@ def plot_metrics_boxplot(
     score corresponds (for example) to a sample.
 
     Args:
-        scores: List of dataset metrics
+        scores: List of dataset metrics or DataFrame
         labels: List of dataset names
         style: Name of style to apply to the plot
         colormap: Name of colormap to use for the boxes
@@ -33,12 +35,13 @@ def plot_metrics_boxplot(
     Returns:
         Figure
     """
+    values = scores.values if isinstance(scores, pd.DataFrame) else scores
     with style_settings(style), color_cycle(colormap):
         labelcolor = matplotlib.rcParams["axes.labelcolor"]
-        fig, ax = plt.subplots()
+        fig, ax = create_figure()
         comps = ax.boxplot(
-            scores[::-1],
-            labels=labels[::-1],
+            values,
+            labels=labels,
             patch_artist=True,
             vert=False,
             capprops=dict(color=labelcolor),
@@ -55,4 +58,5 @@ def plot_metrics_boxplot(
         for box, prop in zip(comps["boxes"], prop_cycle()):
             box.update(dict(facecolor=prop["color"], edgecolor=labelcolor))
         ax.set(xlim=(-0.05, 1.05), xlabel="Score", ylabel="Dataset")
+        ax.invert_yaxis()
     return fig

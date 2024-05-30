@@ -5,11 +5,7 @@ from omegaconf import OmegaConf
 
 import move.tasks
 from move import HYDRA_VERSION_BASE
-from move.conf.schema import (
-    EncodeDataConfig,
-    LatentSpaceAnalysisConfig,
-    MOVEConfig,
-)
+from move.conf.schema import SUPPORTED_TASKS, MOVEConfig
 from move.core.logging import get_logger
 from move.tasks.base import Task
 
@@ -31,7 +27,7 @@ def main(config: MOVEConfig) -> None:
     if task_type is None:
         logger = get_logger("move")
         logger.info("No task specified.")
-    elif issubclass(task_type, (EncodeDataConfig, LatentSpaceAnalysisConfig)):
+    elif issubclass(task_type, SUPPORTED_TASKS):
         task: Task = hydra.utils.instantiate(config.task, _recursive_=False)
         task.run()
     else:

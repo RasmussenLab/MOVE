@@ -4,21 +4,21 @@ __all__ = [
 ]
 
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any, Optional, Type
 
-from hydra.core.config_store import ConfigStore
 from omegaconf import MISSING
 
 from move.conf.config_store import config_store
 from move.conf.models import ModelConfig
 from move.conf.resolvers import register_resolvers
-from move.conf.tasks import InputConfig, ReducerConfig
+from move.conf.tasks import InputConfig, ReducerConfig, PerturbationConfig
 from move.conf.training import (
     DataLoaderConfig,
     TrainingDataLoaderConfig,
     TrainingLoopConfig,
 )
 from move.core.qualname import get_fully_qualname
+from move.tasks.associations import Associations
 from move.tasks.encode_data import EncodeData
 from move.tasks.latent_space_analysis import LatentSpaceAnalysis
 
@@ -90,6 +90,28 @@ class LatentSpaceAnalysisConfig(MoveTaskConfig):
 
 
 @dataclass
+class AssociationsConfig(MoveTaskConfig):
+    """Configure associations."""
+
+    defaults: list[Any] = field(
+        default_factory=lambda: [
+            dict(perturbation_config="perturbation"),
+            dict(training_loop_config="schema_training_loop"),
+        ]
+    )
+
+    _target_: str = field(
+        default=get_fully_qualname(Associations), init=False, repr=False
+    )
+    interim_data_path: str = "${data.interim_data_path}"
+    results_path: str = "${data.results_path}"
+    perturbation_config: PerturbationConfig = MISSING
+    num_refits: int = MISSING
+    sig_threshold: float = 0.05
+    write_only_sig: bool = True
+
+
+@dataclass
 class MOVEConfig:
     """Configure MOVE command line."""
 
@@ -111,4 +133,16 @@ config_store.store(
     name="task_latent_space",
     node=LatentSpaceAnalysisConfig,
 )
+config_store.store(
+    group="task",
+    name="task_associations",
+    node=AssociationsConfig,
+)
 register_resolvers()
+
+SUPPORTED_TASKS: tuple[Type, ...] = (
+    AssociationsConfig,
+    EncodeDataConfig,
+    LatentSpaceAnalysisConfig,
+)
+"""List of tasks that can be ran from the command line."""

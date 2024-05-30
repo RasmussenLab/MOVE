@@ -3,6 +3,7 @@ __all__ = ["PcaConfig", "TsneConfig", "PerturbationConfig"]
 from dataclasses import dataclass, field
 from typing import Optional, Union
 
+from omegaconf import MISSING
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
@@ -60,8 +61,8 @@ except (ModuleNotFoundError, SystemError, TypeError):
 @dataclass
 class PerturbationConfig:
     target_dataset_name: str
-    target_feature_name: Optional[str]
-    target_value: Union[float, int, str]
+    target_feature_name: Optional[str] = None
+    target_value: Union[float, int, str] = MISSING
 
 
 config_store.store(
@@ -73,4 +74,9 @@ config_store.store(
     group="task/reducer_config",
     name="pca",
     node=PcaConfig,
+)
+config_store.store(
+    group="task/perturbation_config",
+    name="perturbation",
+    node=PerturbationConfig,
 )

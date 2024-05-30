@@ -71,4 +71,7 @@ class MoveTask(ParentTask):
         )
         if set_parent:
             training_loop.parent = self
+        else:
+            # if orphan, cannot use logger
+            training_loop.prog_every_n_epoch = False
         return training_loop

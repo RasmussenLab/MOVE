@@ -24,12 +24,12 @@ class Associations(CsvWriterMixin, MoveTask):
         3. Obtain reconstructions before/after perturbation.
         4. Compute difference between reconstructions.
         5. Average difference over # re-fits
-        6. Compute bayes factor as probability difference > 0. Significant
+        6. Compute indicator variable as probability difference > 0. Significant
            features are either: majorly lower than 0 or majorly greater than 0.
            Thus, when ranking features by this probability those with 50% will
            be considered not significant.
-        7. Rank by bayes factor, and calculate FDR as cumulative probability of
-           being significant.
+        7. Rank by indicator variable, and calculate FDR as cumulative
+           probability of being significant.
         8. Select as significant the features below a determined threshold.
 
     Args:

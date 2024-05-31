@@ -1,13 +1,12 @@
-
 defaults:
   - identify_associations_ks_schema
 
 batch_size: 10
 
-num_refits: 10 
+num_refits: 10
 sig_threshold: 0.05
 
-target_dataset: random.continuous.proteomics 
+target_dataset: random.continuous.proteomics
 target_value: plus_std
 save_refits: True
 
@@ -16,7 +15,7 @@ model:
   continuous_weights: ${weights:${data.continuous_inputs}}
   num_hidden:
     - 100
-  num_latent: 50 
+  num_latent: 50
   beta: 0.1
   dropout: 0.1
   cuda: false

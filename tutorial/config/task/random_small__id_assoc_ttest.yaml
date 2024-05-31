@@ -1,19 +1,18 @@
-
 defaults:
   - identify_associations_ttest
 
-batch_size: 10  # number of samples per batch in training loop
+batch_size: 10 # number of samples per batch in training loop
 
-num_refits: 5 #10 is the default  # number of times to refit (retrain) model
+num_refits: 5 # 10 is the default  # number of times to refit (retrain) model
 
-target_dataset: random.small.drugs  # dataset to perturb
-target_value: 1                     # value to change to
-save_refits: True                   # whether to save refits to interim folder
+target_dataset: random.small.drugs # dataset to perturb
+target_value: 1 # value to change to
+save_refits: True # whether to save refits to interim folder
 
-model:         # model configuration
-  num_hidden:  # list of units in each hidden layer of the VAE encoder/decoder
+model: # model configuration
+  num_hidden: # list of units in each hidden layer of the VAE encoder/decoder
     - 1000
 
-training_loop:    # training loop configuration
-  lr: 1e-4        # learning rate
-  num_epochs: 40  # 40 is the default # number of epochs
+training_loop: # training loop configuration
+  lr: 1e-4 # learning rate
+  num_epochs: 40 # 40 is the default # number of epochs

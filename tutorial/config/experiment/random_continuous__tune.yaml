@@ -18,5 +18,5 @@ hydra:
     params:
       task.batch_size: 10 #10, 20
       task.model.num_hidden: "[250]"
-      task.model.num_latent:  100, 200, 220 
+      task.model.num_latent: 100, 200, 220
       task.training_loop.num_epochs: 200

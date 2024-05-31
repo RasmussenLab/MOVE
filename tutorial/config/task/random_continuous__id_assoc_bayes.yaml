@@ -1,4 +1,3 @@
-
 defaults:
   - identify_associations_bayes
 
@@ -6,16 +5,16 @@ batch_size: 10
 
 num_refits: 10
 
-target_dataset: random.continuous.proteomics 
+target_dataset: random.continuous.proteomics
 target_value: plus_std
 save_refits: True
 
 model:
   num_hidden:
-    - 100 
-  num_latent: 50 
+    - 100
+  num_latent: 50
   beta: .0001
-  dropout: .1 
+  dropout: .1
 
 training_loop:
   lr: 1e-4

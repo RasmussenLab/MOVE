@@ -3,9 +3,9 @@ defaults:
 
 batch_size: 10
 
-num_refits: 10 
+num_refits: 10
 
-target_dataset: random.continuous.proteomics 
+target_dataset: random.continuous.proteomics
 target_value: plus_std
 save_refits: True
 
@@ -17,8 +17,8 @@ num_latent:
 
 model:
   num_hidden:
-    - 100 
+    - 100
 
 training_loop:
   lr: 1e-4
-  num_epochs: 200 
+  num_epochs: 200

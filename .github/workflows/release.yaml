@@ -1,4 +1,4 @@
-name: release on pypi
+name: CI
 on:
   push:
     # branches:
@@ -41,11 +41,15 @@ jobs:
         run: |
           cd tutorial
           move-dl data=random_small task=random_small__latent
-      - name: Identify associations
+      - name: Identify associations - t-test
         run: |
           cd tutorial
           move-dl data=random_small task=random_small__id_assoc_ttest
+      - name: Identify associations - bayes factors
+        run: |
+          cd tutorial
           move-dl data=random_small task=random_small__id_assoc_bayes
+    
   publish:
     name: Publish package
     runs-on: ubuntu-latest

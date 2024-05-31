@@ -83,7 +83,9 @@ def norm(x: np.ma.MaskedArray, axis: int = 1) -> np.ma.MaskedArray:
     return np.sqrt(np.sum(x**2, axis=axis))
 
 
-def get_2nd_order_polynomial(x_array, y_array, n_points=100):
+def get_2nd_order_polynomial(
+    x_array: FloatArray, y_array: FloatArray, n_points=100
+) -> tuple[FloatArray, FloatArray, tuple[float, float, float]]:
     """
     Given a set of x an y values, find the 2nd oder polynomial fitting best the data.
 

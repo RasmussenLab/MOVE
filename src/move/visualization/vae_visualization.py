@@ -25,7 +25,7 @@ def plot_vae(
     output_sample: Optional[torch.Tensor] = None,
     mu: Optional[torch.Tensor] = None,
     logvar: Optional[torch.Tensor] = None,
-):
+) -> matplotlib.figure.Figure:
     """
     This function is aimed to visualize MOVE's architecture.
 
@@ -265,3 +265,4 @@ def plot_vae(
     plt.colorbar(sm_edge, label="Edge value", shrink=0.2)
     plt.tight_layout()
     fig.savefig(savepath / f"{title}.png", format="png", dpi=200)
+    return fig

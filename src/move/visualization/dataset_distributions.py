@@ -85,7 +85,7 @@ def plot_reconstruction_diff(
 
 def plot_feature_association_graph(
     association_df, output_path, layout="circular", style: str = DEFAULT_PLOT_STYLE
-):
+) -> matplotlib.figure.Figure:
     """
     This function plots a graph where each node corresponds to a feature and the edges
     represent the associations between features. Edge width represents the probability of
@@ -183,6 +183,7 @@ def plot_feature_association_graph(
         fig.savefig(
             output_path / f"Feature_association_graph_{layout}.png", format="png"
         )
+    return fig
 
 
 def plot_feature_mean_median(
@@ -282,8 +283,15 @@ def plot_cumulative_distributions(
 
 
 def plot_correlations(
-    x, y, x_pol, y_pol, a2, a1, a, k, style: str = DEFAULT_PLOT_STYLE
-):
+        x: FloatArray,
+        y: FloatArray,
+        x_pol: FloatArray,
+        y_pol: FloatArray,
+        a2: float,
+        a1: float,
+        a: float,
+        k: int,
+        style: str = DEFAULT_PLOT_STYLE) -> matplotlib.figure.Figure:
     """
     Plot y vs x and the corresponding polynomial fit.
     """

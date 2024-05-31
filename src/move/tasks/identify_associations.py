@@ -885,5 +885,5 @@ def identify_associations(config: MOVEConfig) -> None:
         association_df = pd.read_csv(
             output_path / f"results_sig_assoc_{task_type}.tsv", sep="\t"
         )
-        plot_feature_association_graph(association_df, output_path)
-        plot_feature_association_graph(association_df, output_path, layout="spring")
+        _ = plot_feature_association_graph(association_df, output_path)
+        _ = plot_feature_association_graph(association_df, output_path, layout="spring")

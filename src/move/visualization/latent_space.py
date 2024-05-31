@@ -108,17 +108,17 @@ def plot_latent_space_with_con(
 
 
 def plot_3D_latent_and_displacement(
-    mu_baseline,
-    mu_perturbed,
-    feature_values,
-    feature_name,
-    show_baseline=True,
-    show_perturbed=True,
-    show_arrows=True,
+    mu_baseline: FloatArray,
+    mu_perturbed: FloatArray,
+    feature_values: FloatArray,
+    feature_name: str,
+    show_baseline: bool = True,
+    show_perturbed: bool = True,
+    show_arrows: bool = True,
     step: int = 1,
     altitude: int = 30,
     azimuth: int = 45,
-):
+) -> matplotlib.figure.Figure:
     """
     Plot the movement of the samples in the 3D latent space after perturbing one
     input variable.

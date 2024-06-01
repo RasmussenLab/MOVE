@@ -283,15 +283,16 @@ def plot_cumulative_distributions(
 
 
 def plot_correlations(
-        x: FloatArray,
-        y: FloatArray,
-        x_pol: FloatArray,
-        y_pol: FloatArray,
-        a2: float,
-        a1: float,
-        a: float,
-        k: int,
-        style: str = DEFAULT_PLOT_STYLE) -> matplotlib.figure.Figure:
+    x: FloatArray,
+    y: FloatArray,
+    x_pol: FloatArray,
+    y_pol: FloatArray,
+    a2: float,
+    a1: float,
+    a: float,
+    k: int,
+    style: str = DEFAULT_PLOT_STYLE,
+) -> matplotlib.figure.Figure:
     """
     Plot y vs x and the corresponding polynomial fit.
     """

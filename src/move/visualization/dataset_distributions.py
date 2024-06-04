@@ -246,10 +246,10 @@ def plot_reconstruction_movement(
 
 
 def plot_cumulative_distributions(
-    edges,
-    hist_base,
-    hist_pert,
-    title,
+    edges: FloatArray,
+    hist_base: FloatArray,
+    hist_pert: FloatArray,
+    title: str,
     style: str = DEFAULT_PLOT_STYLE,
 ) -> matplotlib.figure.Figure:
     """

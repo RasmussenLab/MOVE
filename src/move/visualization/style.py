@@ -29,11 +29,11 @@ def color_cycle(colormap: str) -> ContextManager:
         Context manager
     """
     registry: ColormapRegistry = matplotlib.colormaps
-    colormap = registry[colormap]
-    if not isinstance(colormap, ListedColormap):
-        raise ValueError("Only colormaps that are list of colors supported.")
-    prop_cycle = cycler(color=colormap.colors)
-    return matplotlib.rc_context({"axes.prop_cycle": prop_cycle})
+    colormap_ = registry[colormap]
+    if isinstance(colormap_, ListedColormap):
+        prop_cycle = cycler(color=colormap_.colors)
+        return matplotlib.rc_context({"axes.prop_cycle": prop_cycle})
+    raise ValueError("Only colormaps that are list of colors supported.")
 
 
 def style_settings(style: str) -> ContextManager:

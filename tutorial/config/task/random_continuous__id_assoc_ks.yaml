@@ -1,5 +1,5 @@
 defaults:
-  - identify_associations_ks_schema
+  - identify_associations_ks
 
 batch_size: 10
 

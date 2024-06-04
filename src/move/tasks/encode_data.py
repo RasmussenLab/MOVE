@@ -51,7 +51,8 @@ def encode_data(config: DataConfig):
         filepath = raw_data_path / f"{dataset_name}.tsv"
         names, values = io.read_tsv(filepath, sample_names)
 
-        # Plotting the value distribution for all continuous datasets before preprocessing:
+        # Plotting the value distribution for all continuous datasets
+        # before preprocessing:
         fig = plot_value_distributions(values)
         fig_path = str(
             output_path / "Value_distribution_{}_unprocessed.png".format(dataset_name)

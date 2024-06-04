@@ -88,8 +88,8 @@ def plot_feature_association_graph(
 ) -> matplotlib.figure.Figure:
     """
     This function plots a graph where each node corresponds to a feature and the edges
-    represent the associations between features. Edge width represents the probability of
-    said association, not the association's effect size.
+    represent the associations between features. Edge width represents the probability
+    of said association, not the association's effect size.
 
     Input:
         association_df: pandas dataframe containing the following columns:
@@ -190,7 +190,8 @@ def plot_feature_mean_median(
     array: FloatArray, axis=0, style: str = DEFAULT_PLOT_STYLE
 ) -> matplotlib.figure.Figure:
     """
-    Plot feature values together with the mean, median, min and max values at each array position.
+    Plot feature values together with the mean, median, min and max values
+    at each array position.
     """
     with style_settings(style):
         fig = plt.figure(figsize=(15, 3))
@@ -216,14 +217,16 @@ def plot_reconstruction_movement(
     style: str = DEFAULT_PLOT_STYLE,
 ) -> matplotlib.figure.Figure:
     """
-    Plot, for each sample, the change in value from the unperturbed reconstruction to the perturbed reconstruction.
-    Blue lines are left/negative shifts, red lines are right/positive shifts.
+    Plot, for each sample, the change in value from the unperturbed reconstruction to
+    the perturbed reconstruction. Blue lines are left/negative shifts,
+    red lines are right/positive shifts.
 
     Args:
-        baseline_recon: baseline reconstruction array with s samples and k features (s,k).
-        perturb_recon:  perturbed "                                                      "
-        k: feature index. The shift (movement) of this feature's reconstruction will be plotted for all
-           samples s.
+        baseline_recon: baseline reconstruction array with s samples
+                        and k features (s,k).
+        perturb_recon:  perturbed
+        k: feature index. The shift (movement) of this feature's reconstruction
+                          will be plotted for all samples s.
     """
     with style_settings(style):
         # Feature changes

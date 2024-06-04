@@ -437,26 +437,30 @@ def _ks_approach(
         task_config: IdentifyAssociationsKSConfig configuration.
         train_dataloader: training DataLoader.
         baseline_dataloader: unperturbed DataLoader.
-        dataloaders: list of DataLoaders where DataLoader[i] is obtained by perturbing feature i
-                     in the target dataset.
+        dataloaders: list of DataLoaders where DataLoader[i] is obtained by perturbing
+                     feature i in the target dataset.
         models_path: path to the models.
         num_perturbed: number of perturbed features.
         num_samples: total number of samples
-        num_continuous: number of continuous features (all continuous datasets concatenated).
-        con_names: list of lists where eah inner list contains the feature names of a specific continuous dataset
+        num_continuous: number of continuous features
+                        (all continuous datasets concatenated).
+        con_names: list of lists where eah inner list
+                   contains the feature names of a specific continuous dataset
         output_path: path where QC summary metrics will be saved.
 
     Returns:
-        sort_ids: list with flattened IDs of the associations above the significance threshold.
-        ks_distance: Ordered list with signed KS scores. KS scores quantify the direction and
-                     magnitude of the shift in feature B's reconstruction when perturbing feature A.
+        sort_ids: list with flattened IDs of the associations
+                  above the significance threshold.
+        ks_distance: Ordered list with signed KS scores. KS scores quantify the
+                    direction and magnitude of the shift in feature B's reconstruction
+                    when perturbing feature A.
 
 
     !!! Note !!!:
 
     The sign of the KS score can be misleading: negative sign means positive shift.
-    since the cumulative distribution starts growing later and is found below the reference
-    (baseline). Hence:
+    since the cumulative distribution starts growing later and is found below
+    the reference (baseline). Hence:
     a) with plus_std, negative sign means a positive correlation.
     b) with minus_std, negative sign means a negative correlation.
     """
@@ -598,11 +602,13 @@ def _ks_approach(
                         edges,
                         hist_base,
                         hist_pert,
-                        f"Cumulative_perturbed_{i}_measuring_{k}_stats_{stats[j, i, k]}",
+                        f"Cumulative_perturbed_{i}_measuring_{
+                            k}_stats_{stats[j, i, k]}",
                     )
                     fig.savefig(
                         figure_path
-                        / f"Cumulative_refit_{j}_perturbed_{i}_measuring_{k}_stats_{stats[j, i, k]}.png"
+                        / f"Cumulative_refit_{j}_perturbed_{
+                            i}_measuring_{k}_stats_{stats[j, i, k]}.png"
                     )
 
                     # Feature changes:
@@ -640,7 +646,8 @@ def _ks_approach(
     sort_ids = np.argsort(abs(final_stats), axis=None)[::-1]  # 1D: N x C
     ks_distance = np.take(final_stats, sort_ids)  # 1D: N x C
 
-    # Writing Quality control csv file. Mean slope and correlation over refits as qc metrics.
+    # Writing Quality control csv file.
+    # Mean slope and correlation over refits as qc metrics.
     logger.info("Writing QC file")
     qc_df = pd.DataFrame({"Feature names": feature_names})
     qc_df["slope"] = np.nanmean(slope, axis=0)

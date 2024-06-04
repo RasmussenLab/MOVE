@@ -44,22 +44,26 @@ def training_loop(
 
     Args:
         model (VAE): trained VAE model object
-        train_dataloader (DataLoader):  An object feeding data to the VAE with training data
-        valid_dataloader (Optional[DataLoader], optional): An object feeding data to the VAE with validation data.
-                                                           Defaults to None.
+        train_dataloader (DataLoader):  An object feeding data to the VAE
+                                        with training data
+        valid_dataloader (Optional[DataLoader], optional): An object feeding data to the
+                                            VAE with validation data. Defaults to None.
         lr (float, optional): learning rate. Defaults to 1e-4.
         num_epochs (int, optional): number of epochs. Defaults to 100.
-        batch_dilation_steps (list[int], optional): a list with integers corresponding to epochs when batch size is
-                                                    increased. Defaults to [].
-        kld_warmup_steps (list[int], optional):  a list with integers corresponding to epochs when kld is decreased by
-                                                 the selected rate. Defaults to [].
-        early_stopping (bool, optional):  boolean if use early stopping . Defaults to False.
-        patience (int, optional): number of epochs to wait before early stop if no progress on the validation set.
-                                  Defaults to 0.
+        batch_dilation_steps (list[int], optional): a list with integers corresponding
+                                to epochs when batch size is increased. Defaults to [].
+        kld_warmup_steps (list[int], optional):  a list with integers corresponding to
+                    epochs when kld is decreased by the selected rate. Defaults to [].
+        early_stopping (bool, optional): boolean if use early stopping.
+                                         Defaults to False.
+
+        patience (int, optional): number of epochs to wait before early stop
+                                  if no progress on the validation set. Defaults to 0.
 
     Returns:
         (tuple): a tuple containing:
-            *outputs (*list): lists containing information of epoch loss, BCE loss, SSE loss, KLD loss
+            *outputs (*list): lists containing information of epoch loss, BCE loss,
+                              SSE loss, KLD loss
             kld_weight (float): final KLD after dilations during the training
     """
 

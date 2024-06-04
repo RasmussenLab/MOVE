@@ -127,8 +127,8 @@ def perturb_continuous_data_extended(
 ) -> list[DataLoader]:
     """Add perturbations to continuous data. For each feature in the target
     dataset, change the feature's value in all samples (in rows):
-    1,2) substituting this feature in all samples by the feature's minimum/maximum value.
-    3,4) Adding/Substracting one standard deviation to the sample's feature value.
+    1,2) substituting this feature in all samples by the feature's minimum/maximum value
+    3,4) Adding/Substracting one standard deviation to the sample's feature value
 
     Args:
         baseline_dataloader: Baseline dataloader
@@ -144,8 +144,8 @@ def perturb_continuous_data_extended(
 
     Note:
         This function was created so that it could generalize to non-normalized
-        datasets. Scaling is done per dataset, not per feature -> slightly different stds
-        feature to feature.
+        datasets. Scaling is done per dataset, not per feature -> slightly different
+        stds feature to feature.
     """
 
     baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)

@@ -47,12 +47,42 @@ jobs:
         run: |
           cd tutorial
           move-dl data=random_small task=random_small__id_assoc_ttest --cfg job
-          move-dl data=random_small task=random_small__id_assoc_ttest task.training_loop.num_epochs=10 task.num_refits=4
+          move-dl data=random_small task=random_small__id_assoc_ttest task.training_loop.num_epochs=30 task.num_refits=4
       - name: Identify associations - bayes factors
         run: |
           cd tutorial
           move-dl data=random_small task=random_small__id_assoc_bayes --cfg job
-          move-dl data=random_small task=random_small__id_assoc_bayes task.training_loop.num_epochs=10 task.num_refits=4
+          move-dl data=random_small task=random_small__id_assoc_bayes task.training_loop.num_epochs=30 task.num_refits=10
+  run-tutorial-cont:
+      name: Run tutorial
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+        - uses: actions/setup-python@v5
+          with:
+            python-version: "3.11"
+        - name: Install dependencies
+          run: pip install .
+        - name: Prepare tutorial data
+          run: |
+            cd tutorial
+            move-dl data=random_continuous task=encode_data
+        - name: Train model and analyze latent space
+          run: |
+            cd tutorial
+            move-dl data=random_continuous task=random_continuous__latent --cfg job
+        - name: Identify associations - t-test
+          run: |
+            cd tutorial
+            move-dl data=random_continuous task=random_continuous__id_assoc_ttest --cfg job
+        - name: Identify associations - bayes factors
+          run: |
+            cd tutorial
+            move-dl data=random_continuous task=random_continuous__id_assoc_bayes --cfg job
+        - name: Identify associations - KS
+          run: |
+            cd tutorial
+            move-dl data=random_continuous task=random_continuous__id_assoc_ks --cfg job
     
   publish:
     name: Publish package

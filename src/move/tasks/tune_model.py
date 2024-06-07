@@ -1,7 +1,6 @@
 __all__ = ["tune_model"]
 
 from pathlib import Path
-from random import shuffle
 from typing import Any, Literal, cast
 
 import hydra
@@ -26,7 +25,7 @@ from move.conf.schema import (
     TuneModelStabilityConfig,
 )
 from move.core.logging import get_logger
-from move.core.typing import BoolArray, FloatArray
+from move.core.typing import BoolArray
 from move.data import io
 from move.data.dataloaders import MOVEDataset, make_dataloader, split_samples
 from move.models.vae import VAE
@@ -87,7 +86,7 @@ def tune_model(config: MOVEConfig) -> float:
     )
 
     assert task_config.model is not None
-    device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
+    device = torch.device("cuda" if task_config.model.cuda is True else "cpu")
 
     def _tune_stability(
         task_config: TuneModelStabilityConfig,
@@ -117,7 +116,7 @@ def tune_model(config: MOVEConfig) -> float:
         cosine_sim0 = None
         cosine_sim_diffs = []
         for j in range(task_config.num_refits):
-            logger.debug(f"Refit: {j+1}/{task_config.num_refits}")
+            logger.debug(f"Refit: {j + 1}/{task_config.num_refits}")
             model: VAE = hydra.utils.instantiate(
                 task_config.model,
                 continuous_shapes=train_dataset.con_shapes,
@@ -196,7 +195,7 @@ def tune_model(config: MOVEConfig) -> float:
         model.eval()
         logger.info("Reconstructing")
         logger.info("Computing reconstruction metrics")
-        label = [hp.split("=") for hp in hydra_config.job.override_dirname.split(",")]
+        label = [hp.split("=") for hp in hydra_config.job.override_dirname.split(";")]
         records = []
         splits = zip(["train", "test"], [split_mask, ~split_mask])
         for split_name, mask in splits:
@@ -208,7 +207,9 @@ def tune_model(config: MOVEConfig) -> float:
                 batch_size=task_config.batch_size,
             )
             cat_recons, con_recons = model.reconstruct(dataloader)
-            con_recons = np.split(con_recons, np.cumsum(model.continuous_shapes[:-1]), axis=1)
+            con_recons = np.split(
+                con_recons, np.cumsum(model.continuous_shapes[:-1]), axis=1
+            )
             for cat, cat_recon, dataset_name in zip(
                 cat_list, cat_recons, config.data.categorical_names
             ):

@@ -28,6 +28,7 @@ class InputConfig:
     name: str
     weight: int = 1
 
+
 @dataclass
 class ContinuousInputConfig(InputConfig):
     scale: bool = True
@@ -186,6 +187,27 @@ class IdentifyAssociationsTTestConfig(IdentifyAssociationsConfig):
 
 
 @dataclass
+class IdentifyAssociationsKSConfig(IdentifyAssociationsConfig):
+    """Configure the Kolmogorov-Smirnov approach to identify associations.
+
+    Args:
+        perturbed_feature_names: names of the perturbed features of interest.
+        target_feature_names: names of the target features of interest.
+
+    Description:
+    For each perturbed feature - target feature pair, we will plot:
+            - Input vs. reconstruction correlation plot: to assess reconstruction
+              quality of both target and perturbed features.
+            - Distribution of reconstruction values for the target feature before
+              and after the perturbation of the perturbed feature.
+
+    """
+
+    perturbed_feature_names: list[str] = field(default_factory=list)
+    target_feature_names: list[str] = field(default_factory=list)
+
+
+@dataclass
 class MOVEConfig:
     defaults: list[Any] = field(default_factory=lambda: [dict(data="base_data")])
     data: DataConfig = MISSING
@@ -236,6 +258,11 @@ cs.store(
     group="task",
     name="identify_associations_ttest_schema",
     node=IdentifyAssociationsTTestConfig,
+)
+cs.store(
+    group="task",
+    name="identify_associations_ks_schema",
+    node=IdentifyAssociationsKSConfig,
 )
 
 # Register custom resolvers

@@ -71,11 +71,12 @@ jobs:
           run: |
             cd tutorial
             move-dl data=random_continuous task=random_continuous__latent --cfg job
+            move-dl data=random_continuous task=random_continuous__latent
         - name: Identify associations - t-test
           run: |
             cd tutorial
             move-dl data=random_continuous task=random_continuous__id_assoc_ttest --cfg job
-            move-dl data=random_continuous task=random_continuous__id_assoc_ttest task.training_loop.num_epochs=30 task.num_refits=5 
+            move-dl data=random_continuous task=random_continuous__id_assoc_ttest task.training_loop.num_epochs=30 task.num_refits=4
         - name: Identify associations - bayes factors
           run: |
             cd tutorial

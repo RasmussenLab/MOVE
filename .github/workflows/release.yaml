@@ -52,7 +52,7 @@ jobs:
         run: |
           cd tutorial
           move-dl data=random_small task=random_small__id_assoc_bayes --cfg job
-          move-dl data=random_small task=random_small__id_assoc_bayes task.training_loop.num_epochs=30 task.num_refits=10
+          move-dl data=random_small task=random_small__id_assoc_bayes task.training_loop.num_epochs=30 task.num_refits=20
   run-tutorial-cont:
       name: Run tutorial - random_continuous
       runs-on: ubuntu-latest
@@ -81,12 +81,12 @@ jobs:
           run: |
             cd tutorial
             move-dl data=random_continuous task=random_continuous__id_assoc_bayes --cfg job
-            move-dl data=random_continuous task=random_continuous__id_assoc_bayes task.training_loop.num_epochs=30
+            move-dl data=random_continuous task=random_continuous__id_assoc_bayes task.training_loop.num_epochs=30 task.num_refits=4
         - name: Identify associations - KS
           run: |
             cd tutorial
             move-dl data=random_continuous task=random_continuous__id_assoc_ks --cfg job
-            move-dl data=random_continuous task=random_continuous__id_assoc_ks task.training_loop.num_epochs=30
+            move-dl data=random_continuous task=random_continuous__id_assoc_ks task.training_loop.num_epochs=30 task.num_refits=4
     
   publish:
     name: Publish package

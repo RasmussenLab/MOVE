@@ -61,8 +61,6 @@ def main(config: MOVEConfig) -> None:
             move.tasks.identify_associations_selected(config)
         elif config.task.efficient:
             move.tasks.identify_associations_efficient(config)
-        elif config.task.multiloop:
-            move.tasks.identify_associations_multiprocess_loop(config)
         else:
             move.tasks.identify_associations(config)
         #What we had before

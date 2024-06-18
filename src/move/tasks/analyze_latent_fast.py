@@ -34,16 +34,16 @@ from move.training.training_loop import TrainingLoopOutput
 from torch.utils.data import DataLoader
 
 
-
 # Define perturb_continuous_data_one (not extended)
+
 
 def perturb_continuous_data_one(
     baseline_dataloader: DataLoader,
     con_dataset_names: list[str],
     target_dataset_name: str,
     target_value: float,
-    index_pert_feat: int, # Index of the datasetto perturb
-) -> DataLoader: # change list(DataLoader) to just one DataLoader
+    index_pert_feat: int,  # Index of the datasetto perturb
+) -> DataLoader:  # change list(DataLoader) to just one DataLoader
     """Add perturbations to continuous data. For each feature in the target
     dataset, change its value to target.
 
@@ -66,10 +66,10 @@ def perturb_continuous_data_one(
     slice_ = slice(*splits[target_idx : target_idx + 2])
 
     num_features = baseline_dataset.con_shapes[target_idx]
-    #dataloaders = []
+    # dataloaders = []
     i = index_pert_feat
-    # Instead of the loop, we do it only for one 
-    #for i in range(num_features):
+    # Instead of the loop, we do it only for one
+    # for i in range(num_features):
     perturbed_con = baseline_dataset.con_all.clone()
     target_dataset = perturbed_con[:, slice_]
     target_dataset[:, i] = torch.FloatTensor([target_value])
@@ -86,8 +86,6 @@ def perturb_continuous_data_one(
     )
 
     return perturbed_dataloader
-
-
 
 
 def perturb_categorical_data_one(
@@ -121,11 +119,11 @@ def perturb_categorical_data_one(
     slice_ = slice(*splits[target_idx : target_idx + 2])
 
     target_shape = baseline_dataset.cat_shapes[target_idx]
-    #num_features = target_shape[0]  # CHANGE
+    # num_features = target_shape[0]  # CHANGE
 
     i = index_pert_feat
-    #dataloaders = []
-    #for i in range(num_features):
+    # dataloaders = []
+    # for i in range(num_features):
     perturbed_cat = baseline_dataset.cat_all.clone()
     target_dataset = perturbed_cat[:, slice_].view(
         baseline_dataset.num_samples, *target_shape
@@ -144,7 +142,6 @@ def perturb_categorical_data_one(
     )
 
     return perturbed_dataloader
-
 
 
 def find_feature_values(
@@ -198,7 +195,7 @@ def analyze_latent_fast(config: MOVEConfig) -> None:
     interim_path = Path(config.data.interim_data_path)
 
     number_al = task_config.number_al
-    #output_path = Path(config.data.results_path) / "latent_space_fast"
+    # output_path = Path(config.data.results_path) / "latent_space_fast"
     # CHANGED THIS TO SAVE THE MODELS IN DIFFERENT DIRECTORIES AND NOT OVERWRITE THEM
     output_path = Path(f"results/latent_space_fast_5000_100_{number_al}/")
     output_path.mkdir(exist_ok=True, parents=True)
@@ -234,8 +231,11 @@ def analyze_latent_fast(config: MOVEConfig) -> None:
 
     logger.debug(f"Model: {model}")
 
-    #model_path = output_path / "model.pt"
-    model_path = Path("/projects/rasmussen/data/tcga_isoforms/final_data/interim_data/models/") / f"model_{task_config.model.num_latent}_{number_al}.pt"
+    # model_path = output_path / "model.pt"
+    model_path = (
+        Path("/projects/rasmussen/data/tcga_isoforms/final_data/interim_data/models/")
+        / f"model_{task_config.model.num_latent}_{number_al}.pt"
+    )
     logger.debug(f"Training or reloading model in {model_path}")
     if model_path.exists():
         logger.debug("Re-loading model")
@@ -286,7 +286,7 @@ def analyze_latent_fast(config: MOVEConfig) -> None:
         columns=["dim0", "dim1"],
         index=df_index,
     )
-    '''
+    """
     for feature_name in task_config.feature_names:
         logger.debug(f"Generating plot: latent space + '{feature_name}'")
         is_categorical = False
@@ -334,7 +334,7 @@ def analyze_latent_fast(config: MOVEConfig) -> None:
         fig.savefig(fig_path, bbox_inches="tight")
 
     fig_df.to_csv(output_path / "latent_space.tsv", sep="\t")
-    '''
+    """
     logger.info("Reconstructing")
     cat_recons, con_recons = model.reconstruct(test_dataloader)
     con_recons = np.split(con_recons, np.cumsum(model.continuous_shapes[:-1]), axis=1)
@@ -358,7 +358,7 @@ def analyze_latent_fast(config: MOVEConfig) -> None:
     fig_df.to_csv(output_path / "reconstruction_metrics.tsv", sep="\t")
 
     # We will not do this here, because it takes a long time, and I just want to see the reconstruction metrics for the moment
-    '''
+    """
 
     logger.info("Computing feature importance")
     num_samples = len(cast(Sized, test_dataloader.sampler))
@@ -441,4 +441,4 @@ def analyze_latent_fast(config: MOVEConfig) -> None:
         fig.savefig(fig_path, bbox_inches="tight")
         fig_df = pd.DataFrame(diffs, columns=con_names[i], index=df_index)
         fig_df.to_csv(output_path / f"feat_importance_{dataset_name}.tsv", sep="\t")
-'''
+"""

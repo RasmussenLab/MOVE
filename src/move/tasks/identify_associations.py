@@ -3,7 +3,7 @@ __all__ = ["identify_associations"]
 from functools import reduce
 from os.path import exists
 from pathlib import Path
-from typing import Literal, Sized, Union, cast, Optional
+from typing import Literal, Optional, Sized, Union, cast
 
 import hydra
 import numpy as np
@@ -13,14 +13,7 @@ from omegaconf import OmegaConf
 from scipy.stats import ks_2samp, pearsonr  # type: ignore
 from torch.utils.data import DataLoader
 
-from torch.utils.data import DataLoader
-
-from move.data.dataloaders import MOVEDataset
-from move.data.preprocessing import feature_stats
-from move.visualization.dataset_distributions import plot_value_distributions
-
 from move.analysis.metrics import get_2nd_order_polynomial
-
 from move.conf.schema import (
     IdentifyAssociationsBayesConfig,
     IdentifyAssociationsConfig,
@@ -32,23 +25,22 @@ from move.core.logging import get_logger
 from move.core.typing import BoolArray, FloatArray, IntArray
 from move.data import io
 from move.data.dataloaders import MOVEDataset, make_dataloader
-from move.data.perturbations import (
+from move.data.perturbations import (  # perturb_continuous_data_extended,
     ContinuousPerturbationType,
     perturb_categorical_data,
-    #perturb_continuous_data_extended,
 )
-from move.data.preprocessing import one_hot_encode_single
+from move.data.preprocessing import feature_stats, one_hot_encode_single
 from move.models.vae import VAE
 from move.visualization.dataset_distributions import (
     plot_correlations,
     plot_cumulative_distributions,
     plot_feature_association_graph,
     plot_reconstruction_movement,
+    plot_value_distributions,
 )
 
 TaskType = Literal["bayes", "ttest", "ks"]
 CONTINUOUS_TARGET_VALUE = ["minimum", "maximum", "plus_std", "minus_std"]
-
 
 
 def perturb_continuous_data_extended(
@@ -92,14 +84,14 @@ def perturb_continuous_data_extended(
     splits = np.cumsum([0] + baseline_dataset.con_shapes)
     slice_ = slice(*splits[target_idx : target_idx + 2])
 
-    #num_features = baseline_dataset.con_shapes[target_idx]
+    # num_features = baseline_dataset.con_shapes[target_idx]
     # CHANGED THIS TO TRY IT. CHANGE LATER
     num_features = 5
     logger.debug(f"number of feature to perturb is {num_features}")
     dataloaders = []
     perturbations_list = []
     # Change below.
-    #num_features = 10
+    # num_features = 10
 
     for i in range(num_features):
         logger.debug(f"Getting perturbed dataset for feature {i}")
@@ -118,7 +110,7 @@ def perturb_continuous_data_extended(
         elif perturbation_type == "minus_std":
             target_dataset[:, i] -= torch.FloatTensor([std_feat_val_list[i]])
 
-        #perturbations_list.append(target_dataset[:, i].numpy())
+        # perturbations_list.append(target_dataset[:, i].numpy())
 
         perturbed_dataset = MOVEDataset(
             baseline_dataset.cat_all,
@@ -136,16 +128,14 @@ def perturb_continuous_data_extended(
     logger.debug("Finished perturb_continuous_data_extended function")
 
     # Plot the perturbations for all features, collapsed in one plot:
-    #if output_subpath is not None:
-     #   fig = plot_value_distributions(np.array(perturbations_list).transpose())
-      #  fig_path = str(
-       #     output_subpath / f"perturbation_distribution_{target_dataset_name}.png"
-        #)
-        #fig.savefig(fig_path)
+    # if output_subpath is not None:
+    #   fig = plot_value_distributions(np.array(perturbations_list).transpose())
+    #  fig_path = str(
+    #     output_subpath / f"perturbation_distribution_{target_dataset_name}.png"
+    # )
+    # fig.savefig(fig_path)
 
     return dataloaders
-
-
 
 
 def _get_task_type(
@@ -177,7 +167,11 @@ def prepare_for_categorical_perturbation(
     interim_path: Path,
     baseline_dataloader: DataLoader,
     cat_list: list[FloatArray],
-) -> tuple[list[DataLoader], BoolArray, BoolArray,]:
+) -> tuple[
+    list[DataLoader],
+    BoolArray,
+    BoolArray,
+]:
     """
     This function creates the required dataloaders and masks
     for further categorical association analysis.
@@ -203,7 +197,8 @@ def prepare_for_categorical_perturbation(
     target_mapping = mappings[task_config.target_dataset]
     target_value = one_hot_encode_single(target_mapping, task_config.target_value)
     logger.debug(
-        f"Target value: {task_config.target_value} => {target_value.astype(int)[0]}"
+        f"Target value: {task_config.target_value} => {
+            target_value.astype(int)[0]}"
     )
 
     dataloaders = perturb_categorical_data(
@@ -233,16 +228,20 @@ def prepare_for_categorical_perturbation(
     )
 
 
-
-def perturb_continuous_data_extended_one( # We will keep the input almost the same, to make everything easier
-    # However, I have to introduce a variable that allows me to index the specific dataloader I want to create (index_pert_feat)
+def perturb_continuous_data_extended_one(
+    # We will keep the input almost the same,
+    # to make everything easier
+    # However, I have to introduce a variable that allows me to index the specific
+    # dataloader I want to create (index_pert_feat)
     # And I eliminate the output directory, because I am not going to save any image
     baseline_dataloader: DataLoader,
     con_dataset_names: list[str],
     target_dataset_name: str,
     perturbation_type: ContinuousPerturbationType,
     index_pert_feat: int,
-) -> DataLoader: # But we change the output from list[DataLoader] to just one DataLoader
+) -> (
+    DataLoader
+):  # But we change the output from list[DataLoader] to just one DataLoader
     logger = get_logger(__name__)
     """Add perturbations to continuous data. For each feature in the target
     dataset, change the feature's value in all samples (in rows):
@@ -267,8 +266,11 @@ def perturb_continuous_data_extended_one( # We will keep the input almost the sa
         datasets. Scaling is done per dataset, not per feature -> slightly different stds
         feature to feature.
     """
-    logger.debug(f"Inside perturb_continuous_data_extended_one for feature {index_pert_feat}")
-    
+    logger.debug(
+        f"Inside perturb_continuous_data_extended_one for feature {
+            index_pert_feat}"
+    )
+
     baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
     assert baseline_dataset.con_shapes is not None
     assert baseline_dataset.con_all is not None
@@ -278,37 +280,50 @@ def perturb_continuous_data_extended_one( # We will keep the input almost the sa
     slice_ = slice(*splits[target_idx : target_idx + 2])
 
     # Use it only if we want to perturb all features in the target dataset
-    num_features = baseline_dataset.con_shapes[target_idx] 
+    num_features = baseline_dataset.con_shapes[target_idx]
     # Change below.
-    #num_features = 10
+    # num_features = 10
 
-    # Now, instead of the for loop that iterates over all the features we want to perturb, we do it only for one feature, the one 
+    # Now, instead of the for loop that iterates over all the features we want to perturb, we do it only for one feature, the one
     # indicated in index_pert_feat
 
-    #for i in range(num_features):
+    # for i in range(num_features):
     logger.debug(f"Setting up perturbed_con for feature {index_pert_feat}")
 
     perturbed_con = baseline_dataset.con_all.clone()
     target_dataset = perturbed_con[:, slice_]
 
-    logger.debug(f"Changing to desired perturbation value for feature {index_pert_feat}")
+    logger.debug(
+        f"Changing to desired perturbation value for feature {index_pert_feat}"
+    )
     # Change the desired feature value by:
     min_feat_val_list, max_feat_val_list, std_feat_val_list = feature_stats(
         target_dataset
     )
     if perturbation_type == "minimum":
-        target_dataset[:, index_pert_feat] = torch.FloatTensor([min_feat_val_list[index_pert_feat]])
+        target_dataset[:, index_pert_feat] = torch.FloatTensor(
+            [min_feat_val_list[index_pert_feat]]
+        )
     elif perturbation_type == "maximum":
-        target_dataset[:, index_pert_feat] = torch.FloatTensor([max_feat_val_list[index_pert_feat]])
+        target_dataset[:, index_pert_feat] = torch.FloatTensor(
+            [max_feat_val_list[index_pert_feat]]
+        )
     elif perturbation_type == "plus_std":
-        target_dataset[:, index_pert_feat] += torch.FloatTensor([std_feat_val_list[index_pert_feat]])
+        target_dataset[:, index_pert_feat] += torch.FloatTensor(
+            [std_feat_val_list[index_pert_feat]]
+        )
     elif perturbation_type == "minus_std":
-        target_dataset[:, index_pert_feat] -= torch.FloatTensor([std_feat_val_list[index_pert_feat]])
+        target_dataset[:, index_pert_feat] -= torch.FloatTensor(
+            [std_feat_val_list[index_pert_feat]]
+        )
     logger.debug(f"Perturbation succesful for feature {index_pert_feat}")
     # We used this for a plot I have removed, so no need to use it
     # perturbations_list.append(target_dataset[:, i].numpy())
 
-    logger.debug(f"Creating perturbed dataset and dataloader for feature {index_pert_feat}")
+    logger.debug(
+        f"Creating perturbed dataset and dataloader for feature {
+            index_pert_feat}"
+    )
 
     perturbed_dataset = MOVEDataset(
         baseline_dataset.cat_all,
@@ -322,17 +337,25 @@ def perturb_continuous_data_extended_one( # We will keep the input almost the sa
         shuffle=False,
         batch_size=baseline_dataloader.batch_size,
     )
-    #dataloaders.append(perturbed_dataloader)
+    # dataloaders.append(perturbed_dataloader)
 
-    logger.debug(f"Finished perturb_continuous_data_extended_one for feature {index_pert_feat}")
+    logger.debug(
+        f"Finished perturb_continuous_data_extended_one for feature {
+            index_pert_feat}"
+    )
 
     return perturbed_dataloader
+
 
 def prepare_for_continuous_perturbation(
     config: MOVEConfig,
     output_subpath: Path,
     baseline_dataloader: DataLoader,
-) -> tuple[list[DataLoader], BoolArray, BoolArray,]:
+) -> tuple[
+    list[DataLoader],
+    BoolArray,
+    BoolArray,
+]:
     """
     This function creates the required dataloaders and masks
     for further continuous association analysis.
@@ -367,18 +390,18 @@ def prepare_for_continuous_perturbation(
     )
     dataloaders.append(baseline_dataloader)
 
-    #dataloaders =[]
+    # dataloaders =[]
 
-    #for i in range(5):
-     #   perturbed_dataloader = perturb_continuous_data_extended_one(
-      #      baseline_dataloader=baseline_dataloader,
-       #     con_dataset_names=config.data.continuous_names,
-        #    target_dataset_name=task_config.target_dataset,
-         #   perturbation_type=cast(ContinuousPerturbationType, task_config.target_value),
-          #  index_pert_feat=i,) # Like this, I get only one perturbed dataloader, and the nan and feature masks
-        #logger.debug
+    # for i in range(5):
+    #   perturbed_dataloader = perturb_continuous_data_extended_one(
+    #      baseline_dataloader=baseline_dataloader,
+    #      con_dataset_names=config.data.continuous_names,
+    #      target_dataset_name=task_config.target_dataset,
+    #      perturbation_type=cast(ContinuousPerturbationType, task_config.target_value),
+    #      index_pert_feat=i,) # Like this, I get only one perturbed dataloader, and the nan and feature masks
+    # logger.debug
 
-        #dataloaders.append(perturbed_dataloader)
+    # dataloaders.append(perturbed_dataloader)
     logger.debug(f"Dataloaders length is {len(dataloaders)}")
 
     baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
@@ -407,7 +430,7 @@ def _bayes_approach(
 ) -> tuple[Union[IntArray, FloatArray], ...]:
 
     assert task_config.model is not None
-    device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
+    device = torch.device("cuda" if task_config.model.cuda else "cpu")
 
     # Train models
     logger = get_logger(__name__)
@@ -447,15 +470,21 @@ def _bayes_approach(
         model.eval()
 
         # Calculate baseline reconstruction
-        reconstruction_path = models_path / f"baseline_recon_{task_config.model.num_latent}_{j}.pt"
+        reconstruction_path = (
+            models_path / f"baseline_recon_{task_config.model.num_latent}_{j}.pt"
+        )
         if reconstruction_path.exists():
-            logger.debug(f"Loading baseline reconstruction from {reconstruction_path}, in the worker function")
+            logger.debug(
+                f"Loading baseline reconstruction from {reconstruction_path}, "
+                "in the worker function"
+            )
             baseline_recon = torch.load(reconstruction_path)
         else:
             _, baseline_recon = model.reconstruct(baseline_dataloader)
-        
-        min_feat, max_feat = np.zeros((num_perturbed, num_continuous)), np.zeros(
-            (num_perturbed, num_continuous)
+
+        min_feat, max_feat = (
+            np.zeros((num_perturbed, num_continuous)),
+            np.zeros((num_perturbed, num_continuous)),
         )
         min_baseline, max_baseline = np.min(baseline_recon, axis=0), np.max(
             baseline_recon, axis=0
@@ -480,7 +509,7 @@ def _bayes_approach(
     bayes_mask = np.zeros(np.shape(bayes_k))
     for i in range(num_perturbed):
         mask = feature_mask[:, [i]] | nan_mask  # 2D: N x C
-        diff = np.ma.masked_array(mean_diff[i, :, :], mask=mask)  # 2D: N x C        
+        diff = np.ma.masked_array(mean_diff[i, :, :], mask=mask)  # 2D: N x C
         prob = np.ma.compressed(np.mean(diff > 1e-8, axis=0))  # 1D: C
         bayes_k[i, :] = np.log(prob + 1e-8) - np.log(1 - prob + 1e-8)
         if task_config.target_value in CONTINUOUS_TARGET_VALUE:
@@ -498,25 +527,24 @@ def _bayes_approach(
     output_path = Path(config.data.results_path) / "identify_associations"
     file_path = output_path / "diff_normal.tsv"
     # Save the data to the TSV fil
-    #logger.debug(f"Saving diff to {file_path}")
-    np.savetxt(file_path, diff, delimiter='\t')
+    # logger.debug(f"Saving diff to {file_path}")
+    np.savetxt(file_path, diff, delimiter="\t")
 
-
-    #data = prob.data  # Extract the data from the masked array
-    #mask = prob.mask  # Extract the mask from the masked array
+    # data = prob.data  # Extract the data from the masked array
+    # mask = prob.mask  # Extract the mask from the masked array
     # Replace masked values with a placeholder (e.g., np.nan)
-    #data[mask] = np.nan
+    # data[mask] = np.nan
     # Define the file path to save the TSV file
     output_path = Path(config.data.results_path) / "identify_associations"
     file_path = output_path / "prob_original_script.tsv"
     # Save the data to the TSV fil
     logger.debug(f"Saving prob to {file_path}")
-    np.savetxt(file_path, prob, delimiter='\t')
+    np.savetxt(file_path, prob, delimiter="\t")
     logger.debug(f"prob is {prob}")
 
     file_path = output_path / "bayes_k_original_all.tsv"
     logger.debug(f"Saving bayes_k (not worker, all) to {file_path}")
-    np.savetxt(file_path, bayes_k, delimiter='\t')
+    np.savetxt(file_path, bayes_k, delimiter="\t")
 
     bayes_mask[bayes_mask != 0] = 1
     bayes_mask = np.array(bayes_mask, dtype=bool)
@@ -525,47 +553,44 @@ def _bayes_approach(
     bayes_abs = np.abs(bayes_k)
     file_path = output_path / "bayes_abs_original.tsv"
     logger.debug(f"Saving bayes_abs to {file_path}")
-    np.savetxt(file_path, bayes_abs, delimiter='\t')
+    np.savetxt(file_path, bayes_abs, delimiter="\t")
 
-
-
-    
     bayes_p = np.exp(bayes_abs) / (1 + np.exp(bayes_abs))  # 2D: N x C
     file_path = output_path / "bayes_p_original.tsv"
     logger.debug(f"Saving bayes_p to {file_path}")
-    np.savetxt(file_path, bayes_p, delimiter='\t')
-    
-    #bayes_abs[bayes_mask] = np.min(
-     #   bayes_abs
-    #)  # Bring feature_i feature_i associations to minimum
+    np.savetxt(file_path, bayes_p, delimiter="\t")
+
+    # bayes_abs[bayes_mask] = np.min(
+    #   bayes_abs
+    # )  # Bring feature_i feature_i associations to minimum
     sort_ids = np.argsort(bayes_abs, axis=None)[::-1]  # 1D: N x C
     file_path = output_path / "sort_ids_original_script.tsv"
     logger.debug(f"Saving sort_ids to {file_path}")
-    np.savetxt(file_path, sort_ids, delimiter='\t')
+    np.savetxt(file_path, sort_ids, delimiter="\t")
     logger.debug(f"sort_ids are {sort_ids}")
-    
+
     prob = np.take(bayes_p, sort_ids)  # 1D: N x C
     file_path = output_path / "prob_original_final.tsv"
     logger.debug(f"Saving prob to {file_path}")
-    np.savetxt(file_path, prob, delimiter='\t')
+    np.savetxt(file_path, prob, delimiter="\t")
     logger.debug(f"Bayes proba range: [{prob[-1]:.3f} {prob[0]:.3f}]")
 
     # Sort Bayes
     bayes_k = np.take(bayes_k, sort_ids)  # 1D: N x C
     file_path = output_path / "sorted_bayes_k_original_script.tsv"
     logger.debug(f"Saving sorted_bayes_k to {file_path}")
-    np.savetxt(file_path, bayes_k, delimiter='\t')
+    np.savetxt(file_path, bayes_k, delimiter="\t")
 
     # Calculate FDR
     fdr = np.cumsum(1 - prob) / np.arange(1, prob.size + 1)  # 1D
     file_path = output_path / "fdr_original_script.tsv"
     logger.debug(f"Saving fdr to {file_path}")
-    np.savetxt(file_path, fdr, delimiter='\t')
+    np.savetxt(file_path, fdr, delimiter="\t")
     idx = np.argmin(np.abs(fdr - task_config.sig_threshold))
     logger.debug(f"Index is {idx}")
-    #file_path = output_path / "idx_original_script.tsv"
-    #logger.debug(f"Saving idx to {file_path}")
-    #np.savetxt(file_path, idx, delimiter='\t')
+    # file_path = output_path / "idx_original_script.tsv"
+    # logger.debug(f"Saving idx to {file_path}")
+    # np.savetxt(file_path, idx, delimiter='\t')
     logger.debug(f"FDR range: [{fdr[0]:.3f} {fdr[-1]:.3f}]")
 
     return sort_ids[:idx], prob[:idx], fdr[:idx], bayes_k[:idx]
@@ -588,7 +613,7 @@ def _ttest_approach(
     from scipy.stats import ttest_rel
 
     assert task_config.model is not None
-    device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
+    device = torch.device("cuda" if task_config.model.cuda else "cpu")
 
     # Train models
     logger = get_logger(__name__)
@@ -690,7 +715,6 @@ def _ks_approach(
     con_names: list[list[str]],
     output_path: Path,
 ) -> tuple[Union[IntArray, FloatArray], ...]:
-
     """
     Find associations between continuous features using Kolmogorov-Smirnov distances.
     When perturbing feature A, this function measures the shift of the reconstructed
@@ -708,19 +732,23 @@ def _ks_approach(
         task_config: IdentifyAssociationsKSConfig configuration.
         train_dataloader: training DataLoader.
         baseline_dataloader: unperturbed DataLoader.
-        dataloaders: list of DataLoaders where DataLoader[i] is obtained by perturbing feature i
-                     in the target dataset.
+        dataloaders: list of DataLoaders where DataLoader[i] is obtained by perturbing
+                     feature i in the target dataset.
         models_path: path to the models.
         num_perturbed: number of perturbed features.
         num_samples: total number of samples
-        num_continuous: number of continuous features (all continuous datasets concatenated).
-        con_names: list of lists where eah inner list contains the feature names of a specific continuous dataset
+        num_continuous: number of continuous features
+                        (all continuous datasets concatenated).
+        con_names: list of lists where eah inner list contains the feature names of a
+                   specific continuous dataset
         output_path: path where QC summary metrics will be saved.
 
     Returns:
-        sort_ids: list with flattened IDs of the associations above the significance threshold.
-        ks_distance: Ordered list with signed KS scores. KS scores quantify the direction and
-                     magnitude of the shift in feature B's reconstruction when perturbing feature A.
+        sort_ids: list with flattened IDs of the associations above the
+                  significance threshold.
+        ks_distance: Ordered list with signed KS scores. KS scores quantify the
+                    direction and magnitude of the shift in feature B's reconstruction
+                    when perturbing feature A.
 
 
     !!! Note !!!:
@@ -733,7 +761,7 @@ def _ks_approach(
     """
 
     assert task_config.model is not None
-    device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
+    device = torch.device("cuda" if task_config.model.cuda else "cpu")
     figure_path = output_path / "figures"
     figure_path.mkdir(exist_ok=True, parents=True)
 
@@ -755,9 +783,7 @@ def _ks_approach(
     logger = get_logger(__name__)
     logger.info("Training models")
 
-    target_dataset_idx = config.data.continuous_names.index(
-        task_config.target_dataset
-    )
+    target_dataset_idx = config.data.continuous_names.index(task_config.target_dataset)
     perturbed_names = con_names[target_dataset_idx]
 
     for j in range(task_config.num_refits):  # Train num_refits models
@@ -796,7 +822,7 @@ def _ks_approach(
         min_baseline = np.min(baseline_recon, axis=0)
         max_baseline = np.max(baseline_recon, axis=0)
 
-        ############ QC of feature's reconstruction ##############################
+        ############ QC of feature's reconstruction ###########################
         logger.debug("Calculating quality control of the feature reconstructions")
         # Correlation and slope for each feature's reconstruction
         feature_names = reduce(list.__add__, con_names)
@@ -821,7 +847,7 @@ def _ks_approach(
                     dpi=50,
                 )
 
-        ################## Calculate perturbed reconstruction and shifts #############################
+        ################## Calculate perturbed reconstruction and shifts #########
         logger.debug("Computing KS scores")
 
         # Save original latent space for first refit:
@@ -871,11 +897,13 @@ def _ks_approach(
                         edges,
                         hist_base,
                         hist_pert,
-                        f"Cumulative_perturbed_{i}_measuring_{k}_stats_{stats[j,i,k]}",
+                        f"Cumulative_perturbed_{i}_measuring_{k}_"
+                        f"stats_{stats[j, i, k]}",
                     )
                     fig.savefig(
                         figure_path
-                        / f"Cumulative_refit_{j}_perturbed_{i}_measuring_{k}_stats_{stats[j,i,k]}.png"
+                        / f"Cumulative_refit_{j}_perturbed_{i}_measuring_{k}"
+                        f"_stats_{stats[j, i, k]}.png"
                     )
 
                     # Feature changes:
@@ -901,7 +929,9 @@ def _ks_approach(
 
     # Take the median of KS values (with sign) over refits.
     final_stats = np.nanmedian(stats * stat_signs, axis=0)
-    final_stats[ks_mask] = 0.0 # Zero all masked values, placing them at end of the ranking
+    final_stats[ks_mask] = (
+        0.0  # Zero all masked values, placing them at end of the ranking
+    )
 
     # KS-threshold:
     ks_thr = np.sqrt(-np.log(task_config.sig_threshold / 2) * 1 / (num_samples))
@@ -911,7 +941,8 @@ def _ks_approach(
     sort_ids = np.argsort(abs(final_stats), axis=None)[::-1]  # 1D: N x C
     ks_distance = np.take(final_stats, sort_ids)  # 1D: N x C
 
-    # Writing Quality control csv file. Mean slope and correlation over refits as qc metrics.
+    # Writing Quality control csv file. Mean slope and correlation over refits
+    # as qc metrics.
     logger.info("Writing QC file")
     qc_df = pd.DataFrame({"Feature names": feature_names})
     qc_df["slope"] = np.nanmean(slope, axis=0)
@@ -1059,18 +1090,26 @@ def identify_associations(config: MOVEConfig) -> None:
         logger.info(f"Perturbation type: {task_config.target_value}")
         output_subpath = Path(output_path) / "perturbation_visualization"
         output_subpath.mkdir(exist_ok=True, parents=True)
-        (dataloaders, nan_mask, feature_mask,) = prepare_for_continuous_perturbation(
+        (
+            dataloaders,
+            nan_mask,
+            feature_mask,
+        ) = prepare_for_continuous_perturbation(
             config, output_subpath, baseline_dataloader
         )
 
     # Identify associations between categorical and continuous features:
     else:
         logger.info("Beginning task: identify associations categorical")
-        (dataloaders, nan_mask, feature_mask,) = prepare_for_categorical_perturbation(
+        (
+            dataloaders,
+            nan_mask,
+            feature_mask,
+        ) = prepare_for_categorical_perturbation(
             config, interim_path, baseline_dataloader, cat_list
         )
 
-    num_perturbed = 5 #len(dataloaders) - 1  # P
+    num_perturbed = 5  # len(dataloaders) - 1  # P
     logger.debug(f"# perturbed features: {num_perturbed}")
 
     ################# APPROACH EVALUATION ##########################
@@ -1149,6 +1188,4 @@ def identify_associations(config: MOVEConfig) -> None:
             output_path / f"results_sig_assoc_{task_type}.tsv", sep="\t"
         )
         plot_feature_association_graph(association_df, output_path)
-        plot_feature_association_graph(
-            association_df, output_path, layout="spring"
-        )
+        plot_feature_association_graph(association_df, output_path, layout="spring")

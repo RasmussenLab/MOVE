@@ -63,8 +63,8 @@ def main(config: MOVEConfig) -> None:
             move.tasks.identify_associations_efficient(config)
         else:
             move.tasks.identify_associations(config)
-        #What we had before
-        #move.tasks.identify_associations(config)
+        # What we had before
+        # move.tasks.identify_associations(config)
     else:
         raise ValueError("Unsupported type of task.")
 

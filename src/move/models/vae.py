@@ -307,7 +307,10 @@ class VAE(nn.Module):
         return cat_errors
 
     def calculate_con_error(
-        self, con_in: torch.Tensor, con_out: torch.Tensor, loss: Callable[[torch.Tensor, torch.Tensor], torch.Tensor]
+        self,
+        con_in: torch.Tensor,
+        con_out: torch.Tensor,
+        loss: Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
     ) -> torch.Tensor:
         """
         Calculates errors (MSE) for continuous data reconstructions
@@ -542,9 +545,9 @@ class VAE(nn.Module):
             cat_target_tmp = cat_in_tmp
             cat_target_tmp = torch.argmax(cat_target_tmp.detach(), dim=2)
             cat_target_tmp[cat_in_tmp.sum(dim=2) == 0] = -1
-            cat_target[
-                :, shape_1 : (cat_shape[0] + shape_1)
-            ] = cat_target_tmp  # .numpy()
+            cat_target[:, shape_1 : (cat_shape[0] + shape_1)] = (
+                cat_target_tmp  # .numpy()
+            )
 
             # Get reconstructed categorical data
             cat_out_tmp = cat_out[count]
@@ -679,7 +682,7 @@ class VAE(nn.Module):
         )
 
         row = 0
-        for (cat, con) in dataloader:
+        for cat, con in dataloader:
             cat = cat.to(self.device)
             con = con.to(self.device)
 

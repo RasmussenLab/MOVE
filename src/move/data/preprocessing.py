@@ -74,8 +74,8 @@ def scale(x: np.ndarray) -> tuple[FloatArray, BoolArray]:
         Tuple containing (1) scaled output and (2) a 1D mask marking columns
         (i.e., features) without zero variance
     """
-    #CHANGES: Allow for negative values, so only standardization
-    #logx = np.log2(x + 1)
+    # CHANGES: Allow for negative values, so only standardization
+    # logx = np.log2(x + 1)
     logx = x
     mask_1d = ~np.isclose(np.nanstd(logx, axis=0), 0.0)
     scaled_x = standardize(logx[:, mask_1d], axis=0)

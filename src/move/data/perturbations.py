@@ -1,4 +1,9 @@
-__all__ = ["perturb_categorical_data", "perturb_continuous_data", "perturb_continuous_data_extended_one", "perturb_continuous_data_extended"]
+__all__ = [
+    "perturb_categorical_data",
+    "perturb_continuous_data",
+    "perturb_continuous_data_extended_one",
+    "perturb_continuous_data_extended",
+]
 
 from pathlib import Path
 from typing import Literal, Optional, cast
@@ -7,20 +12,21 @@ import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
+from move.core.logging import get_logger
 from move.data.dataloaders import MOVEDataset
 from move.data.preprocessing import feature_stats
 from move.visualization.dataset_distributions import plot_value_distributions
 
-
 ContinuousPerturbationType = Literal["minimum", "maximum", "plus_std", "minus_std"]
+
 
 def perturb_continuous_data_one(
     baseline_dataloader: DataLoader,
     con_dataset_names: list[str],
     target_dataset_name: str,
     target_value: float,
-    index_pert_feat: int, # Index of the datasetto perturb
-) -> DataLoader: # change list(DataLoader) to just one DataLoader
+    index_pert_feat: int,  # Index of the datasetto perturb
+) -> DataLoader:  # change list(DataLoader) to just one DataLoader
     """Add perturbations to continuous data. For each feature in the target
     dataset, change its value to target.
 
@@ -43,10 +49,10 @@ def perturb_continuous_data_one(
     slice_ = slice(*splits[target_idx : target_idx + 2])
 
     num_features = baseline_dataset.con_shapes[target_idx]
-    #dataloaders = []
+    # dataloaders = []
     i = index_pert_feat
-    # Instead of the loop, we do it only for one 
-    #for i in range(num_features):
+    # Instead of the loop, we do it only for one
+    # for i in range(num_features):
     perturbed_con = baseline_dataset.con_all.clone()
     target_dataset = perturbed_con[:, slice_]
     target_dataset[:, i] = torch.FloatTensor([target_value])
@@ -63,8 +69,6 @@ def perturb_continuous_data_one(
     )
 
     return perturbed_dataloader
-
-
 
 
 def perturb_categorical_data_one(
@@ -98,11 +102,11 @@ def perturb_categorical_data_one(
     slice_ = slice(*splits[target_idx : target_idx + 2])
 
     target_shape = baseline_dataset.cat_shapes[target_idx]
-    num_features = target_shape[0] 
+    num_features = target_shape[0]
 
     i = index_pert_feat
-    #dataloaders = []
-    #for i in range(num_features):
+    # dataloaders = []
+    # for i in range(num_features):
     perturbed_cat = baseline_dataset.cat_all.clone()
     target_dataset = perturbed_cat[:, slice_].view(
         baseline_dataset.num_samples, *target_shape
@@ -123,7 +127,7 @@ def perturb_categorical_data_one(
     return perturbed_dataloader
 
 
-def perturb_continuous_data_extended_one( # We will keep the input almost the same, to make everything easier
+def perturb_continuous_data_extended_one(  # We will keep the input almost the same, to make everything easier
     # However, I have to introduce a variable that allows me to index the specific dataloader I want to create (index_pert_feat)
     # And I eliminate the output directory, an image is not generated now (too many features)
     baseline_dataloader: DataLoader,
@@ -131,7 +135,9 @@ def perturb_continuous_data_extended_one( # We will keep the input almost the sa
     target_dataset_name: str,
     perturbation_type: ContinuousPerturbationType,
     index_pert_feat: int,
-) -> DataLoader: # But we change the output from list[DataLoader] to just one DataLoader
+) -> (
+    DataLoader
+):  # But we change the output from list[DataLoader] to just one DataLoader
     logger = get_logger(__name__)
     """Add perturbations to continuous data. For each feature in the target
     dataset, change the feature's value in all samples (in rows):
@@ -154,8 +160,10 @@ def perturb_continuous_data_extended_one( # We will keep the input almost the sa
         datasets. Scaling is done per dataset, not per feature -> slightly different stds
         feature to feature.
     """
-    logger.debug(f"Inside perturb_continuous_data_extended_one for feature {index_pert_feat}")
-    
+    logger.debug(
+        f"Inside perturb_continuous_data_extended_one for feature {index_pert_feat}"
+    )
+
     baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
     assert baseline_dataset.con_shapes is not None
     assert baseline_dataset.con_all is not None
@@ -165,33 +173,45 @@ def perturb_continuous_data_extended_one( # We will keep the input almost the sa
     slice_ = slice(*splits[target_idx : target_idx + 2])
 
     # Use it only if we want to perturb all features in the target dataset
-    num_features = baseline_dataset.con_shapes[target_idx] 
+    num_features = baseline_dataset.con_shapes[target_idx]
 
-    # Now, instead of the for loop that iterates over all the features we want to perturb, we do it only for one feature, the one 
+    # Now, instead of the for loop that iterates over all the features we want to perturb, we do it only for one feature, the one
     # indicated in index_pert_feat
     logger.debug(f"Setting up perturbed_con for feature {index_pert_feat}")
 
     perturbed_con = baseline_dataset.con_all.clone()
     target_dataset = perturbed_con[:, slice_]
 
-    logger.debug(f"Changing to desired perturbation value for feature {index_pert_feat}")
+    logger.debug(
+        f"Changing to desired perturbation value for feature {index_pert_feat}"
+    )
     # Change the desired feature value by:
     min_feat_val_list, max_feat_val_list, std_feat_val_list = feature_stats(
         target_dataset
     )
     if perturbation_type == "minimum":
-        target_dataset[:, index_pert_feat] = torch.FloatTensor([min_feat_val_list[index_pert_feat]])
+        target_dataset[:, index_pert_feat] = torch.FloatTensor(
+            [min_feat_val_list[index_pert_feat]]
+        )
     elif perturbation_type == "maximum":
-        target_dataset[:, index_pert_feat] = torch.FloatTensor([max_feat_val_list[index_pert_feat]])
+        target_dataset[:, index_pert_feat] = torch.FloatTensor(
+            [max_feat_val_list[index_pert_feat]]
+        )
     elif perturbation_type == "plus_std":
-        target_dataset[:, index_pert_feat] += torch.FloatTensor([std_feat_val_list[index_pert_feat]])
+        target_dataset[:, index_pert_feat] += torch.FloatTensor(
+            [std_feat_val_list[index_pert_feat]]
+        )
     elif perturbation_type == "minus_std":
-        target_dataset[:, index_pert_feat] -= torch.FloatTensor([std_feat_val_list[index_pert_feat]])
+        target_dataset[:, index_pert_feat] -= torch.FloatTensor(
+            [std_feat_val_list[index_pert_feat]]
+        )
     logger.debug(f"Perturbation succesful for feature {index_pert_feat}")
     # We used this for a plot, so no need to create it now
     # perturbations_list.append(target_dataset[:, i].numpy())
 
-    logger.debug(f"Creating perturbed dataset and dataloader for feature {index_pert_feat}")
+    logger.debug(
+        f"Creating perturbed dataset and dataloader for feature {index_pert_feat}"
+    )
 
     perturbed_dataset = MOVEDataset(
         baseline_dataset.cat_all,
@@ -205,12 +225,13 @@ def perturb_continuous_data_extended_one( # We will keep the input almost the sa
         shuffle=False,
         batch_size=baseline_dataloader.batch_size,
     )
-    #dataloaders.append(perturbed_dataloader)
+    # dataloaders.append(perturbed_dataloader)
 
-    logger.debug(f"Finished perturb_continuous_data_extended_one for feature {index_pert_feat}")
+    logger.debug(
+        f"Finished perturb_continuous_data_extended_one for feature {index_pert_feat}"
+    )
 
     return perturbed_dataloader
-
 
 
 def perturb_categorical_data(
@@ -243,7 +264,7 @@ def perturb_categorical_data(
     slice_ = slice(*splits[target_idx : target_idx + 2])
 
     target_shape = baseline_dataset.cat_shapes[target_idx]
-    num_features = target_shape[0] 
+    num_features = target_shape[0]
 
     dataloaders = []
     for i in range(num_features):
@@ -316,7 +337,6 @@ def perturb_continuous_data(
 
     return dataloaders
 
-from move.core.logging import get_logger
 
 def perturb_continuous_data_extended(
     baseline_dataloader: DataLoader,
@@ -381,7 +401,7 @@ def perturb_continuous_data_extended(
         elif perturbation_type == "minus_std":
             target_dataset[:, i] -= torch.FloatTensor([std_feat_val_list[i]])
 
-        #perturbations_list.append(target_dataset[:, i].numpy())
+        # perturbations_list.append(target_dataset[:, i].numpy())
 
         perturbed_dataset = MOVEDataset(
             baseline_dataset.cat_all,
@@ -399,11 +419,11 @@ def perturb_continuous_data_extended(
     logger.debug("Finished perturb_continuous_data_extended function")
 
     # Plot the perturbations for all features, collapsed in one plot:
-    #if output_subpath is not None:
-     #   fig = plot_value_distributions(np.array(perturbations_list).transpose())
-      #  fig_path = str(
-       #     output_subpath / f"perturbation_distribution_{target_dataset_name}.png"
-        #)
-        #fig.savefig(fig_path)
+    # if output_subpath is not None:
+    #   fig = plot_value_distributions(np.array(perturbations_list).transpose())
+    #  fig_path = str(
+    #     output_subpath / f"perturbation_distribution_{target_dataset_name}.png"
+    # )
+    # fig.savefig(fig_path)
 
     return dataloaders

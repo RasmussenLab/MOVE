@@ -34,16 +34,16 @@ from move.training.training_loop import TrainingLoopOutput
 from torch.utils.data import DataLoader
 
 
-
 # Define perturb_continuous_data_one (not extended)
+
 
 def perturb_continuous_data_one(
     baseline_dataloader: DataLoader,
     con_dataset_names: list[str],
     target_dataset_name: str,
     target_value: float,
-    index_pert_feat: int, # Index of the datasetto perturb
-) -> DataLoader: # change list(DataLoader) to just one DataLoader
+    index_pert_feat: int,  # Index of the datasetto perturb
+) -> DataLoader:  # change list(DataLoader) to just one DataLoader
     """Add perturbations to continuous data. For each feature in the target
     dataset, change its value to target.
 
@@ -66,10 +66,10 @@ def perturb_continuous_data_one(
     slice_ = slice(*splits[target_idx : target_idx + 2])
 
     num_features = baseline_dataset.con_shapes[target_idx]
-    #dataloaders = []
+    # dataloaders = []
     i = index_pert_feat
-    # Instead of the loop, we do it only for one 
-    #for i in range(num_features):
+    # Instead of the loop, we do it only for one
+    # for i in range(num_features):
     perturbed_con = baseline_dataset.con_all.clone()
     target_dataset = perturbed_con[:, slice_]
     target_dataset[:, i] = torch.FloatTensor([target_value])
@@ -86,8 +86,6 @@ def perturb_continuous_data_one(
     )
 
     return perturbed_dataloader
-
-
 
 
 def perturb_categorical_data_one(
@@ -121,11 +119,11 @@ def perturb_categorical_data_one(
     slice_ = slice(*splits[target_idx : target_idx + 2])
 
     target_shape = baseline_dataset.cat_shapes[target_idx]
-    #num_features = target_shape[0]  # CHANGE
+    # num_features = target_shape[0]  # CHANGE
 
     i = index_pert_feat
-    #dataloaders = []
-    #for i in range(num_features):
+    # dataloaders = []
+    # for i in range(num_features):
     perturbed_cat = baseline_dataset.cat_all.clone()
     target_dataset = perturbed_cat[:, slice_].view(
         baseline_dataset.num_samples, *target_shape
@@ -144,7 +142,6 @@ def perturb_categorical_data_one(
     )
 
     return perturbed_dataloader
-
 
 
 def find_feature_values(
@@ -349,12 +346,11 @@ def analyze_latent(config: MOVEConfig) -> None:
     logger.info("Computing feature importance")
     num_samples = len(cast(Sized, test_dataloader.sampler))
 
-
     # START WITH IMPORTANCE FOR CATEGORICAL FEATURES. MADE CHANGES HERE
     for i, dataset_name in enumerate(config.data.categorical_names):
         logger.debug(f"Generating plot: feature importance '{dataset_name}'")
         na_value = one_hot_encode_single(mappings[dataset_name], None)
-        cat_dataset_names=config.data.categorical_names
+        cat_dataset_names = config.data.categorical_names
         target_idx = cat_dataset_names.index(dataset_name)
         target_shape = test_dataset.cat_shapes[target_idx]
         num_features = target_shape[0]  # Number of features in the current dataset
@@ -363,20 +359,24 @@ def analyze_latent(config: MOVEConfig) -> None:
         # We create one diff per dataset, to not store all of them in memory
         z = model.project(test_dataloader)
         diffs = np.empty((num_samples, num_features))
-        
-        j= 0 # Index to keep count of the perturbed feature we are in
+
+        j = 0  # Index to keep count of the perturbed feature we are in
 
         for index_pert_feat in range(num_features):
             dataloader = perturb_categorical_data_one(
-            test_dataloader, config.data.categorical_names, dataset_name, na_value, index_pert_feat,
+                test_dataloader,
+                config.data.categorical_names,
+                dataset_name,
+                na_value,
+                index_pert_feat,
             )
             # We calculate the difference for each of the perturbed features, and store it in an object
 
             z_perturb = model.project(dataloader)
             diffs[:, j] = np.sum(z_perturb - z, axis=1)
 
-            j = j+1 #Increase j for the next iteration
-        
+            j = j + 1  # Increase j for the next iteration
+
         feature_mapping = {
             str(code): category for category, code in mappings[dataset_name].items()
         }
@@ -388,20 +388,19 @@ def analyze_latent(config: MOVEConfig) -> None:
         fig_df = pd.DataFrame(diffs, columns=cat_names[i], index=df_index)
         fig_df.to_csv(output_path / f"feat_importance_{dataset_name}.tsv", sep="\t")
 
-  
-    # NOW, THE SAME BUT FOR CONTINUOUS DATA 
+    # NOW, THE SAME BUT FOR CONTINUOUS DATA
 
     for i, dataset_name in enumerate(config.data.continuous_names):
         logger.debug(f"Generating plot: feature importance '{dataset_name}'")
         # NOT SURE IF IT WORKS THE SAME FOR CONTINUOUS FEATURES, CHECK THIS
         # I did sth that did not work, I'll try again now.
-        con_dataset_names=config.data.continuous_names
+        con_dataset_names = config.data.continuous_names
         target_idx = con_dataset_names.index(dataset_name)
-        #num_features = target_shape[0] 
+        # num_features = target_shape[0]
 
         num_features = test_dataset.con_shapes[target_idx]
 
-        #num_features = len(dataloaders)
+        # num_features = len(dataloaders)
 
         # We will use this inside the loop that iterates over all features:
         # We create one diff per dataset, to not store all of them in memory
@@ -412,16 +411,18 @@ def analyze_latent(config: MOVEConfig) -> None:
 
         for index_pert_feat in range(num_features):
             dataloader = perturb_continuous_data_one(
-                test_dataloader, config.data.continuous_names, dataset_name, 0.0, index_pert_feat,
+                test_dataloader,
+                config.data.continuous_names,
+                dataset_name,
+                0.0,
+                index_pert_feat,
             )
-        
+
             z_perturb = model.project(dataloader)
             diffs[:, j] = np.sum(z_perturb - z, axis=1)
 
-            j = j+1
-        
+            j = j + 1
 
-        
         fig = viz.plot_continuous_feature_importance(diffs, con_list[i], con_names[i])
         fig_path = str(output_path / f"feat_importance_{dataset_name}.png")
         fig.savefig(fig_path, bbox_inches="tight")

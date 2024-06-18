@@ -1,0 +1,19 @@
+defaults:
+  - identify_associations_bayes
+
+batch_size: 10
+
+num_refits: 40
+
+target_dataset: random.small.drugs
+target_value: 1
+save_refits: True
+
+model:
+  num_hidden:
+    - 1000
+  num_latent: 150
+
+training_loop:
+  lr: 1e-4
+  num_epochs: 40

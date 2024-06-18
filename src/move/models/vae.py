@@ -1,7 +1,7 @@
 __all__ = ["VAE"]
 
 import logging
-from typing import Optional, Callable
+from typing import Callable, Optional
 
 import torch
 from torch import nn, optim
@@ -43,7 +43,7 @@ class VAE(nn.Module):
         continuous_shapes: Optional[list[int]] = None,
         categorical_weights: Optional[list[int]] = None,
         continuous_weights: Optional[list[int]] = None,
-        num_hidden: list[int] = [200, 200],
+        num_hidden: list[int] = (200, 200),
         num_latent: int = 20,
         beta: float = 0.01,
         dropout: float = 0.2,
@@ -99,11 +99,11 @@ class VAE(nn.Module):
 
         # Initialize simple attributes
         self.beta = beta
-        self.num_hidden = num_hidden
+        self.num_hidden = list(num_hidden)
         self.num_latent = num_latent
         self.dropout = dropout
 
-        self.device = torch.device("cuda" if cuda == True else "cpu")
+        self.device = torch.device("cuda" if cuda else "cpu")
 
         # Activation functions
         self.relu = nn.LeakyReLU()
@@ -116,7 +116,7 @@ class VAE(nn.Module):
         self.decoderlayers = nn.ModuleList()
         self.decodernorms = nn.ModuleList()
 
-        ### Layers
+        # Layers
         # Hidden layers
         for nin, nout in zip([self.input_size] + self.num_hidden, self.num_hidden):
             self.encoderlayers.append(nn.Linear(nin, nout))
@@ -451,7 +451,9 @@ class VAE(nn.Module):
             elif self.num_continuous > 0:
                 tensor = con
             else:
-                assert False, "Must have at least 1 categorial or 1 continuous feature"
+                raise ValueError(
+                    "Must have at least 1 categorial or 1 continuous feature"
+                )
 
             optimizer.zero_grad()
 
@@ -694,7 +696,9 @@ class VAE(nn.Module):
             elif self.num_continuous > 0:
                 tensor = con
             else:
-                assert False, "Must have at least 1 categorial or 1 continuous feature"
+                raise ValueError(
+                    "Must have at least 1 categorial or 1 continuous feature"
+                )
 
             # Evaluate
             cat_out, con_out, mu, logvar = self(tensor)
@@ -728,8 +732,9 @@ class VAE(nn.Module):
 
         latent = latent.numpy()
         latent_var = latent_var.numpy()
-        cat_recon = cat_recon.numpy()
-        cat_class = cat_class.numpy()
+        if cat_recon is not None:
+            cat_recon = cat_recon.numpy()
+            cat_class = cat_class.numpy()
         con_recon = con_recon.numpy()
 
         assert row == num_samples

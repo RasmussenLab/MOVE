@@ -19,7 +19,7 @@ from move.visualization.dataset_distributions import plot_value_distributions
 
 ContinuousPerturbationType = Literal["minimum", "maximum", "plus_std", "minus_std"]
 
-
+# Also in analyze_latent.py
 def perturb_continuous_data_one(
     baseline_dataloader: DataLoader,
     con_dataset_names: list[str],
@@ -345,12 +345,10 @@ def perturb_continuous_data_extended(
     perturbation_type: ContinuousPerturbationType,
     output_subpath: Optional[Path] = None,
 ) -> list[DataLoader]:
-    logger = get_logger(__name__)
-
     """Add perturbations to continuous data. For each feature in the target
     dataset, change the feature's value in all samples (in rows):
-    1,2) substituting this feature in all samples by the feature's minimum/maximum value.
-    3,4) Adding/Substracting one standard deviation to the sample's feature value.
+    1,2) substituting this feature in all samples by the feature's minimum/maximum value
+    3,4) Adding/Substracting one standard deviation to the sample's feature value
 
     Args:
         baseline_dataloader: Baseline dataloader
@@ -369,6 +367,7 @@ def perturb_continuous_data_extended(
         datasets. Scaling is done per dataset, not per feature -> slightly different stds
         feature to feature.
     """
+    logger = get_logger(__name__)
     logger.debug("Inside perturb_extended, creating baseline dataset")
     baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
     assert baseline_dataset.con_shapes is not None
@@ -380,7 +379,6 @@ def perturb_continuous_data_extended(
     slice_ = slice(*splits[target_idx : target_idx + 2])
 
     num_features = baseline_dataset.con_shapes[target_idx]
-    logger.debug(f"number of feature to perturb is {num_features}")
     dataloaders = []
     perturbations_list = []
 
@@ -425,5 +423,13 @@ def perturb_continuous_data_extended(
     #     output_subpath / f"perturbation_distribution_{target_dataset_name}.png"
     # )
     # fig.savefig(fig_path)
+
+    # Plot the perturbations for all features, collapsed in one plot:
+    if output_subpath is not None:
+        fig = plot_value_distributions(np.array(perturbations_list).transpose())
+        fig_path = str(
+            output_subpath / f"perturbation_distribution_{target_dataset_name}.png"
+        )
+        fig.savefig(fig_path)
 
     return dataloaders

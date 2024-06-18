@@ -25,11 +25,12 @@ from move.core.logging import get_logger
 from move.core.typing import BoolArray, FloatArray, IntArray
 from move.data import io
 from move.data.dataloaders import MOVEDataset, make_dataloader
-from move.data.perturbations import (  # perturb_continuous_data_extended,
+from move.data.preprocessing import feature_stats, one_hot_encode_single
+from move.data.perturbations import (
     ContinuousPerturbationType,
     perturb_categorical_data,
+    perturb_continuous_data_extended,
 )
-from move.data.preprocessing import feature_stats, one_hot_encode_single
 from move.models.vae import VAE
 from move.visualization.dataset_distributions import (
     plot_correlations,
@@ -739,13 +740,13 @@ def _ks_approach(
         num_samples: total number of samples
         num_continuous: number of continuous features
                         (all continuous datasets concatenated).
-        con_names: list of lists where eah inner list contains the feature names of a
-                   specific continuous dataset
+        con_names: list of lists where eah inner list
+                   contains the feature names of a specific continuous dataset
         output_path: path where QC summary metrics will be saved.
 
     Returns:
-        sort_ids: list with flattened IDs of the associations above the
-                  significance threshold.
+        sort_ids: list with flattened IDs of the associations
+                  above the significance threshold.
         ks_distance: Ordered list with signed KS scores. KS scores quantify the
                     direction and magnitude of the shift in feature B's reconstruction
                     when perturbing feature A.
@@ -754,8 +755,8 @@ def _ks_approach(
     !!! Note !!!:
 
     The sign of the KS score can be misleading: negative sign means positive shift.
-    since the cumulative distribution starts growing later and is found below the reference
-    (baseline). Hence:
+    since the cumulative distribution starts growing later and is found below
+    the reference (baseline). Hence:
     a) with plus_std, negative sign means a positive correlation.
     b) with minus_std, negative sign means a negative correlation.
     """
@@ -822,7 +823,7 @@ def _ks_approach(
         min_baseline = np.min(baseline_recon, axis=0)
         max_baseline = np.max(baseline_recon, axis=0)
 
-        ############ QC of feature's reconstruction ###########################
+        # QC of feature's reconstruction ##############################
         logger.debug("Calculating quality control of the feature reconstructions")
         # Correlation and slope for each feature's reconstruction
         feature_names = reduce(list.__add__, con_names)
@@ -847,7 +848,7 @@ def _ks_approach(
                     dpi=50,
                 )
 
-        ################## Calculate perturbed reconstruction and shifts #########
+        # Calculate perturbed reconstruction and shifts #############################
         logger.debug("Computing KS scores")
 
         # Save original latent space for first refit:
@@ -897,13 +898,15 @@ def _ks_approach(
                         edges,
                         hist_base,
                         hist_pert,
-                        f"Cumulative_perturbed_{i}_measuring_{k}_"
-                        f"stats_{stats[j, i, k]}",
+                        title=f"Cumulative_perturbed_{i}_measuring_"
+                        f"{k}_stats_{stats[j, i, k]}",
                     )
                     fig.savefig(
                         figure_path
-                        / f"Cumulative_refit_{j}_perturbed_{i}_measuring_{k}"
-                        f"_stats_{stats[j, i, k]}.png"
+                        / (
+                            f"Cumulative_refit_{j}_perturbed_{i}_"
+                            f"measuring_{k}_stats_{stats[j, i, k]}.png"
+                        )
                     )
 
                     # Feature changes:
@@ -941,13 +944,13 @@ def _ks_approach(
     sort_ids = np.argsort(abs(final_stats), axis=None)[::-1]  # 1D: N x C
     ks_distance = np.take(final_stats, sort_ids)  # 1D: N x C
 
-    # Writing Quality control csv file. Mean slope and correlation over refits
-    # as qc metrics.
+    # Writing Quality control csv file.
+    # Mean slope and correlation over refits as qc metrics.
     logger.info("Writing QC file")
     qc_df = pd.DataFrame({"Feature names": feature_names})
     qc_df["slope"] = np.nanmean(slope, axis=0)
     qc_df["reconstruction_correlation"] = np.nanmean(rec_corr, axis=0)
-    qc_df.to_csv(output_path / f"QC_summary_KS.tsv", sep="\t", index=False)
+    qc_df.to_csv(output_path / "QC_summary_KS.tsv", sep="\t", index=False)
 
     # Return first idx associations: redefined for reasonable threshold
 
@@ -1040,8 +1043,8 @@ def identify_associations(config: MOVEConfig) -> None:
         2) Evaluate associations using bayes or ttest approach.
         3) Save results.
     """
-    #################### DATA PREPARATION ######################
-    ####### Read original data and create perturbed datasets####
+    # DATA PREPARATION ######################
+    # Read original data and create perturbed datasets####
 
     logger = get_logger(__name__)
     task_config = cast(IdentifyAssociationsConfig, config.task)
@@ -1109,10 +1112,9 @@ def identify_associations(config: MOVEConfig) -> None:
             config, interim_path, baseline_dataloader, cat_list
         )
 
-    num_perturbed = 5  # len(dataloaders) - 1  # P
-    logger.debug(f"# perturbed features: {num_perturbed}")
-
-    ################# APPROACH EVALUATION ##########################
+    # APPROACH EVALUATION ##########################
+    num_perturbed = len(dataloaders) - 1  # P
+    logger.debug(f"# perturbed features: {num_perturbed}")  
 
     if task_type == "bayes":
         task_config = cast(IdentifyAssociationsBayesConfig, task_config)
@@ -1171,7 +1173,7 @@ def identify_associations(config: MOVEConfig) -> None:
     else:
         raise ValueError()
 
-    ###################### RESULTS ################################
+    # RESULTS ################################
     save_results(
         config,
         con_shapes,
@@ -1187,5 +1189,5 @@ def identify_associations(config: MOVEConfig) -> None:
         association_df = pd.read_csv(
             output_path / f"results_sig_assoc_{task_type}.tsv", sep="\t"
         )
-        plot_feature_association_graph(association_df, output_path)
-        plot_feature_association_graph(association_df, output_path, layout="spring")
+        _ = plot_feature_association_graph(association_df, output_path)
+        _ = plot_feature_association_graph(association_df, output_path, layout="spring")

@@ -32,6 +32,7 @@ def encode_data(config: DataConfig):
 
     mappings = {}
     for dataset_name in config.categorical_names:
+        # ! the string representation seems to be the variable value (here a string)
         logger.info(f"Encoding '{dataset_name}'")
         filepath = raw_data_path / f"{dataset_name}.tsv"
         names, values = io.read_tsv(filepath, sample_names)
@@ -42,12 +43,16 @@ def encode_data(config: DataConfig):
     if mappings:
         io.dump_mappings(interim_data_path / "mappings.json", mappings)
 
-    for dataset_name in config.continuous_names:
-        logger.info(f"Encoding '{dataset_name}'")
+    for input_config in config.continuous_inputs:
+        scale = not hasattr(input_config, "scale") or input_config.scale
+        action_name = "Encoding" if scale else "Reading"
+        dataset_name = input_config.name
+        logger.info(f"{action_name} '{dataset_name}'")
         filepath = raw_data_path / f"{dataset_name}.tsv"
         names, values = io.read_tsv(filepath, sample_names)
 
-        # Plotting the value distribution for all continuous datasets before preprocessing:
+        # Plotting the value distribution for all continuous datasets
+        # before preprocessing:
         fig = plot_value_distributions(values)
         fig_path = str(
             output_path / "Value_distribution_{}_unprocessed.png".format(dataset_name)
@@ -64,3 +69,10 @@ def encode_data(config: DataConfig):
         fig = plot_value_distributions(values)
         fig_path = str(output_path / f"Value_distribution_{dataset_name}.png")
         fig.savefig(fig_path)
+
+        if scale:
+            values, mask_1d = preprocessing.scale(values)
+            names = names[mask_1d]
+            logger.debug(f"Columns with zero variance: {np.sum(~mask_1d)}")
+        io.dump_names(interim_data_path / f"{input_config.name}.txt", names)
+        np.save(interim_data_path / f"{input_config.name}.npy", values)

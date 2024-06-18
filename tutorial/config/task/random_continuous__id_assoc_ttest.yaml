@@ -1,0 +1,24 @@
+defaults:
+  - identify_associations_ttest
+
+batch_size: 10
+
+num_refits: 10
+
+target_dataset: random.continuous.proteomics
+target_value: plus_std
+save_refits: True
+
+num_latent:
+  - 30
+  - 40
+  - 50
+  - 60
+
+model:
+  num_hidden:
+    - 100
+
+training_loop:
+  lr: 1e-4
+  num_epochs: 200

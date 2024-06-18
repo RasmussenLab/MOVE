@@ -10,11 +10,10 @@ from matplotlib.cm import ScalarMappable
 from matplotlib.colors import TwoSlopeNorm
 
 from move.core.typing import FloatArray
-from move.visualization.style import (
+from move.visualization.style import (  # color_cycle,
     DEFAULT_DIVERGING_PALETTE,
     DEFAULT_PLOT_STYLE,
     DEFAULT_QUALITATIVE_PALETTE,
-    color_cycle,
     style_settings,
 )
 

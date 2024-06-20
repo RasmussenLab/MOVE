@@ -28,10 +28,6 @@ class InputConfig:
     name: str
     weight: int = 1
 
-@dataclass
-class ContinuousInputConfig(InputConfig):
-    scale: bool = True
-
 
 @dataclass
 class ContinuousInputConfig(InputConfig):

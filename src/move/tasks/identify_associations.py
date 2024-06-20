@@ -1114,7 +1114,7 @@ def identify_associations(config: MOVEConfig) -> None:
 
     # APPROACH EVALUATION ##########################
     num_perturbed = len(dataloaders) - 1  # P
-    logger.debug(f"# perturbed features: {num_perturbed}")  
+    logger.debug(f"# perturbed features: {num_perturbed}")
 
     if task_type == "bayes":
         task_config = cast(IdentifyAssociationsBayesConfig, task_config)

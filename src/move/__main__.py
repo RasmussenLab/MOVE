@@ -4,6 +4,12 @@ import hydra
 from omegaconf import OmegaConf
 
 import move.tasks
+import move.tasks.analyze_latent_fast
+import move.tasks.analyze_latent_multiprocess
+import move.tasks.identify_associations_efficient
+import move.tasks.identify_associations_multiprocess
+
+# import move.tasks.identify_associations_selected  # no such module
 from move import HYDRA_VERSION_BASE
 from move.conf.schema import (
     AnalyzeLatentConfig,
@@ -13,16 +19,6 @@ from move.conf.schema import (
     TuneModelConfig,
 )
 from move.core.logging import get_logger
-
-import move.tasks.analyze_latent_fast
-
-import move.tasks.analyze_latent_multiprocess
-
-import move.tasks.identify_associations_selected
-
-import move.tasks.identify_associations_multiprocess
-
-import move.tasks.identify_associations_efficient
 
 
 @hydra.main(
@@ -46,7 +42,8 @@ def main(config: MOVEConfig) -> None:
         move.tasks.encode_data(config.data)
     elif issubclass(task_type, TuneModelConfig):
         move.tasks.tune_model(config)
-    # the fast version  does not calcuate feature importance, it is only to look at the reconstruction metrics
+    # the fast version  does not calcuate feature importance,
+    # it is only to look at the reconstruction metrics
     elif task_type is AnalyzeLatentConfig:
         if config.task.fast:
             move.tasks.analyze_latent_fast(config)

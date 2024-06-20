@@ -58,6 +58,8 @@ you do not have powerful GPUs available, it is possible to run using only CPUs.
 For instance, the tutorial data set consisting of simulated drug, metabolomics
 and proteomics data for 500 individuals runs fine on a standard macbook.
 
+> Note: The pip installation of `move-dl` does not setup your local GPU automatically
+
 # The MOVE pipeline
 
 MOVE has five-six steps:

@@ -25,12 +25,12 @@ from move.core.logging import get_logger
 from move.core.typing import BoolArray, FloatArray, IntArray
 from move.data import io
 from move.data.dataloaders import MOVEDataset, make_dataloader
-from move.data.preprocessing import feature_stats, one_hot_encode_single
 from move.data.perturbations import (
     ContinuousPerturbationType,
     perturb_categorical_data,
     perturb_continuous_data_extended,
 )
+from move.data.preprocessing import feature_stats, one_hot_encode_single
 from move.models.vae import VAE
 from move.visualization.dataset_distributions import (
     plot_correlations,
@@ -198,8 +198,7 @@ def prepare_for_categorical_perturbation(
     target_mapping = mappings[task_config.target_dataset]
     target_value = one_hot_encode_single(target_mapping, task_config.target_value)
     logger.debug(
-        f"Target value: {task_config.target_value} => {
-            target_value.astype(int)[0]}"
+        f"Target value: {task_config.target_value} => {target_value.astype(int)[0]}"
     )
 
     dataloaders = perturb_categorical_data(
@@ -264,12 +263,11 @@ def perturb_continuous_data_extended_one(
 
     Note:
         This function was created so that it could generalize to non-normalized
-        datasets. Scaling is done per dataset, not per feature -> slightly different stds
-        feature to feature.
+        datasets. Scaling is done per dataset, not per feature -> slightly different
+        stds feature to feature.
     """
     logger.debug(
-        f"Inside perturb_continuous_data_extended_one for feature {
-            index_pert_feat}"
+        f"Inside perturb_continuous_data_extended_one for feature {index_pert_feat}"
     )
 
     baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
@@ -285,8 +283,8 @@ def perturb_continuous_data_extended_one(
     # Change below.
     # num_features = 10
 
-    # Now, instead of the for loop that iterates over all the features we want to perturb, we do it only for one feature, the one
-    # indicated in index_pert_feat
+    # Now, instead of the for loop that iterates over all the features we want to
+    # perturb, we do it only for one feature, the one indicated in index_pert_feat
 
     # for i in range(num_features):
     logger.debug(f"Setting up perturbed_con for feature {index_pert_feat}")
@@ -322,8 +320,7 @@ def perturb_continuous_data_extended_one(
     # perturbations_list.append(target_dataset[:, i].numpy())
 
     logger.debug(
-        f"Creating perturbed dataset and dataloader for feature {
-            index_pert_feat}"
+        f"Creating perturbed dataset and dataloader for feature {index_pert_feat}"
     )
 
     perturbed_dataset = MOVEDataset(
@@ -341,8 +338,7 @@ def perturb_continuous_data_extended_one(
     # dataloaders.append(perturbed_dataloader)
 
     logger.debug(
-        f"Finished perturb_continuous_data_extended_one for feature {
-            index_pert_feat}"
+        f"Finished perturb_continuous_data_extended_one for feature {index_pert_feat}"
     )
 
     return perturbed_dataloader

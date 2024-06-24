@@ -4,9 +4,7 @@ import hydra
 from omegaconf import OmegaConf
 
 import move.tasks
-import move.tasks.analyze_latent_fast
 import move.tasks.analyze_latent_multiprocess
-import move.tasks.identify_associations_efficient
 import move.tasks.identify_associations_multiprocess
 
 # import move.tasks.identify_associations_selected  # no such module

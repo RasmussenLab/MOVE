@@ -1,6 +1,8 @@
 defaults:
   - identify_associations_ttest
 
+multiprocess: False
+
 batch_size: 10 # number of samples per batch in training loop
 
 num_refits: 10 # number of times to refit (retrain) model

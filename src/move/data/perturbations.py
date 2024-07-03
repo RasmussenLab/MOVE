@@ -371,13 +371,11 @@ def perturb_continuous_data_extended(
         datasets. Scaling is done per dataset, not per feature -> slightly different
         stds feature to feature.
     """
-    logger = get_logger(__name__)
-    logger.debug("Inside perturb_extended, creating baseline dataset")
+
     baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
     assert baseline_dataset.con_shapes is not None
     assert baseline_dataset.con_all is not None
 
-    logger.debug("Creating target_ics, splits, and slice")
     target_idx = con_dataset_names.index(target_dataset_name)  # dataset index
     splits = np.cumsum([0] + baseline_dataset.con_shapes)
     slice_ = slice(*splits[target_idx : target_idx + 2])
@@ -387,7 +385,6 @@ def perturb_continuous_data_extended(
     perturbations_list = []
 
     for i in range(num_features):
-        logger.debug(f"Getting perturbed dataset for feature {i}")
         perturbed_con = baseline_dataset.con_all.clone()
         target_dataset = perturbed_con[:, slice_]
         # Change the desired feature value by:
@@ -403,7 +400,7 @@ def perturb_continuous_data_extended(
         elif perturbation_type == "minus_std":
             target_dataset[:, i] -= torch.FloatTensor([std_feat_val_list[i]])
 
-        # perturbations_list.append(target_dataset[:, i].numpy())
+        perturbations_list.append(target_dataset[:, i].numpy())
 
         perturbed_dataset = MOVEDataset(
             baseline_dataset.cat_all,
@@ -418,15 +415,6 @@ def perturb_continuous_data_extended(
             batch_size=baseline_dataloader.batch_size,
         )
         dataloaders.append(perturbed_dataloader)
-    logger.debug("Finished perturb_continuous_data_extended function")
-
-    # Plot the perturbations for all features, collapsed in one plot:
-    # if output_subpath is not None:
-    #   fig = plot_value_distributions(np.array(perturbations_list).transpose())
-    #  fig_path = str(
-    #     output_subpath / f"perturbation_distribution_{target_dataset_name}.png"
-    # )
-    # fig.savefig(fig_path)
 
     # Plot the perturbations for all features, collapsed in one plot:
     if output_subpath is not None:

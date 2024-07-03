@@ -1,6 +1,0 @@
-OS.time
-age_at_initial_pathologic_diagnosis
-DFI.time
-DSS.time
-initial_pathologic_dx_year
-PFI.time

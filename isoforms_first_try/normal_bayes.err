@@ -1,8 +1,0 @@
-[INFO  - identify_associations]: Perturbing dataset: 'iso_tpm_100'
-[INFO  - identify_associations]: Beginning task: identify associations continuous (bayes)
-[INFO  - identify_associations]: Perturbation type: maximum
-[INFO  - identify_associations]: Training models
-[INFO  - identify_associations]: Saving baseline reconstruction 0
-[INFO  - identify_associations]: Saving baseline reconstruction 1
-[INFO  - identify_associations]: Starting loop over num_perturbed
-[INFO  - identify_associations]: Significant hits found: 0

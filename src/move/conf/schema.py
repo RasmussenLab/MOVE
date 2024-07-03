@@ -193,6 +193,7 @@ class IdentifyAssociationsTTestConfig(IdentifyAssociationsConfig):
     """
 
     num_latent: list[int] = MISSING
+    multiprocess: bool = False  # Multiprocessiong not implemented for t-test approach
 
 
 @dataclass

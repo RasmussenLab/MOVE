@@ -33,7 +33,9 @@ from move.data.perturbations import (
     perturb_continuous_data_extended_one,
 )
 from move.models.vae import VAE
-from move.tasks import prepare_for_categorical_perturbation  # ! Is this used?
+from move.tasks.identify_associations import (
+    prepare_for_categorical_perturbation,
+)  # ! Is this used?
 from move.visualization.dataset_distributions import (
     plot_feature_association_graph,
 )

@@ -176,7 +176,7 @@ class IdentifyAssociationsBayesConfig(IdentifyAssociationsConfig):
     multiprocess: bool = False  # Default value is False
     selected: bool = False
     pert_type: str = MISSING
-    efficient: bool = False
+    # efficient: bool = False # not needed?
     multiloop: bool = False
 
     ...
@@ -215,6 +215,7 @@ class IdentifyAssociationsKSConfig(IdentifyAssociationsConfig):
 
     perturbed_feature_names: list[str] = field(default_factory=list)
     target_feature_names: list[str] = field(default_factory=list)
+    multiprocess: bool = False  # Multiprocessiong not implemented for KS approach
 
 
 @dataclass

@@ -49,7 +49,7 @@ def perturb_continuous_data_one(
     splits = np.cumsum([0] + baseline_dataset.con_shapes)
     slice_ = slice(*splits[target_idx : target_idx + 2])
 
-    num_features = baseline_dataset.con_shapes[target_idx]
+    # num_features = baseline_dataset.con_shapes[target_idx]
     # dataloaders = []
     i = index_pert_feat
     # Instead of the loop, we do it only for one
@@ -103,7 +103,7 @@ def perturb_categorical_data_one(
     slice_ = slice(*splits[target_idx : target_idx + 2])
 
     target_shape = baseline_dataset.cat_shapes[target_idx]
-    num_features = target_shape[0]
+    # num_features = target_shape[0]
 
     i = index_pert_feat
     # dataloaders = []
@@ -128,9 +128,12 @@ def perturb_categorical_data_one(
     return perturbed_dataloader
 
 
-def perturb_continuous_data_extended_one(  # We will keep the input almost the same, to make everything easier
-    # However, I have to introduce a variable that allows me to index the specific dataloader I want to create (index_pert_feat)
-    # And I eliminate the output directory, an image is not generated now (too many features)
+# We will keep the input almost the same, to make everything easier
+# However, I have to introduce a variable that allows me to index the specific
+# dataloader I want to create (index_pert_feat)
+# And I eliminate the output directory, an image is not generated now
+# (too many features)
+def perturb_continuous_data_extended_one(
     baseline_dataloader: DataLoader,
     con_dataset_names: list[str],
     target_dataset_name: str,
@@ -142,7 +145,7 @@ def perturb_continuous_data_extended_one(  # We will keep the input almost the s
     logger = get_logger(__name__)
     """Add perturbations to continuous data. For each feature in the target
     dataset, change the feature's value in all samples (in rows):
-    1,2) substituting this feature in all samples by the feature's minimum/maximum value.
+    1,2) substituting this feature in all samples by the feature's minimum/maximum value
     3,4) Adding/Substracting one standard deviation to the sample's feature value.
 
     Args:
@@ -158,8 +161,8 @@ def perturb_continuous_data_extended_one(  # We will keep the input almost the s
 
     Note:
         This function was created so that it could generalize to non-normalized
-        datasets. Scaling is done per dataset, not per feature -> slightly different stds
-        feature to feature.
+        datasets. Scaling is done per dataset, not per feature -> slightly different
+        stds feature to feature.
     """
     logger.debug(
         f"Inside perturb_continuous_data_extended_one for feature {index_pert_feat}"
@@ -174,10 +177,10 @@ def perturb_continuous_data_extended_one(  # We will keep the input almost the s
     slice_ = slice(*splits[target_idx : target_idx + 2])
 
     # Use it only if we want to perturb all features in the target dataset
-    num_features = baseline_dataset.con_shapes[target_idx]
+    # num_features = baseline_dataset.con_shapes[target_idx]
 
-    # Now, instead of the for loop that iterates over all the features we want to perturb, we do it only for one feature, the one
-    # indicated in index_pert_feat
+    # Now, instead of the for loop that iterates over all the features we want to
+    # perturb, we do it only for one feature, the one indicated in index_pert_feat
     logger.debug(f"Setting up perturbed_con for feature {index_pert_feat}")
 
     perturbed_con = baseline_dataset.con_all.clone()
@@ -365,8 +368,8 @@ def perturb_continuous_data_extended(
 
     Note:
         This function was created so that it could generalize to non-normalized
-        datasets. Scaling is done per dataset, not per feature -> slightly different stds
-        feature to feature.
+        datasets. Scaling is done per dataset, not per feature -> slightly different
+        stds feature to feature.
     """
     logger = get_logger(__name__)
     logger.debug("Inside perturb_extended, creating baseline dataset")

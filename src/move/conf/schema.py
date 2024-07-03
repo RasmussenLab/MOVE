@@ -176,7 +176,6 @@ class IdentifyAssociationsBayesConfig(IdentifyAssociationsConfig):
     multiprocess: bool = False  # Default value is False
     selected: bool = False
     pert_type: str = MISSING
-    # efficient: bool = False # not needed?
     multiloop: bool = False
 
     ...

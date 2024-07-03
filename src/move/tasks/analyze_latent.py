@@ -59,7 +59,7 @@ def perturb_continuous_data_one(
     splits = np.cumsum([0] + baseline_dataset.con_shapes)
     slice_ = slice(*splits[target_idx : target_idx + 2])
 
-    num_features = baseline_dataset.con_shapes[target_idx]
+    # num_features = baseline_dataset.con_shapes[target_idx]
     # dataloaders = []
     i = index_pert_feat
     # Instead of the loop, we do it only for one
@@ -364,7 +364,8 @@ def analyze_latent(config: MOVEConfig) -> None:
                 na_value,
                 index_pert_feat,
             )
-            # We calculate the difference for each of the perturbed features, and store it in an object
+            # We calculate the difference for each of the perturbed features,
+            # and store it in an object
 
             z_perturb = model.project(dataloader)
             diffs[:, j] = np.sum(z_perturb - z, axis=1)

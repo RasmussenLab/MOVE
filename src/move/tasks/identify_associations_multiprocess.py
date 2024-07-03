@@ -33,6 +33,7 @@ from move.data.perturbations import (
     perturb_continuous_data_extended_one,
 )
 from move.models.vae import VAE
+from move.tasks import prepare_for_categorical_perturbation  # ! Is this used?
 from move.visualization.dataset_distributions import (
     plot_feature_association_graph,
 )
@@ -162,7 +163,7 @@ def _bayes_approach_worker(args):
             continuous_shapes=continuous_shapes,
             categorical_shapes=categorical_shapes,
         )
-        device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
+        device = torch.device("cuda" if task_config.model.cuda else "cpu")
         logger.debug(f"Loading model from {model_path}")
         model.load_state_dict(torch.load(model_path))
         logger.debug(f"Loaded model from {model_path}")
@@ -259,13 +260,15 @@ def _bayes_approach_parallel(
     logger = get_logger(__name__)
     logger.debug("Inside the bayes_parallel function")
 
-    # First, I train or reload the models (number of refits), and save the baseline reconstruction.
-    # We train and get the reconstruction outside to make sure that we use the same model and use the same
+    # First, I train or reload the models (number of refits),
+    # and save the baseline reconstruction.
+    # We train and get the reconstruction outside to make sure
+    # that we use the same model and use the same
     # baseline reconstruction for all the worker functions
     baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
 
     assert task_config.model is not None
-    device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
+    device = torch.device("cuda" if task_config.model.cuda else "cpu")
     logger.debug("Model moved to device in bayes_approach_parallel")
 
     # Train or reload models
@@ -594,8 +597,8 @@ def identify_associations_multiprocess(config: MOVEConfig) -> None:
         2) Evaluate associations using bayes or ttest approach.
         3) Save results.
     """
-    #################### DATA PREPARATION ######################
-    ####### Read original data and create perturbed datasets####
+    # DATA PREPARATION ######################
+    #  Read original data and create perturbed datasets ####
 
     logger = get_logger(__name__)
     task_config = cast(IdentifyAssociationsConfig, config.task)
@@ -639,7 +642,7 @@ def identify_associations_multiprocess(config: MOVEConfig) -> None:
     baseline_dataloader = make_dataloader(
         cat_list, con_list, shuffle=False, batch_size=task_config.batch_size
     )
-    logger.debug(f"Baseline dataloader created")
+    logger.debug("Baseline dataloader created")
 
     # Indentify associations between continuous features:
     logger.info(f"Perturbing dataset: '{task_config.target_dataset}'")
@@ -670,7 +673,7 @@ def identify_associations_multiprocess(config: MOVEConfig) -> None:
     num_perturbed = baseline_dataset.con_shapes[target_idx]
     logger.debug(f"# perturbed features: {num_perturbed}")
 
-    ################# APPROACH EVALUATION ##########################
+    # APPROACH EVALUATION ##########################
 
     if task_type == "bayes":
         task_config = cast(IdentifyAssociationsBayesConfig, task_config)
@@ -733,7 +736,7 @@ def identify_associations_multiprocess(config: MOVEConfig) -> None:
     else:
         raise ValueError()
 
-    ###################### RESULTS ################################
+    # RESULTS ################################
     save_results(
         config,
         con_shapes,

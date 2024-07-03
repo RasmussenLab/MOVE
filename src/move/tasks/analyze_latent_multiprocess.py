@@ -11,7 +11,9 @@ import hydra
 import numpy as np
 import pandas as pd
 import torch
+import torch.multiprocessing
 from sklearn.base import TransformerMixin
+from torch.multiprocessing import Pool
 
 import move.visualization as viz
 from move.analysis.metrics import (
@@ -23,19 +25,14 @@ from move.core.logging import get_logger
 from move.core.typing import FloatArray
 from move.data import io
 from move.data.dataloaders import MOVEDataset, make_dataloader
+# from move.data.perturbations import perturb_categorical_data, perturb_continuous_data,
 from move.data.perturbations import (
-    # perturb_categorical_data,
-    # perturb_continuous_data,
-    perturb_continuous_data_one,
     perturb_categorical_data_one,
+    perturb_continuous_data_one,
 )
 from move.data.preprocessing import one_hot_encode_single
 from move.models.vae import VAE
 from move.training.training_loop import TrainingLoopOutput
-from torch.utils.data import DataLoader
-
-import torch.multiprocessing
-from torch.multiprocessing import Pool
 
 
 def find_feature_values(
@@ -58,9 +55,10 @@ def find_feature_values(
         values corresponding to the feature
     """
     dataset_index, feature_index = [None] * 2
-    for dataset_index, feature_names in enumerate(feature_names_lists):
+    for _dataset_index, _feature_names in enumerate(feature_names_lists):
         try:
-            feature_index = feature_names.index(feature_name)
+            feature_index = _feature_names.index(feature_name)
+            dataset_index = _dataset_index
         except ValueError:
             continue
         break
@@ -96,7 +94,8 @@ def _categorical_importance_worker(args):
         z,
     ) = args
 
-    # Diff will store the differences between z and z_perturb for the perturbed feature index_pert_feat
+    # Diff will store the differences between z and
+    # z_perturb for the perturbed feature index_pert_feat
     diff = np.empty((num_features))
 
     logger.debug(f"Perturbing feature {index_pert_feat} for {dataset_name}")
@@ -197,7 +196,7 @@ def analyze_latent_multiprocess(config: MOVEConfig) -> None:
     df_index = pd.Index(sample_names, name="sample")
 
     assert task_config.model is not None
-    device = torch.device("cuda" if task_config.model.cuda == True else "cpu")
+    device = torch.device("cuda" if task_config.model.cuda else "cpu")
     model: VAE = hydra.utils.instantiate(
         task_config.model,
         continuous_shapes=test_dataset.con_shapes,

@@ -25,10 +25,9 @@ from move.core.logging import get_logger
 from move.core.typing import BoolArray, FloatArray, IntArray
 from move.data import io
 from move.data.dataloaders import MOVEDataset, make_dataloader
-from move.data.perturbations import (
+from move.data.perturbations import (  # perturb_continuous_data_extended,
     ContinuousPerturbationType,
     perturb_categorical_data,
-    perturb_continuous_data_extended,
 )
 from move.data.preprocessing import feature_stats, one_hot_encode_single
 from move.models.vae import VAE
@@ -54,7 +53,7 @@ def perturb_continuous_data_extended(
 
     """Add perturbations to continuous data. For each feature in the target
     dataset, change the feature's value in all samples (in rows):
-    1,2) substituting this feature in all samples by the feature's minimum/maximum value.
+    1,2) substituting this feature in all samples by the feature's minimum/maximum value
     3,4) Adding/Substracting one standard deviation to the sample's feature value.
 
     Args:
@@ -71,8 +70,8 @@ def perturb_continuous_data_extended(
 
     Note:
         This function was created so that it could generalize to non-normalized
-        datasets. Scaling is done per dataset, not per feature -> slightly different stds
-        feature to feature.
+        datasets. Scaling is done per dataset, not per feature -> slightly different
+        stds feature to feature.
     """
     logger.debug("Inside perturb_extended, creating baseline dataset")
     baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
@@ -89,7 +88,7 @@ def perturb_continuous_data_extended(
     num_features = 5
     logger.debug(f"number of feature to perturb is {num_features}")
     dataloaders = []
-    perturbations_list = []
+    # perturbations_list = []
     # Change below.
     # num_features = 10
 
@@ -244,7 +243,7 @@ def perturb_continuous_data_extended_one(
     logger = get_logger(__name__)
     """Add perturbations to continuous data. For each feature in the target
     dataset, change the feature's value in all samples (in rows):
-    1,2) substituting this feature in all samples by the feature's minimum/maximum value.
+    1,2) substituting this feature in all samples by the feature's minimum/maximum value
     3,4) Adding/Substracting one standard deviation to the sample's feature value.
 
     Args:
@@ -278,7 +277,7 @@ def perturb_continuous_data_extended_one(
     slice_ = slice(*splits[target_idx : target_idx + 2])
 
     # Use it only if we want to perturb all features in the target dataset
-    num_features = baseline_dataset.con_shapes[target_idx]
+    # num_features = baseline_dataset.con_shapes[target_idx]
     # Change below.
     # num_features = 10
 
@@ -394,7 +393,8 @@ def prepare_for_continuous_perturbation(
     #      con_dataset_names=config.data.continuous_names,
     #      target_dataset_name=task_config.target_dataset,
     #      perturbation_type=cast(ContinuousPerturbationType, task_config.target_value),
-    #      index_pert_feat=i,) # Like this, I get only one perturbed dataloader, and the nan and feature masks
+    #      index_pert_feat=i,) # Like this, I get only one perturbed dataloader,
+    #      and the nan and feature masks
     # logger.debug
 
     # dataloaders.append(perturbed_dataloader)

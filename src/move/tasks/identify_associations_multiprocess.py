@@ -4,14 +4,7 @@ __all__ = ["identify_associations_multiprocess"]
 from functools import reduce
 from os.path import exists
 from pathlib import Path
-from typing import Literal, Optional, Sized, Tuple, Union, cast
-
-from move.data.preprocessing import feature_stats
-
-# from move.visualization.dataset_distributions import plot_value_distributions
-ContinuousPerturbationType = Literal["minimum", "maximum", "plus_std", "minus_std"]
-
-import gc
+from typing import Literal, Sized, cast
 
 import hydra
 import numpy as np
@@ -19,10 +12,7 @@ import pandas as pd
 import torch
 import torch.multiprocessing
 from omegaconf import OmegaConf
-from torch.multiprocessing import Pool, Process, Queue
-
-# from scipy.stats import ks_2samp, pearsonr  # type: ignore
-from torch.utils.data import DataLoader
+from torch.multiprocessing import Pool
 
 from move.conf.schema import (
     IdentifyAssociationsBayesConfig,
@@ -32,7 +22,6 @@ from move.conf.schema import (
     MOVEConfig,
 )
 from move.core.logging import get_logger
-from move.core.typing import BoolArray, FloatArray, IntArray
 from move.data import io
 from move.data.dataloaders import MOVEDataset, make_dataloader
 
@@ -41,9 +30,18 @@ from move.data.dataloaders import MOVEDataset, make_dataloader
 # CHANGE
 from move.data.perturbations import (
     ContinuousPerturbationType,
-    perturb_categorical_data,
     perturb_continuous_data_extended_one,
 )
+from move.models.vae import VAE
+from move.visualization.dataset_distributions import (
+    plot_feature_association_graph,
+)
+
+# from scipy.stats import ks_2samp, pearsonr  # type: ignore
+
+
+# from move.visualization.dataset_distributions import plot_value_distributions
+
 
 # from move.analysis.metrics import get_2nd_order_polynomial
 
@@ -82,12 +80,6 @@ def _validate_task_config(
         if len(task_config.num_latent) != 4:
             raise ValueError("4 latent space dimensions required.")
 
-
-from move.data.preprocessing import one_hot_encode_single
-from move.models.vae import VAE
-from move.visualization.dataset_distributions import (  # plot_correlations,; plot_cumulative_distributions,; plot_reconstruction_movement,
-    plot_feature_association_graph,
-)
 
 # def _worker_process(queue, args):
 #   result = _bayes_approach_worker(args)

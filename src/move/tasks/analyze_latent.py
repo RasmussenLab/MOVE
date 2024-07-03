@@ -12,6 +12,7 @@ import numpy as np
 import pandas as pd
 import torch
 from sklearn.base import TransformerMixin
+from torch.utils.data import DataLoader
 
 import move.visualization as viz
 from move.analysis.metrics import (
@@ -23,16 +24,9 @@ from move.core.logging import get_logger
 from move.core.typing import FloatArray
 from move.data import io
 from move.data.dataloaders import MOVEDataset, make_dataloader
-from move.data.perturbations import (
-    perturb_categorical_data,
-    perturb_continuous_data,
-    perturb_continuous_data_extended,
-)
 from move.data.preprocessing import one_hot_encode_single
 from move.models.vae import VAE
 from move.training.training_loop import TrainingLoopOutput
-from torch.utils.data import DataLoader
-
 
 # Define perturb_continuous_data_one (not extended)
 

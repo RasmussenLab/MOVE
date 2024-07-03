@@ -37,7 +37,6 @@ from move.visualization.dataset_distributions import (
     plot_cumulative_distributions,
     plot_feature_association_graph,
     plot_reconstruction_movement,
-    plot_value_distributions,
 )
 
 TaskType = Literal["bayes", "ttest", "ks"]

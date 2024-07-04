@@ -123,8 +123,6 @@ def perturb_categorical_data_one(
 # We will keep the input almost the same, to make everything easier
 # However, I have to introduce a variable that allows me to index the specific
 # dataloader I want to create (index_pert_feat)
-# And I eliminate the output directory, an image is not generated now
-# (too many features)
 def perturb_continuous_data_extended_one(
     baseline_dataloader: DataLoader,
     con_dataset_names: list[str],
@@ -202,8 +200,6 @@ def perturb_continuous_data_extended_one(
             [std_feat_val_list[index_pert_feat]]
         )
     logger.debug(f"Perturbation succesful for feature {index_pert_feat}")
-    # We used this for a plot, so no need to create it now
-    # perturbations_list.append(target_dataset[:, i].numpy())
 
     logger.debug(
         f"Creating perturbed dataset and dataloader for feature {index_pert_feat}"

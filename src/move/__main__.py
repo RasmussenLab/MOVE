@@ -4,7 +4,6 @@ import hydra
 from omegaconf import OmegaConf
 
 import move.tasks
-import move.tasks.identify_associations_multiprocess
 from move import HYDRA_VERSION_BASE
 from move.conf.schema import (
     AnalyzeLatentConfig,
@@ -40,10 +39,7 @@ def main(config: MOVEConfig) -> None:
     elif task_type is AnalyzeLatentConfig:
         move.tasks.analyze_latent(config)
     elif issubclass(task_type, IdentifyAssociationsConfig):
-        if config.task.multiprocess:
-            move.tasks.identify_associations_multiprocess(config)
-        else:
-            move.tasks.identify_associations(config)
+        move.tasks.identify_associations(config)
     else:
         raise ValueError("Unsupported type of task.")
 

@@ -20,7 +20,6 @@ from move.visualization.dataset_distributions import plot_value_distributions
 ContinuousPerturbationType = Literal["minimum", "maximum", "plus_std", "minus_std"]
 
 
-# Also in analyze_latent.py
 def perturb_continuous_data_one(
     baseline_dataloader: DataLoader,
     con_dataset_names: list[str],
@@ -35,7 +34,7 @@ def perturb_continuous_data_one(
         baseline_dataloader: Baseline dataloader
         con_dataset_names: List of continuous dataset names
         target_dataset_name: Target continuous dataset to perturb
-        target_value: Target value. In analyze_latent, it will be 0
+        target_value: Target value.
 
     Returns:
         One dataloader, with the ith dataset perturbed
@@ -49,11 +48,7 @@ def perturb_continuous_data_one(
     splits = np.cumsum([0] + baseline_dataset.con_shapes)
     slice_ = slice(*splits[target_idx : target_idx + 2])
 
-    # num_features = baseline_dataset.con_shapes[target_idx]
-    # dataloaders = []
     i = index_pert_feat
-    # Instead of the loop, we do it only for one
-    # for i in range(num_features):
     perturbed_con = baseline_dataset.con_all.clone()
     target_dataset = perturbed_con[:, slice_]
     target_dataset[:, i] = torch.FloatTensor([target_value])
@@ -103,11 +98,8 @@ def perturb_categorical_data_one(
     slice_ = slice(*splits[target_idx : target_idx + 2])
 
     target_shape = baseline_dataset.cat_shapes[target_idx]
-    # num_features = target_shape[0]
 
     i = index_pert_feat
-    # dataloaders = []
-    # for i in range(num_features):
     perturbed_cat = baseline_dataset.cat_all.clone()
     target_dataset = perturbed_cat[:, slice_].view(
         baseline_dataset.num_samples, *target_shape

@@ -4,14 +4,12 @@ __all__ = [
     "identify_associations",
     "tune_model",
     "identify_associations_multiprocess",
-    "analyze_latent_multiprocess",
 ]
 
 from move.tasks.analyze_latent import analyze_latent
 from move.tasks.encode_data import encode_data
 from move.tasks.identify_associations import identify_associations
-from move.tasks.tune_model import tune_model
 from move.tasks.identify_associations_multiprocess import (
     identify_associations_multiprocess,
 )
-from move.tasks.analyze_latent_multiprocess import analyze_latent_multiprocess
+from move.tasks.tune_model import tune_model

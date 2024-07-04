@@ -4,7 +4,6 @@ import hydra
 from omegaconf import OmegaConf
 
 import move.tasks
-import move.tasks.analyze_latent_multiprocess
 import move.tasks.identify_associations_multiprocess
 from move import HYDRA_VERSION_BASE
 from move.conf.schema import (
@@ -39,10 +38,7 @@ def main(config: MOVEConfig) -> None:
     elif issubclass(task_type, TuneModelConfig):
         move.tasks.tune_model(config)
     elif task_type is AnalyzeLatentConfig:
-        if config.task.multiprocess:
-            move.tasks.analyze_latent_multiprocess(config)
-        else:
-            move.tasks.analyze_latent(config)
+        move.tasks.analyze_latent(config)
     elif issubclass(task_type, IdentifyAssociationsConfig):
         if config.task.multiprocess:
             move.tasks.identify_associations_multiprocess(config)

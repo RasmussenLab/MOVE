@@ -54,6 +54,26 @@ jobs:
           cd tutorial
           move-dl data=random_small task=random_small__id_assoc_bayes --cfg job
           move-dl data=random_small task=random_small__id_assoc_bayes task.training_loop.num_epochs=30 task.num_refits=20
+  run-tutorial-w-multiprocessing:
+    name: Run tutorial - random_small
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install .
+      - name: Prepare tutorial data
+        run: |
+          cd tutorial
+          move-dl data=random_small task=encode_data --cfg job
+          move-dl data=random_small task=encode_data
+      - name: Train model and analyze latent space
+        run: |
+          cd tutorial
+          move-dl data=random_small task=random_small__latent task.multiprocess=true --cfg job
+          move-dl data=random_small task=random_small__latent task.multiprocess=true
   run-tutorial-cont:
       name: Run tutorial - random_continuous
       runs-on: ubuntu-latest

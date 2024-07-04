@@ -38,8 +38,6 @@ def main(config: MOVEConfig) -> None:
         move.tasks.encode_data(config.data)
     elif issubclass(task_type, TuneModelConfig):
         move.tasks.tune_model(config)
-    # the fast version  does not calcuate feature importance,
-    # it is only to look at the reconstruction metrics
     elif task_type is AnalyzeLatentConfig:
         if config.task.multiprocess:
             move.tasks.analyze_latent_multiprocess(config)

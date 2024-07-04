@@ -3,7 +3,7 @@ __all__ = ["identify_associations"]
 from functools import reduce
 from os.path import exists
 from pathlib import Path
-from typing import Literal, Optional, Sized, Union, cast
+from typing import Literal, Sized, Union, cast
 
 import hydra
 import numpy as np
@@ -41,7 +41,6 @@ from move.visualization.dataset_distributions import (
 
 TaskType = Literal["bayes", "ttest", "ks"]
 CONTINUOUS_TARGET_VALUE = ["minimum", "maximum", "plus_std", "minus_std"]
-
 
 
 def _get_task_type(

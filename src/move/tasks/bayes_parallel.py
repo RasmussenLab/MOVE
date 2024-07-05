@@ -121,7 +121,7 @@ def _bayes_approach_worker(args):
         # We calculate diff for each refit, and add it to mean_diff after dividing by
         # the number of refits
         logger.debug(f"Calculating diff for num_perturbed {i}, with model {model}")
-        diff = perturb_recon - baseline_recon
+        diff = perturb_recon - baseline_recon  # 2D: N x C
         logger.debug(
             f"Calculating mean_diff  for num_perturbed {i}, with model {model}"
         )
@@ -129,7 +129,13 @@ def _bayes_approach_worker(args):
         logger.debug(f"Deleting model {model_path}, to see if I can free up space?")
         del model
         logger.debug(f"Deleted model {model_path} in worker {i} to save some space")
-
+    # Marc's masking approach (for subset of perturbed cont. features?)
+    # difference for only perturbed feature?
+    bayes_mask = (
+        baseline_dataloader.dataset.con_all[0, :]
+        - perturbed_dataloader.dataset.con_all[0, :]
+    )
+    bayes_mask[bayes_mask != 0] = 1
     logger.debug(f"mean_diff for feature {i}, calculated, using all refits")
     mean_diff_shape = mean_diff.shape
     logger.debug(f"Returning mean_diff for feature {i}. Its shape is {mean_diff_shape}")
@@ -151,7 +157,7 @@ def _bayes_approach_worker(args):
     )
 
     # Return bayes_k_worker and the index of the feature
-    return i, bayes_k_worker
+    return i, bayes_k_worker, bayes_mask
 
 
 def _bayes_approach_parallel(
@@ -298,18 +304,27 @@ def _bayes_approach_parallel(
     logger.info("Pool multiprocess completed. Calculating bayes_abs and bayes_p")
 
     bayes_k = np.empty((num_perturbed, num_continuous))
-
+    bayes_mask = np.zeros(np.shape(bayes_k))
     # Get results in the correct order
-    for i, computed_bayes_k in results:
+    for i, computed_bayes_k, mask_k in results:
         logger.debug(f"{i} has bayes_k worker {computed_bayes_k}")
+        # computed_bayes_k: already normalized probability
+        # (log differences, i.e. Bayes factors)
         bayes_k[i, :] = computed_bayes_k
+        if task_config.target_value in CONTINUOUS_TARGET_VALUE:
+            bayes_mask[i, :] = mask_k
+
+    # mask already created in worker function
+    bayes_mask = np.array(bayes_mask, dtype=bool)
 
     bayes_abs = np.abs(bayes_k)  # Dimensions are (num_perturbed, num_continuous)
     bayes_p = np.exp(bayes_abs) / (1 + np.exp(bayes_abs))  # 2D: N x C
 
     # NOTE_ : I AM SKIPPING THE MASK STEP, SO I WILL HAVE TO REMOVE
     # FEATURE I - FEATURE I ASSOCIATIONS LATER, in the results
-
+    bayes_abs[bayes_mask] = np.min(
+        bayes_abs
+    )  # Bring feature_i feature_i associations to minimum
     # Get only the significant associations:
     # This will flatten the array,so we get all bayes_abs for all perturbed features
     # vs all continuous features in one 1D array

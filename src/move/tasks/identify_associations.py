@@ -653,12 +653,6 @@ def _bayes_approach(
                 baseline_dataloader.dataset.con_all[0, :]
                 - dataloaders[i].dataset.con_all[0, :]
             )
-    # Save diff as a file
-    # Extract the data and mask separately
-    data = diff.data  # Extract the data from the masked array
-    mask = diff.mask  # Extract the mask from the masked array
-    # Replace masked values with a placeholder (e.g., np.nan)
-    data[mask] = np.nan
 
     bayes_mask[bayes_mask != 0] = 1
     bayes_mask = np.array(bayes_mask, dtype=bool)

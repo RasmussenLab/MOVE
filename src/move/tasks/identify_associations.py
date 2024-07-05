@@ -261,26 +261,11 @@ def _bayes_approach(
         else:
             _, baseline_recon = model.reconstruct(baseline_dataloader)
 
-        min_feat, max_feat = (
-            np.zeros((num_perturbed, num_continuous)),
-            np.zeros((num_perturbed, num_continuous)),
-        )
-        min_baseline, max_baseline = np.min(baseline_recon, axis=0), np.max(
-            baseline_recon, axis=0
-        )
-
         # Calculate perturb reconstruction => keep track of mean difference
         for i in range(num_perturbed):
             _, perturb_recon = model.reconstruct(dataloaders[i])
             diff = perturb_recon - baseline_recon  # 2D: N x C
             mean_diff[i, :, :] += diff * normalizer
-
-            min_perturb, max_perturb = np.min(perturb_recon, axis=0), np.max(
-                perturb_recon, axis=0
-            )
-            min_feat[i, :], max_feat[i, :] = np.min(
-                [min_baseline, min_perturb], axis=0
-            ), np.max([max_baseline, max_perturb], axis=0)
 
     # Calculate Bayes factors
     logger.info("Identifying significant features")

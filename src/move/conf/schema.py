@@ -172,9 +172,6 @@ class IdentifyAssociationsBayesConfig(IdentifyAssociationsConfig):
     """Configure the probabilistic approach to identify associations."""
 
     multiprocess: bool = False  # Default value is False
-    selected: bool = False
-    pert_type: str = MISSING
-    multiloop: bool = False
 
     ...
 

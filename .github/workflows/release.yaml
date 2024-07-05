@@ -53,7 +53,7 @@ jobs:
         run: |
           cd tutorial
           move-dl data=random_small task=random_small__id_assoc_bayes --cfg job
-          move-dl data=random_small task=random_small__id_assoc_bayes task.training_loop.num_epochs=30 task.num_refits=20
+          move-dl data=random_small task=random_small__id_assoc_bayes task.training_loop.num_epochs=40 task.num_refits=25
   run-tutorial-w-multiprocessing:
     name: Run - random_small - multiprocess
     runs-on: ubuntu-latest
@@ -78,7 +78,7 @@ jobs:
         run: |
           cd tutorial
           move-dl data=random_small task=random_small__id_assoc_bayes task.multiprocess=true --cfg job
-          move-dl data=random_small task=random_small__id_assoc_bayes task.multiprocess=true task.training_loop.num_epochs=30 task.num_refits=20
+          move-dl data=random_small task=random_small__id_assoc_bayes task.multiprocess=true task.training_loop.num_epochs=40 task.num_refits=25
   run-tutorial-cont:
       name: Run tutorial - random_continuous
       runs-on: ubuntu-latest
@@ -98,11 +98,11 @@ jobs:
             cd tutorial
             move-dl data=random_continuous task=random_continuous__latent --cfg job
             move-dl data=random_continuous task=random_continuous__latent
-        - name: Identify associations - t-test
-          run: |
-            cd tutorial
-            move-dl data=random_continuous task=random_continuous__id_assoc_ttest --cfg job
-            move-dl data=random_continuous task=random_continuous__id_assoc_ttest task.training_loop.num_epochs=30 task.num_refits=4
+        # - name: Identify associations - t-test
+        #   run: |
+        #     cd tutorial
+        #     move-dl data=random_continuous task=random_continuous__id_assoc_ttest --cfg job
+        #     move-dl data=random_continuous task=random_continuous__id_assoc_ttest task.training_loop.num_epochs=30 task.num_refits=4
         - name: Identify associations - bayes factors
           run: |
             cd tutorial

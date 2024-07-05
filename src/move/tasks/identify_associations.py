@@ -857,14 +857,16 @@ def identify_associations(config: MOVEConfig) -> None:
         task_config = cast(IdentifyAssociationsBayesConfig, task_config)
         if task_config.multiprocess:
             sig_ids, *extra_cols = _bayes_approach_parallel(
-                config,
-                task_config,
-                train_dataloader,
-                baseline_dataloader,
-                num_perturbed,
-                num_samples,
-                num_continuous,
-                models_path,
+                config=config,
+                task_config=task_config,
+                train_dataloader=train_dataloader,
+                baseline_dataloader=baseline_dataloader,
+                models_path=models_path,
+                num_perturbed=num_perturbed,
+                num_samples=num_samples,
+                num_continuous=num_continuous,
+                nan_mask=nan_mask,
+                feature_mask=feature_mask,
             )
             logger.debug(
                 "Completed bayes task (parallel function in main function "
@@ -874,15 +876,15 @@ def identify_associations(config: MOVEConfig) -> None:
             sig_ids, *extra_cols = _bayes_approach(
                 config,
                 task_config,
-                train_dataloader,
-                baseline_dataloader,
-                dataloaders,
-                models_path,
-                num_perturbed,
-                num_samples,
-                num_continuous,
-                nan_mask,
-                feature_mask,
+                train_dataloader=train_dataloader,
+                baseline_dataloader=baseline_dataloader,
+                dataloaders=dataloaders,
+                models_path=models_path,
+                num_perturbed=num_perturbed,
+                num_samples=num_samples,
+                num_continuous=num_continuous,
+                nan_mask=nan_mask,
+                feature_mask=feature_mask,
             )
 
         extra_colnames = ["proba", "fdr", "bayes_k"]

@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 
 from move.conf.schema import IdentifyAssociationsBayesConfig, MOVEConfig
 from move.core.logging import get_logger
+from move.core.typing import BoolArray
 from move.data.dataloaders import MOVEDataset
 from move.data.perturbations import (
     ContinuousPerturbationType,
@@ -160,11 +161,12 @@ def _bayes_approach_parallel(
     task_config: IdentifyAssociationsBayesConfig,
     train_dataloader: DataLoader,
     baseline_dataloader: DataLoader,
+    models_path: Path,
     num_perturbed: int,
     num_samples: int,
     num_continuous: int,
-    models_path: Path,
-    # indexes,
+    nan_mask: BoolArray,
+    feature_mask: BoolArray,
 ):
     logger = get_logger(__name__)
     logger.debug("Inside the bayes_parallel function")

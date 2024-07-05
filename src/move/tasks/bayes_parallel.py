@@ -62,13 +62,11 @@ def _bayes_approach_worker(args):
     # all refits (all refits have the same importance)
     # We also set up bayes_k, which has the same dimensions as mean_diff
     mean_diff = np.zeros((num_samples, num_continuous))
-    bayes_k_worker = np.zeros(
-        (num_continuous)
-    )  # This will be what we will put in bayes_k[i,:]
+    # This will be what we will put in bayes_k[i,:]
+    bayes_k_worker = np.zeros((num_continuous))
     # Set the normalizer
-    normalizer = (
-        1 / task_config.num_refits
-    )  # Divide by the number of refits. All the refits will have the same importance
+    # Divide by the number of refits. All the refits will have the same importance
+    normalizer = 1 / task_config.num_refits
 
     # Create perturbed dataloader for the current feature (i)
     logger.debug(f"Creating perturbed dataloader for feature {i}")
@@ -306,25 +304,8 @@ def _bayes_approach_parallel(
         logger.debug(f"{i} has bayes_k worker {computed_bayes_k}")
         bayes_k[i, :] = computed_bayes_k
 
-    # Once we have the Bayes factors for all features, we can calculate Bayes
-    # probabilities
     bayes_abs = np.abs(bayes_k)  # Dimensions are (num_perturbed, num_continuous)
-    bayes_max = np.max(bayes_abs)
-    bayes_min = np.min(bayes_abs)
-    bayes_abs_shape = bayes_abs.shape
-    logger.debug(
-        f"bayes_abs max is {bayes_max}. Bayes_abs min is {bayes_min}. "
-        f"Bayes_abs shape is {bayes_abs_shape}"
-    )
-
-    bayes_p = np.exp(bayes_abs) / (
-        1 + np.exp(bayes_abs)
-    )  # 2D: N x C (perturbed features as rows, all continuous features as columns)
-    bayes_p_shape = bayes_p.shape
-    logger.debug(f"bayes_p shape is {bayes_p_shape}")
-    # file_path = output_path / "bayes_p_multi.tsv"
-    # logger.debug(f"Saving bayes_p to {file_path}")
-    # np.savetxt(file_path, bayes_p, delimiter='\t')
+    bayes_p = np.exp(bayes_abs) / (1 + np.exp(bayes_abs))  # 2D: N x C
 
     # NOTE_ : I AM SKIPPING THE MASK STEP, SO I WILL HAVE TO REMOVE
     # FEATURE I - FEATURE I ASSOCIATIONS LATER, in the results
@@ -335,12 +316,8 @@ def _bayes_approach_parallel(
     # Then, we sort them, and get the indexes in the flattened array. So, we get an
     # list of sorted indexes in the flatenned array
     sort_ids = np.argsort(bayes_abs, axis=None)[::-1]  # 1D: N x C
-    # file_path = output_path / "sort_ids_multi.tsv"
     logger.debug(f"sort_ids are {sort_ids}")
-    # logger.debug(f"Saving sort_ids to {file_path}")
-    # np.savetxt(file_path, sort_ids, delimiter='\t')
 
-    prob = np.take(bayes_p, sort_ids)  # 1D: N x C
     # bayes_p is the array from which elements will be taken.
     # sort_ids contains the indices that determine the order in which elements should
     # be taken from bayes_p.
@@ -351,28 +328,22 @@ def _bayes_approach_parallel(
     # So, even though sort_ids is obtained from a flattened version of bayes_abs,
     # np.take understands how to map these indices
     # correctly to the original shape of bayes_p. We get a flattened array?
-    logger.debug(f"prob is {prob}")
+    prob = np.take(bayes_p, sort_ids)  # 1D: N x C
     logger.debug(f"Bayes proba range: [{prob[-1]:.3f} {prob[0]:.3f}]")
 
     # Sort bayes_k in descending order, aligning with the sorted bayes_abs.
     bayes_k = np.take(bayes_k, sort_ids)  # 1D: N x C
-    logger.debug(f"bayes k, after sorting with the ids, is {bayes_k}")
 
-    logger.debug("Calculating fdr")
     # Calculate FDR
     fdr = np.cumsum(1 - prob) / np.arange(1, prob.size + 1)  # 1D ???
-    logger.debug(f"fdr is {fdr}")
-    logger.debug(f"FDR range: [{fdr[0]:.3f} {fdr[-1]:.3f}]")
     idx = np.argmin(np.abs(fdr - task_config.sig_threshold))
+    logger.debug(f"FDR range: [{fdr[0]:.3f} {fdr[-1]:.3f}]")
     logger.debug(f"Index is {idx}")
     # idx will contain the index of the element in fdr that is closest
     # to task_config.sig_threshold.
     # This line essentially finds the index where the False Discovery Rate (fdr) is
     # closest to the significance threshold
     # (task_config.sig_threshold).
-
-    logger.debug(f"Sig ids sorted is {sort_ids}")
-    logger.debug(f"Sigids[idx] is {sort_ids[:idx]}")
 
     # Return elements only up to idx. They will be the significant findings
     # sort_ids[:idx]: Indices of features sorted by significance.

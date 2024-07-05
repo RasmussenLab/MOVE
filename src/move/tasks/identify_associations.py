@@ -243,7 +243,7 @@ def _bayes_approach_worker(args):
     logger.debug(f"Creating perturbed dataloader for feature {i}")
     perturbed_dataloader = perturb_continuous_data_extended_one(
         baseline_dataloader=baseline_dataloader,
-        con_dataset_names=config.data.categorical_names,  # ! was an error: continuous_names
+        con_dataset_names=config.data.categorical_names,  # ! error: continuous_names
         target_dataset_name=task_config.target_dataset,
         perturbation_type=cast(ContinuousPerturbationType, task_config.target_value),
         index_pert_feat=i,
@@ -458,13 +458,7 @@ def _bayes_approach_parallel(
         )
         for i in range(num_perturbed)
     ]
-    # for i in range(100)] # Possible to change to less perturbations if needed
 
-    # logger.debug(f"Arguments for workers are {args}")
-
-    # Create a Pool with multiprocessing.cpu_count() - 1 processes
-    # with Pool(processes=torch.multiprocessing.cpu_count() - 1, maxtasksperchild=1
-    # ) as pool:
     with Pool(processes=torch.multiprocessing.cpu_count() - 1) as pool:
         logger.debug("Inside the pool loops")
         # Map worker function to arguments
@@ -669,68 +663,68 @@ def _bayes_approach(
     # Replace masked values with a placeholder (e.g., np.nan)
     data[mask] = np.nan
     # Define the file path to save the TSV file
-    output_path = Path(config.data.results_path) / "identify_associations"
-    file_path = output_path / "diff_normal.tsv"
+    # output_path = Path(config.data.results_path) / "identify_associations"
+    # file_path = output_path / "diff_normal.tsv"
     # Save the data to the TSV fil
     # logger.debug(f"Saving diff to {file_path}")
-    np.savetxt(file_path, diff, delimiter="\t")
+    # np.savetxt(file_path, diff, delimiter="\t")
 
     # data = prob.data  # Extract the data from the masked array
     # mask = prob.mask  # Extract the mask from the masked array
     # Replace masked values with a placeholder (e.g., np.nan)
     # data[mask] = np.nan
     # Define the file path to save the TSV file
-    output_path = Path(config.data.results_path) / "identify_associations"
-    file_path = output_path / "prob_original_script.tsv"
-    # Save the data to the TSV fil
-    logger.debug(f"Saving prob to {file_path}")
-    np.savetxt(file_path, prob, delimiter="\t")
-    logger.debug(f"prob is {prob}")
+    # output_path = Path(config.data.results_path) / "identify_associations"
+    # file_path = output_path / "prob_original_script.tsv"
+    # # Save the data to the TSV fil
+    # logger.debug(f"Saving prob to {file_path}")
+    # np.savetxt(file_path, prob, delimiter="\t")
+    # logger.debug(f"prob is {prob}")
 
-    file_path = output_path / "bayes_k_original_all.tsv"
-    logger.debug(f"Saving bayes_k (not worker, all) to {file_path}")
-    np.savetxt(file_path, bayes_k, delimiter="\t")
-
+    # file_path = output_path / "bayes_k_original_all.tsv"
+    # logger.debug(f"Saving bayes_k (not worker, all) to {file_path}")
+    # np.savetxt(file_path, bayes_k, delimiter="\t")
     bayes_mask[bayes_mask != 0] = 1
     bayes_mask = np.array(bayes_mask, dtype=bool)
 
     # Calculate Bayes probabilities
     bayes_abs = np.abs(bayes_k)
-    file_path = output_path / "bayes_abs_original.tsv"
-    logger.debug(f"Saving bayes_abs to {file_path}")
-    np.savetxt(file_path, bayes_abs, delimiter="\t")
+    # file_path = output_path / "bayes_abs_original.tsv"
+    # logger.debug(f"Saving bayes_abs to {file_path}")
+    # np.savetxt(file_path, bayes_abs, delimiter="\t")
 
     bayes_p = np.exp(bayes_abs) / (1 + np.exp(bayes_abs))  # 2D: N x C
-    file_path = output_path / "bayes_p_original.tsv"
-    logger.debug(f"Saving bayes_p to {file_path}")
-    np.savetxt(file_path, bayes_p, delimiter="\t")
+    # file_path = output_path / "bayes_p_original.tsv"
+    # logger.debug(f"Saving bayes_p to {file_path}")
+    # np.savetxt(file_path, bayes_p, delimiter="\t")
 
-    # bayes_abs[bayes_mask] = np.min(
-    #   bayes_abs
-    # )  # Bring feature_i feature_i associations to minimum
+    # ! Marc said this is needed to not identify the features with themselves
+    bayes_abs[bayes_mask] = np.min(
+        bayes_abs
+    )  # Bring feature_i feature_i associations to minimum
     sort_ids = np.argsort(bayes_abs, axis=None)[::-1]  # 1D: N x C
-    file_path = output_path / "sort_ids_original_script.tsv"
-    logger.debug(f"Saving sort_ids to {file_path}")
-    np.savetxt(file_path, sort_ids, delimiter="\t")
+    # file_path = output_path / "sort_ids_original_script.tsv"
+    # logger.debug(f"Saving sort_ids to {file_path}")
+    # np.savetxt(file_path, sort_ids, delimiter="\t")
     logger.debug(f"sort_ids are {sort_ids}")
 
     prob = np.take(bayes_p, sort_ids)  # 1D: N x C
-    file_path = output_path / "prob_original_final.tsv"
-    logger.debug(f"Saving prob to {file_path}")
-    np.savetxt(file_path, prob, delimiter="\t")
+    # file_path = output_path / "prob_original_final.tsv"
+    # logger.debug(f"Saving prob to {file_path}")
+    # np.savetxt(file_path, prob, delimiter="\t")
     logger.debug(f"Bayes proba range: [{prob[-1]:.3f} {prob[0]:.3f}]")
 
     # Sort Bayes
     bayes_k = np.take(bayes_k, sort_ids)  # 1D: N x C
-    file_path = output_path / "sorted_bayes_k_original_script.tsv"
-    logger.debug(f"Saving sorted_bayes_k to {file_path}")
-    np.savetxt(file_path, bayes_k, delimiter="\t")
+    # file_path = output_path / "sorted_bayes_k_original_script.tsv"
+    # logger.debug(f"Saving sorted_bayes_k to {file_path}")
+    # np.savetxt(file_path, bayes_k, delimiter="\t")
 
     # Calculate FDR
     fdr = np.cumsum(1 - prob) / np.arange(1, prob.size + 1)  # 1D
-    file_path = output_path / "fdr_original_script.tsv"
-    logger.debug(f"Saving fdr to {file_path}")
-    np.savetxt(file_path, fdr, delimiter="\t")
+    # file_path = output_path / "fdr_original_script.tsv"
+    # logger.debug(f"Saving fdr to {file_path}")
+    # np.savetxt(file_path, fdr, delimiter="\t")
     idx = np.argmin(np.abs(fdr - task_config.sig_threshold))
     logger.debug(f"Index is {idx}")
     # file_path = output_path / "idx_original_script.tsv"
@@ -1303,6 +1297,8 @@ def identify_associations(config: MOVEConfig) -> None:
 
     elif task_type == "ttest":
         task_config = cast(IdentifyAssociationsTTestConfig, task_config)
+        if task_config.multiprocess:
+            logger.warning("Multiprocessing is not supported for ttest approach.")
         sig_ids, *extra_cols = _ttest_approach(
             task_config,
             train_dataloader,
@@ -1321,6 +1317,8 @@ def identify_associations(config: MOVEConfig) -> None:
 
     elif task_type == "ks":
         task_config = cast(IdentifyAssociationsKSConfig, task_config)
+        if task_config.multiprocess:
+            logger.warning("Multiprocessing is not supported for KS approach.")
         sig_ids, *extra_cols = _ks_approach(
             config,
             task_config,

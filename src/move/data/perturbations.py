@@ -19,6 +19,58 @@ from move.visualization.dataset_distributions import plot_value_distributions
 
 ContinuousPerturbationType = Literal["minimum", "maximum", "plus_std", "minus_std"]
 
+logger = get_logger(__name__)
+
+
+def _build_perturbed_dataloader(baseline_dataset, perturbed, batch_size):
+    # currently for continuous data only
+    perturbed_dataset = MOVEDataset(
+        baseline_dataset.cat_all,
+        perturbed,
+        baseline_dataset.cat_shapes,
+        baseline_dataset.con_shapes,
+    )
+
+    perturbed_dataloader = DataLoader(
+        perturbed_dataset,
+        shuffle=False,
+        batch_size=batch_size,
+    )
+    return perturbed_dataloader
+
+
+def _pertub_cont_feat_col(baseline_dataset, slice_, index_pert_feat, perturbation_type):
+
+    logger.debug(f"Slice: %s {slice_}")
+    perturbed_con = baseline_dataset.con_all.clone()
+    target_dataset = perturbed_con[:, slice_]
+    logger.debug(f"Target dataset shape: {target_dataset.shape}")
+    logger.debug(
+        f"Changing to desired perturbation value for feature {index_pert_feat}"
+    )
+    # Change the desired feature value by:
+    min_feat_val_list, max_feat_val_list, std_feat_val_list = feature_stats(
+        target_dataset
+    )
+    if perturbation_type == "minimum":
+        target_dataset[:, index_pert_feat] = torch.FloatTensor(
+            [min_feat_val_list[index_pert_feat]]
+        )
+    elif perturbation_type == "maximum":
+        target_dataset[:, index_pert_feat] = torch.FloatTensor(
+            [max_feat_val_list[index_pert_feat]]
+        )
+    elif perturbation_type == "plus_std":
+        target_dataset[:, index_pert_feat] += torch.FloatTensor(
+            [std_feat_val_list[index_pert_feat]]
+        )
+    elif perturbation_type == "minus_std":
+        target_dataset[:, index_pert_feat] -= torch.FloatTensor(
+            [std_feat_val_list[index_pert_feat]]
+        )
+    logger.debug(f"Perturbation succesful for feature {index_pert_feat}")
+    return perturbed_con
+
 
 def perturb_categorical_data(
     baseline_dataloader: DataLoader,
@@ -74,6 +126,7 @@ def perturb_categorical_data(
     return dataloaders
 
 
+# not used anymore
 def perturb_continuous_data(
     baseline_dataloader: DataLoader,
     con_dataset_names: list[str],
@@ -99,7 +152,7 @@ def perturb_continuous_data(
 
     target_idx = con_dataset_names.index(target_dataset_name)
     splits = np.cumsum([0] + baseline_dataset.con_shapes)
-    slice_ = slice(*splits[target_idx : target_idx + 2])
+    slice_ = slice(*splits[target_idx : target_idx + 2])  # start, stop, step
 
     num_features = baseline_dataset.con_shapes[target_idx]
 
@@ -108,15 +161,9 @@ def perturb_continuous_data(
         perturbed_con = baseline_dataset.con_all.clone()
         target_dataset = perturbed_con[:, slice_]
         target_dataset[:, i] = torch.FloatTensor([target_value])
-        perturbed_dataset = MOVEDataset(
-            baseline_dataset.cat_all,
-            perturbed_con,
-            baseline_dataset.cat_shapes,
-            baseline_dataset.con_shapes,
-        )
-        perturbed_dataloader = DataLoader(
-            perturbed_dataset,
-            shuffle=False,
+        perturbed_dataloader = _build_perturbed_dataloader(
+            baseline_dataset=baseline_dataset,
+            perturbed=perturbed_con,
             batch_size=baseline_dataloader.batch_size,
         )
         dataloaders.append(perturbed_dataloader)
@@ -209,15 +256,9 @@ def perturb_continuous_data_one(
     perturbed_con = baseline_dataset.con_all.clone()
     target_dataset = perturbed_con[:, slice_]
     target_dataset[:, i] = torch.FloatTensor([target_value])
-    perturbed_dataset = MOVEDataset(
-        baseline_dataset.cat_all,
-        perturbed_con,
-        baseline_dataset.cat_shapes,
-        baseline_dataset.con_shapes,
-    )
-    perturbed_dataloader = DataLoader(
-        perturbed_dataset,
-        shuffle=False,
+    perturbed_dataloader = _build_perturbed_dataloader(
+        baseline_dataset=baseline_dataset,
+        perturbed=perturbed_con,
         batch_size=baseline_dataloader.batch_size,
     )
 
@@ -267,33 +308,17 @@ def perturb_continuous_data_extended(
     perturbations_list = []
 
     for i in range(num_features):
-        perturbed_con = baseline_dataset.con_all.clone()
-        target_dataset = perturbed_con[:, slice_]
-        # Change the desired feature value by:
-        min_feat_val_list, max_feat_val_list, std_feat_val_list = feature_stats(
-            target_dataset
+        perturbed_con = _pertub_cont_feat_col(
+            baseline_dataset=baseline_dataset,
+            slice_=slice_,
+            index_pert_feat=i,
+            perturbation_type=perturbation_type,
         )
-        if perturbation_type == "minimum":
-            target_dataset[:, i] = torch.FloatTensor([min_feat_val_list[i]])
-        elif perturbation_type == "maximum":
-            target_dataset[:, i] = torch.FloatTensor([max_feat_val_list[i]])
-        elif perturbation_type == "plus_std":
-            target_dataset[:, i] += torch.FloatTensor([std_feat_val_list[i]])
-        elif perturbation_type == "minus_std":
-            target_dataset[:, i] -= torch.FloatTensor([std_feat_val_list[i]])
+        perturbations_list.append(perturbed_con[:, slice_][:, i].numpy())
 
-        perturbations_list.append(target_dataset[:, i].numpy())
-
-        perturbed_dataset = MOVEDataset(
-            baseline_dataset.cat_all,
-            perturbed_con,
-            baseline_dataset.cat_shapes,
-            baseline_dataset.con_shapes,
-        )
-
-        perturbed_dataloader = DataLoader(
-            perturbed_dataset,
-            shuffle=False,
+        perturbed_dataloader = _build_perturbed_dataloader(
+            baseline_dataset=baseline_dataset,
+            perturbed=perturbed_con,
             batch_size=baseline_dataloader.batch_size,
         )
         dataloaders.append(perturbed_dataloader)
@@ -321,7 +346,6 @@ def perturb_continuous_data_extended_one(
 ) -> (
     DataLoader
 ):  # But we change the output from list[DataLoader] to just one DataLoader
-    logger = get_logger(__name__)
     """Add perturbations to continuous data. For each feature in the target
     dataset, change the feature's value in all samples (in rows):
     1,2) substituting this feature in all samples by the feature's minimum/maximum value
@@ -362,51 +386,22 @@ def perturb_continuous_data_extended_one(
     # perturb, we do it only for one feature, the one indicated in index_pert_feat
     logger.debug(f"Setting up perturbed_con for feature {index_pert_feat}")
 
-    perturbed_con = baseline_dataset.con_all.clone()
-    target_dataset = perturbed_con[:, slice_]
-
-    logger.debug(
-        f"Changing to desired perturbation value for feature {index_pert_feat}"
+    perturbed_con = _pertub_cont_feat_col(
+        baseline_dataset=baseline_dataset,
+        slice_=slice_,
+        index_pert_feat=index_pert_feat,
+        perturbation_type=perturbation_type,
     )
-    # Change the desired feature value by:
-    min_feat_val_list, max_feat_val_list, std_feat_val_list = feature_stats(
-        target_dataset
-    )
-    if perturbation_type == "minimum":
-        target_dataset[:, index_pert_feat] = torch.FloatTensor(
-            [min_feat_val_list[index_pert_feat]]
-        )
-    elif perturbation_type == "maximum":
-        target_dataset[:, index_pert_feat] = torch.FloatTensor(
-            [max_feat_val_list[index_pert_feat]]
-        )
-    elif perturbation_type == "plus_std":
-        target_dataset[:, index_pert_feat] += torch.FloatTensor(
-            [std_feat_val_list[index_pert_feat]]
-        )
-    elif perturbation_type == "minus_std":
-        target_dataset[:, index_pert_feat] -= torch.FloatTensor(
-            [std_feat_val_list[index_pert_feat]]
-        )
-    logger.debug(f"Perturbation succesful for feature {index_pert_feat}")
 
     logger.debug(
         f"Creating perturbed dataset and dataloader for feature {index_pert_feat}"
     )
 
-    perturbed_dataset = MOVEDataset(
-        baseline_dataset.cat_all,
-        perturbed_con,
-        baseline_dataset.cat_shapes,
-        baseline_dataset.con_shapes,
-    )
-
-    perturbed_dataloader = DataLoader(
-        perturbed_dataset,
-        shuffle=False,
+    perturbed_dataloader = _build_perturbed_dataloader(
+        baseline_dataset=baseline_dataset,
+        perturbed=perturbed_con,
         batch_size=baseline_dataloader.batch_size,
     )
-    # dataloaders.append(perturbed_dataloader)
 
     logger.debug(
         f"Finished perturb_continuous_data_extended_one for feature {index_pert_feat}"

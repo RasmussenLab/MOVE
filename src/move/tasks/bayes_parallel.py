@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Literal, cast
+from typing import Literal, Union, cast
 
 import hydra
 import numpy as np
@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 
 from move.conf.schema import IdentifyAssociationsBayesConfig, MOVEConfig
 from move.core.logging import get_logger
-from move.core.typing import BoolArray
+from move.core.typing import BoolArray, FloatArray, IntArray
 from move.data.dataloaders import MOVEDataset
 from move.data.perturbations import (
     ContinuousPerturbationType,
@@ -90,6 +90,8 @@ def _bayes_approach_worker(args):
         if reconstruction_path.exists():
             logger.debug(f"Loading baseline reconstruction from {reconstruction_path}.")
             baseline_recon = torch.load(reconstruction_path)
+        else:
+            raise FileNotFoundError("Baseline reconstruction not found.")
 
         logger.debug(f"Loading model {model_path}, using load function")
         model: VAE = hydra.utils.instantiate(
@@ -245,6 +247,8 @@ def _bayes_approach_parallel(
         # getting the reconstruction for the baseline, to make sure that we get
         # the same reconstruction for each refit, we cannot
         # do it inside each process because the results might be different
+        # ! here the logic is a bit off. If the reconstruction path exist, the model
+        # ! does not to be loaded again.
 
         if reconstruction_path.exists():
             logger.debug(

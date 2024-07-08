@@ -260,15 +260,6 @@ def _bayes_approach_parallel(
             logger.debug(f"Saved baseline reconstruction {j}")
             del model
 
-    # Get NaN mask ouside the worker function, it is the same for all.
-    logger.debug("Creating NaN mask in bayes_parallel")
-    orig_con = (
-        baseline_dataset.con_all
-    )  # Original continuous data of the baseline dataset (all data)
-    nan_mask = (
-        orig_con == 0
-    ).numpy()  # Creates a mask to identify NaN values in the original data.
-
     # Define more arguments that are needed for the worker functions
     continuous_shapes = baseline_dataset.con_shapes
     categorical_shapes = baseline_dataset.cat_shapes

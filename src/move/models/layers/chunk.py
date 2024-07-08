@@ -72,7 +72,7 @@ class SplitOutput(nn.Module):
     num_features: int
     num_expected_features: int
     num_distribution_args: int
-    discrete_dataset_shapes: list[tuple[int, ...]]
+    discrete_dataset_shapes: list[tuple[int, int]]
     discrete_dataset_shapes_1d: list[int]
     continuous_dataset_shapes: list[int]
     discrete_split_indices: list[int]
@@ -82,7 +82,7 @@ class SplitOutput(nn.Module):
 
     def __init__(
         self,
-        discrete_dataset_shapes: list[tuple[int, ...]],
+        discrete_dataset_shapes: list[tuple[int, int]],
         continuous_dataset_shapes: list[int],
         distribution_name_or_cls: Union[str, Type[Distribution], None] = None,
         discrete_activation_name: Optional[str] = None,
@@ -224,7 +224,7 @@ class SplitInput(SplitOutput):
 
     def __init__(
         self,
-        discrete_dataset_shapes: list[tuple[int, ...]],
+        discrete_dataset_shapes: list[tuple[int, int]],
         continuous_dataset_shapes: list[int],
     ) -> None:
         super().__init__(discrete_dataset_shapes, continuous_dataset_shapes, None)

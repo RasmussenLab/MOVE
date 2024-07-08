@@ -1,7 +1,7 @@
 __all__ = ["find_grid_dimensions", "facet_grid"]
 
 import math
-from typing import Literal, Optional
+from typing import Any, Literal, Optional
 
 import matplotlib.figure
 import matplotlib.pyplot as plt
@@ -148,7 +148,7 @@ def facet_grid(
             x_coord = (i // ncols) + 1 * (cbar_location == "top")
             y_coord = (i % ncols) + 1 * (cbar_location == "left")
 
-            kwargs = {}
+            kwargs: dict[str, Any] = {}
             if sharex and ax0 is not None:
                 kwargs["sharex"] = ax0
             if sharey and ax0 is not None:

@@ -6,6 +6,7 @@ from importlib import import_module
 from pathlib import Path
 from typing import (
     Any,
+    Literal,
     OrderedDict,
     Type,
     TypedDict,
@@ -80,12 +81,14 @@ class BaseVae(nn.Module, ABC):
     @overload
     @abstractmethod
     def reconstruct(
-        self, batch: torch.Tensor, as_one: bool = False
+        self, batch: torch.Tensor, as_one: Literal[False]
     ) -> tuple[torch.Tensor, torch.Tensor]: ...
 
     @overload
     @abstractmethod
-    def reconstruct(self, batch: torch.Tensor, as_one: bool = True) -> torch.Tensor: ...
+    def reconstruct(
+        self, batch: torch.Tensor, as_one: Literal[True]
+    ) -> torch.Tensor: ...
 
     @torch.no_grad()
     @abstractmethod
@@ -115,7 +118,7 @@ class BaseVae(nn.Module, ABC):
 
     def save(self, model_path: Path) -> None:
         """Save the serialized config and state dict of the model to disk."""
-        argnames = inspect.signature(self.__init__).parameters.keys()
+        argnames = inspect.signature(self.__class__).parameters.keys()
         config = {argname: getattr(self, argname) for argname in argnames}
         config["_target_"] = get_fully_qualname(self)
         model = SerializedModel(

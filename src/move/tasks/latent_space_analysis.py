@@ -111,21 +111,21 @@ class LatentSpaceAnalysis(MoveTask):
 
         test_dataloader = self.make_dataloader(split="test")
 
-        subtask = Project(model, test_dataloader, self.reducer_config)
-        subtask.parent = self
-        subtask.run()
+        project_subtask = Project(model, test_dataloader, self.reducer_config)
+        project_subtask.parent = self
+        project_subtask.run()
         if self.features_to_plot:
-            subtask.plot(self.features_to_plot)
+            project_subtask.plot(self.features_to_plot)
 
         if self.compute_accuracy_metrics:
-            subtask = ComputeAccuracyMetrics(self, model, test_dataloader)
-            subtask.run()
-            subtask.plot()
+            metrics_subtask = ComputeAccuracyMetrics(self, model, test_dataloader)
+            metrics_subtask.run()
+            metrics_subtask.plot()
 
         if self.compute_feature_importance:
-            subtask = FeatureImportance(self, model, test_dataloader)
-            subtask.run()
-            subtask.plot()
+            fi_subtask = FeatureImportance(self, model, test_dataloader)
+            fi_subtask.run()
+            fi_subtask.plot()
 
 
 class Project(CsvWriterMixin, SubTask):

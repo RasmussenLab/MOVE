@@ -194,7 +194,7 @@ MAX_FILENAME_LEN = 255
 
 def sanitize_filename(string: str) -> str:
     """Sanitize a filename."""
-    # Replace non-alpha charaacters with underscore
+    # Replace non-alpha characters with underscore
     filename = re.sub(r'[<>:"/\\|?*\0-\x1f\x7f]', "_", string)
     # Check if reserved Windows name
     sep_idx = filename.rindex(".")

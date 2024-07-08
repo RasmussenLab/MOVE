@@ -1,6 +1,6 @@
 __all__ = ["get_fully_qualname"]
 
-from typing import Any, Type
+from typing import Any
 
 
 def get_fully_qualname(sth: Any) -> str:
@@ -8,7 +8,7 @@ def get_fully_qualname(sth: Any) -> str:
 
     Args:
         sth: Anything"""
-    if not isinstance(sth, Type):
+    if not isinstance(sth, type):
         class_ = type(sth)
     else:
         class_ = sth

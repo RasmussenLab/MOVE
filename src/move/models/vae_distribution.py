@@ -6,7 +6,6 @@ from typing import Optional, Type, cast
 
 import torch
 import torch.optim
-from torch import nn
 from torch.distributions import (
     Categorical,
     Distribution,

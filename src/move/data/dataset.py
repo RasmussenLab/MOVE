@@ -3,10 +3,11 @@ __all__ = ["DiscreteDataset", "ContinuousDataset", "MoveDataset"]
 import operator
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Literal, NoReturn, Optional, Type, TypeVar, Union, cast
+from typing import Literal, Optional, Type, TypeVar, Union, cast
 
 import pandas as pd
 import torch
+from torch import nn
 from torch.utils.data import Dataset
 
 from move.core.exceptions import UnsetProperty
@@ -39,7 +40,7 @@ class NamedDataset(Dataset, ABC):
             feature_names = [f"{self.name}_{i}" for i in range(self.num_features)]
         self.feature_names = feature_names
 
-    def __add__(self, other: "NamedDataset") -> "MoveDataset":
+    def __add__(self, other: "NamedDataset") -> "MoveDataset":  # type: ignore[override]
         return MoveDataset(self, other)
 
     def __getitem__(self, index: int) -> torch.Tensor:
@@ -54,7 +55,7 @@ class NamedDataset(Dataset, ABC):
     def __str__(self) -> str:
         return self.name
 
-    def _validate_names(self, feature_names: list[str]) -> Union[None, NoReturn]:
+    def _validate_names(self, feature_names: list[str]) -> None:
         num_feature_names = len(feature_names)
         if num_feature_names != self.num_feature_names:
             raise ValueError(
@@ -192,7 +193,7 @@ class MoveDataset(Dataset):
         indices = None
         items = [[dataset[index] for dataset in self.datasets.values()]]
         if self.perturbation is not None:
-            values = []
+            values: list[torch.Tensor] = []
             for dataset in self._list:
                 if dataset.name == self.perturbation.dataset_name:
                     left, _, right = torch.tensor_split(
@@ -365,7 +366,7 @@ class MoveDataset(Dataset):
             discrete_dataset_names: Names of discrete datasets
             continuous_dataset_names: Names of continuous datasets
         """
-        datasets = []
+        datasets: list[NamedDataset] = []
         for dataset_name in discrete_dataset_names:
             datasets.append(DiscreteDataset.load(path / f"{dataset_name}.pt"))
         for dataset_name in continuous_dataset_names:

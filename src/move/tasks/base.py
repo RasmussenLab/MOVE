@@ -102,7 +102,7 @@ class Task(ABC, LoggerMixin):
 
     def to_yaml(self, filepath: PathLike) -> None:
         """Save task config as YAML file."""
-        signature = inspect.signature(self.__init__).parameters.keys()
+        signature = inspect.signature(self.__class__).parameters.keys()
         config = OmegaConf.create({name: getattr(self, name) for name in signature})
         with open(filepath, "w") as file:
             file.write(OmegaConf.to_yaml(config))
@@ -193,7 +193,7 @@ class CsvWriterMixin(LoggerMixin):
     @property
     def row_buffer(self) -> list[CsvRow]:
         if getattr(self, "_buffer", None) is None:
-            self._buffer = []
+            self._buffer: list[CsvRow] = []
         return self._buffer
 
     @property

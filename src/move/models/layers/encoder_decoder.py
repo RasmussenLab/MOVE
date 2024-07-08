@@ -1,6 +1,6 @@
 __all__ = ["Encoder", "Decoder"]
 
-from typing import Any, Sequence, Union, cast, overload
+from typing import Any, Sequence
 
 import torch
 from torch import nn
@@ -22,7 +22,7 @@ def build_network(
     activation_fun = getattr(nn, activation_fun_name)
     assert issubclass(activation_fun, nn.Module)
 
-    layers = []
+    layers: list[nn.Module] = []
     layer_dims = [input_dim, *compress_dims]
 
     out_features = None

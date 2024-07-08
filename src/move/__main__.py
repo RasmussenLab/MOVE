@@ -3,7 +3,6 @@ __all__ = []
 import hydra
 from omegaconf import OmegaConf
 
-import move.tasks
 from move import HYDRA_VERSION_BASE
 from move.conf.schema import SUPPORTED_TASKS, MOVEConfig
 from move.core.logging import get_logger

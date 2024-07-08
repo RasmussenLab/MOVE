@@ -1,6 +1,4 @@
-__all__ = []
-
-from typing import cast
+__all__ = ["FeatureImportance"]
 
 import pandas as pd
 import torch
@@ -8,7 +6,6 @@ import torch
 import move.visualization as viz
 from move.core.exceptions import UnsetProperty
 from move.data.dataloader import MoveDataLoader
-from move.data.dataset import DiscreteDataset
 from move.data.io import sanitize_filename
 from move.models.base import BaseVae
 from move.tasks.base import CsvWriterMixin, ParentTask, SubTask

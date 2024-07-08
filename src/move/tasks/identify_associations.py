@@ -48,6 +48,8 @@ TaskType = Literal["bayes", "ttest", "ks"]
 # Possible values for continuous pertrubation
 CONTINUOUS_TARGET_VALUE = ["minimum", "maximum", "plus_std", "minus_std"]
 
+logger = get_logger(__name__)
+
 
 def _get_task_type(
     task_config: IdentifyAssociationsConfig,
@@ -101,7 +103,6 @@ def prepare_for_categorical_perturbation(
 
     # Read original data and create perturbed datasets
     task_config = cast(IdentifyAssociationsConfig, config.task)
-    logger = get_logger(__name__)
 
     # Loading mappings:
     mappings = io.load_mappings(interim_path / "mappings.json")
@@ -169,7 +170,6 @@ def prepare_for_continuous_perturbation(
     """
 
     # Read original data and create perturbed datasets
-    logger = get_logger(__name__)
     task_config = cast(IdentifyAssociationsConfig, config.task)
 
     dataloaders = perturb_continuous_data_extended(
@@ -211,9 +211,8 @@ def _bayes_approach(
     assert task_config.model is not None
     device = torch.device("cuda" if task_config.model.cuda else "cpu")
 
-    # Train models
-    logger = get_logger(__name__)
-    logger.info("Training models")
+    # Train or reload models
+    logger.info("Training or reloading models")
     mean_diff = np.zeros((num_perturbed, num_samples, num_continuous))
     normalizer = 1 / task_config.num_refits
 
@@ -331,7 +330,6 @@ def _ttest_approach(
     device = torch.device("cuda" if task_config.model.cuda else "cpu")
 
     # Train models
-    logger = get_logger(__name__)
     logger.info("Training models")
     pvalues = np.empty(
         (
@@ -495,7 +493,6 @@ def _ks_approach(
     baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
 
     # Train models
-    logger = get_logger(__name__)
     logger.info("Training models")
 
     target_dataset_idx = config.data.continuous_names.index(task_config.target_dataset)
@@ -703,7 +700,6 @@ def save_results(
         extra_cols: extra data when calling the approach function
         extra_colnames: names for the extra data columns
     """
-    logger = get_logger(__name__)
     logger.info(f"Significant hits found: {sig_ids.size}")
     task_config = cast(IdentifyAssociationsConfig, config.task)
     task_type = _get_task_type(task_config)
@@ -764,7 +760,6 @@ def identify_associations(config: MOVEConfig) -> None:
     # DATA PREPARATION ######################
     # Read original data and create perturbed datasets####
 
-    logger = get_logger(__name__)
     task_config = cast(IdentifyAssociationsConfig, config.task)
     task_type = _get_task_type(task_config)
     _validate_task_config(task_config, task_type)

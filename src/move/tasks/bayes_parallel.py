@@ -25,6 +25,8 @@ TaskType = Literal["bayes", "ttest", "ks"]
 # Possible values for continuous pertrubation
 CONTINUOUS_TARGET_VALUE = ["minimum", "maximum", "plus_std", "minus_std"]
 
+logger = get_logger(__name__)
+
 
 def _bayes_approach_worker(args):
     """
@@ -172,7 +174,6 @@ def _bayes_approach_parallel(
     nan_mask: BoolArray,
     feature_mask: BoolArray,
 ):
-    logger = get_logger(__name__)
     logger.debug("Inside the bayes_parallel function")
 
     # First, I train or reload the models (number of refits),
@@ -187,7 +188,6 @@ def _bayes_approach_parallel(
     logger.debug("Model moved to device in bayes_approach_parallel")
 
     # Train or reload models
-    logger = get_logger(__name__)
     logger.info("Training or reloading models")
 
     for j in range(

@@ -5,11 +5,13 @@ import logging
 from abc import ABC, abstractmethod
 from io import TextIOWrapper
 from pathlib import Path
-from typing import Any, Optional, Sequence, Union, cast
+from typing import Any, Optional, Sequence, Type, TypeVar, Union, cast
 
+import hydra
 from numpy.typing import NDArray
-from omegaconf import OmegaConf
+from omegaconf import OmegaConf, DictConfig
 
+from move.core.qualname import get_fully_qualname
 from move.core.exceptions import FILE_EXISTS_WARNING, UnsetProperty
 from move.core.logging import get_logger
 from move.core.typing import LoggingLevel, PathLike
@@ -75,12 +77,28 @@ class LoggerMixin:
         self.logger.log(level_num, message)
 
 
+T = TypeVar("T", bound="Task")
+
+
 class Task(ABC, LoggerMixin):
     """Base class for a task"""
 
     @abstractmethod
     def run(self, *args, **kwargs) -> Any:
         raise NotImplementedError()
+
+    @classmethod
+    def from_config(cls: Type[T], config: DictConfig) -> T:
+        """Instantiate a task from its config file."""
+        if not hasattr(config, "task"):
+            raise UnsetProperty("Task configuration")
+        target_qualname = config.task._target_
+        current_qualname = get_fully_qualname(cls)
+        if target_qualname == current_qualname:
+            return hydra.utils.instantiate(config.task, _recursive_=False)
+        raise ValueError(
+            f"Received config for `{target_qualname}`, but current class is `{current_qualname}`"
+        )
 
     def to_yaml(self, filepath: PathLike) -> None:
         """Save task config as YAML file."""

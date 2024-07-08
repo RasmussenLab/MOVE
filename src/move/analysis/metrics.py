@@ -118,7 +118,7 @@ class ComputeAccuracyMetrics(CsvWriterMixin, SubTask):
     def run(self) -> None:
         if self.parent:
             csv_filepath = self.parent.output_dir / self.data_filename
-            colnames = self.dataloader.dataset.names
+            colnames = self.dataloader.dataset.dataset_names
             self.init_csv_writer(
                 csv_filepath, fieldnames=colnames, extrasaction="ignore"
             )

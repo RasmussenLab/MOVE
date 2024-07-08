@@ -233,7 +233,7 @@ class MoveDataset(Dataset):
                     (
                         dataset.name,
                         dataset.data_type,
-                        f"{dataset.num_features:,}",
+                        f"{dataset.num_feature_names:,}",
                         num_classes,
                     )
                 )
@@ -279,23 +279,27 @@ class MoveDataset(Dataset):
         )
 
     @property
-    def discrete_shapes(self) -> list[tuple[int, int]]:
+    def discrete_datasets(self) -> list[DiscreteDataset]:
         return [
-            dataset.original_shape
-            for dataset in self._list
-            if isinstance(dataset, DiscreteDataset)
+            dataset for dataset in self._list if isinstance(dataset, DiscreteDataset)
         ]
+
+    @property
+    def continuous_datasets(self) -> list[ContinuousDataset]:
+        return [
+            dataset for dataset in self._list if isinstance(dataset, ContinuousDataset)
+        ]
+
+    @property
+    def discrete_shapes(self) -> list[tuple[int, int]]:
+        return [dataset.original_shape for dataset in self.discrete_datasets]
 
     @property
     def continuous_shapes(self) -> list[int]:
-        return [
-            dataset.num_features
-            for dataset in self._list
-            if isinstance(dataset, ContinuousDataset)
-        ]
+        return [dataset.num_features for dataset in self.continuous_datasets]
 
     @property
-    def names(self) -> list[str]:
+    def dataset_names(self) -> list[str]:
         return list(self.datasets.keys())
 
     @property
@@ -309,19 +313,17 @@ class MoveDataset(Dataset):
         return feature_names
 
     @property
-    def continuous_feature_names(self) -> list[str]:
+    def discrete_feature_names(self) -> list[str]:
         feature_names = []
-        for dataset in self._list:
-            if dataset.data_type == "continuous":
-                feature_names.extend(dataset.feature_names)
+        for dataset in self.discrete_datasets:
+            feature_names.extend(dataset.feature_names)
         return feature_names
 
     @property
-    def discrete_feature_names(self) -> list[str]:
+    def continuous_feature_names(self) -> list[str]:
         feature_names = []
-        for dataset in self._list:
-            if dataset.data_type == "discrete":
-                feature_names.extend(dataset.feature_names)
+        for dataset in self.continuous_datasets:
+            feature_names.extend(dataset.feature_names)
         return feature_names
 
     @property

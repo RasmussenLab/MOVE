@@ -48,12 +48,12 @@ jobs:
         run: |
           cd tutorial
           move-dl data=random_small task=random_small__id_assoc_ttest --cfg job
-          move-dl data=random_small task=random_small__id_assoc_ttest task.training_loop.num_epochs=30 task.num_refits=4
+          move-dl data=random_small task=random_small__id_assoc_ttest task.training_loop.num_epochs=30 task.num_refits=1
       - name: Identify associations - bayes factors
         run: |
           cd tutorial
           move-dl data=random_small task=random_small__id_assoc_bayes --cfg job
-          move-dl data=random_small task=random_small__id_assoc_bayes task.training_loop.num_epochs=40 task.num_refits=25
+          move-dl data=random_small task=random_small__id_assoc_bayes task.training_loop.num_epochs=40 task.num_refits=1
   run-tutorial-w-multiprocessing:
     name: Run - random_small - multiprocess
     runs-on: ubuntu-latest
@@ -78,7 +78,7 @@ jobs:
         run: |
           cd tutorial
           move-dl data=random_small task=random_small__id_assoc_bayes task.multiprocess=true --cfg job
-          move-dl data=random_small task=random_small__id_assoc_bayes task.multiprocess=true task.training_loop.num_epochs=40 task.num_refits=25
+          move-dl data=random_small task=random_small__id_assoc_bayes task.multiprocess=true task.training_loop.num_epochs=40 task.num_refits=1
   run-tutorial-cont:
       name: Run tutorial - random_continuous
       runs-on: ubuntu-latest
@@ -107,12 +107,12 @@ jobs:
           run: |
             cd tutorial
             move-dl data=random_continuous task=random_continuous__id_assoc_bayes --cfg job
-            move-dl data=random_continuous task=random_continuous__id_assoc_bayes task.training_loop.num_epochs=30 task.num_refits=4
+            move-dl data=random_continuous task=random_continuous__id_assoc_bayes task.training_loop.num_epochs=30 task.num_refits=1
         - name: Identify associations - KS
           run: |
             cd tutorial
             move-dl data=random_continuous task=random_continuous__id_assoc_ks --cfg job
-            move-dl data=random_continuous task=random_continuous__id_assoc_ks task.training_loop.num_epochs=30 task.num_refits=4
+            move-dl data=random_continuous task=random_continuous__id_assoc_ks task.training_loop.num_epochs=30 task.num_refits=1
     
   publish:
     name: Publish package

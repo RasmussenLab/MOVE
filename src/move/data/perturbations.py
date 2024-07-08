@@ -39,33 +39,35 @@ def _build_perturbed_dataloader(baseline_dataset, perturbed, batch_size):
     return perturbed_dataloader
 
 
-def _pertub_cont_feat_col(baseline_dataset, slice_, index_pert_feat, perturbation_type):
+def _pertub_cont_feat_col(
+    baseline_dataset, start_idx, num_features, index_pert_feat, perturbation_type
+):
 
-    logger.debug(f"Slice: %s {slice_}")
     perturbed_con = baseline_dataset.con_all.clone()
-    target_dataset = perturbed_con[:, slice_]
+    target_dataset = perturbed_con[:, start_idx : start_idx + num_features]
     logger.debug(f"Target dataset shape: {target_dataset.shape}")
     logger.debug(
         f"Changing to desired perturbation value for feature {index_pert_feat}"
     )
     # Change the desired feature value by:
+    # ! one would only need the stats for a single feature?
     min_feat_val_list, max_feat_val_list, std_feat_val_list = feature_stats(
         target_dataset
     )
     if perturbation_type == "minimum":
-        target_dataset[:, index_pert_feat] = torch.FloatTensor(
+        perturbed_con[:, start_idx + index_pert_feat] = torch.FloatTensor(
             [min_feat_val_list[index_pert_feat]]
         )
     elif perturbation_type == "maximum":
-        target_dataset[:, index_pert_feat] = torch.FloatTensor(
+        perturbed_con[:, start_idx + index_pert_feat] = torch.FloatTensor(
             [max_feat_val_list[index_pert_feat]]
         )
     elif perturbation_type == "plus_std":
-        target_dataset[:, index_pert_feat] += torch.FloatTensor(
+        perturbed_con[:, start_idx + index_pert_feat] += torch.FloatTensor(
             [std_feat_val_list[index_pert_feat]]
         )
     elif perturbation_type == "minus_std":
-        target_dataset[:, index_pert_feat] -= torch.FloatTensor(
+        perturbed_con[:, start_idx + index_pert_feat] -= torch.FloatTensor(
             [std_feat_val_list[index_pert_feat]]
         )
     logger.debug(f"Perturbation succesful for feature {index_pert_feat}")
@@ -152,15 +154,13 @@ def perturb_continuous_data(
 
     target_idx = con_dataset_names.index(target_dataset_name)
     splits = np.cumsum([0] + baseline_dataset.con_shapes)
-    slice_ = slice(*splits[target_idx : target_idx + 2])  # start, stop, step
-
+    start_idx = splits[target_idx]
     num_features = baseline_dataset.con_shapes[target_idx]
 
     dataloaders = []
     for i in range(num_features):
         perturbed_con = baseline_dataset.con_all.clone()
-        target_dataset = perturbed_con[:, slice_]
-        target_dataset[:, i] = torch.FloatTensor([target_value])
+        perturbed_con[:, start_idx + i] = torch.FloatTensor([target_value])
         perturbed_dataloader = _build_perturbed_dataloader(
             baseline_dataset=baseline_dataset,
             perturbed=perturbed_con,
@@ -250,12 +250,10 @@ def perturb_continuous_data_one(
 
     target_idx = con_dataset_names.index(target_dataset_name)
     splits = np.cumsum([0] + baseline_dataset.con_shapes)
-    slice_ = slice(*splits[target_idx : target_idx + 2])
+    start_idx = splits[target_idx]
 
-    i = index_pert_feat
     perturbed_con = baseline_dataset.con_all.clone()
-    target_dataset = perturbed_con[:, slice_]
-    target_dataset[:, i] = torch.FloatTensor([target_value])
+    perturbed_con[:, start_idx + index_pert_feat] = torch.FloatTensor([target_value])
     perturbed_dataloader = _build_perturbed_dataloader(
         baseline_dataset=baseline_dataset,
         perturbed=perturbed_con,
@@ -301,7 +299,7 @@ def perturb_continuous_data_extended(
 
     target_idx = con_dataset_names.index(target_dataset_name)  # dataset index
     splits = np.cumsum([0] + baseline_dataset.con_shapes)
-    slice_ = slice(*splits[target_idx : target_idx + 2])
+    start_idx = splits[target_idx]
 
     num_features = baseline_dataset.con_shapes[target_idx]
     dataloaders = []
@@ -310,11 +308,12 @@ def perturb_continuous_data_extended(
     for i in range(num_features):
         perturbed_con = _pertub_cont_feat_col(
             baseline_dataset=baseline_dataset,
-            slice_=slice_,
+            start_idx=start_idx,
+            num_features=num_features,
             index_pert_feat=i,
             perturbation_type=perturbation_type,
         )
-        perturbations_list.append(perturbed_con[:, slice_][:, i].numpy())
+        perturbations_list.append(perturbed_con[:, start_idx + i].numpy())
 
         perturbed_dataloader = _build_perturbed_dataloader(
             baseline_dataset=baseline_dataset,
@@ -377,10 +376,10 @@ def perturb_continuous_data_extended_one(
 
     target_idx = con_dataset_names.index(target_dataset_name)  # dataset index
     splits = np.cumsum([0] + baseline_dataset.con_shapes)
-    slice_ = slice(*splits[target_idx : target_idx + 2])
+    start_idx = splits[target_idx]
 
     # Use it only if we want to perturb all features in the target dataset
-    # num_features = baseline_dataset.con_shapes[target_idx]
+    num_features = baseline_dataset.con_shapes[target_idx]
 
     # Now, instead of the for loop that iterates over all the features we want to
     # perturb, we do it only for one feature, the one indicated in index_pert_feat
@@ -388,7 +387,8 @@ def perturb_continuous_data_extended_one(
 
     perturbed_con = _pertub_cont_feat_col(
         baseline_dataset=baseline_dataset,
-        slice_=slice_,
+        start_idx=start_idx,
+        num_features=num_features,
         index_pert_feat=index_pert_feat,
         perturbation_type=perturbation_type,
     )

@@ -216,10 +216,12 @@ def _bayes_approach(
     mean_diff = np.zeros((num_perturbed, num_samples, num_continuous))
     normalizer = 1 / task_config.num_refits
 
-    # Last appended dataloader is the baseline
+    # non-perturbed baseline dataset
     baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
 
     for j in range(task_config.num_refits):
+        # We create as many models (refits) as indicated in the config file
+        # For each j (number of refits) we train a different model, but on the same data
         # Initialize model
         model: VAE = hydra.utils.instantiate(
             task_config.model,
@@ -243,22 +245,31 @@ def _bayes_approach(
                 model=model,
                 train_dataloader=train_dataloader,
             )
+            # Save the refits, to use them later
             if task_config.save_refits:
-                torch.save(model.state_dict(), model_path)
+                # pickle_protocol=4 is necessary for very big models
+                torch.save(model.state_dict(), model_path, pickle_protocol=4)
         model.eval()
 
         # Calculate baseline reconstruction
+        # For each model j, we get a different reconstruction for the baseline.
+        # We haven't perturbed anything yet, we are just
+        # getting the reconstruction for the baseline, to make sure that we get
+        # the same reconstruction for each refit, we cannot
+        # do it inside each process because the results might be different
         reconstruction_path = (
             models_path / f"baseline_recon_{task_config.model.num_latent}_{j}.pt"
         )
         if reconstruction_path.exists():
-            logger.debug(
-                f"Loading baseline reconstruction from {reconstruction_path}, "
-                "in the worker function"
-            )
+            logger.debug(f"Loading baseline reconstruction from {reconstruction_path}.")
             baseline_recon = torch.load(reconstruction_path)
         else:
             _, baseline_recon = model.reconstruct(baseline_dataloader)
+
+            # # Save the baseline reconstruction for each model
+            # logger.debug(f"Saving baseline reconstruction {j}")
+            # torch.save(baseline_recon, reconstruction_path, pickle_protocol=4)
+            # logger.debug(f"Saved baseline reconstruction {j}")
 
         # Calculate perturb reconstruction => keep track of mean difference
         for i in range(num_perturbed):
@@ -285,28 +296,53 @@ def _bayes_approach(
     bayes_mask = np.array(bayes_mask, dtype=bool)
 
     # Calculate Bayes probabilities
-    bayes_abs = np.abs(bayes_k)
+    bayes_abs = np.abs(bayes_k)  # Dimensions are (num_perturbed, num_continuous)
 
     bayes_p = np.exp(bayes_abs) / (1 + np.exp(bayes_abs))  # 2D: N x C
 
     bayes_abs[bayes_mask] = np.min(
         bayes_abs
     )  # Bring feature_i feature_i associations to minimum
+    # Get only the significant associations:
+    # This will flatten the array, so we get all bayes_abs for all perturbed features
+    # vs all continuous features in one 1D array
+    # Then, we sort them, and get the indexes in the flattened array. So, we get an
+    # list of sorted indexes in the flatenned array
     sort_ids = np.argsort(bayes_abs, axis=None)[::-1]  # 1D: N x C
     logger.debug(f"sort_ids are {sort_ids}")
-
+    # bayes_p is the array from which elements will be taken.
+    # sort_ids contains the indices that determine the order in which elements should
+    # be taken from bayes_p.
+    # This operation essentially rearranges the elements of bayes_p based on the
+    # sorting order specified by sort_ids
+    # np.take considers the input array as if it were flattened when extracting
+    # elements using the provided indices.
+    # So, even though sort_ids is obtained from a flattened version of bayes_abs,
+    # np.take understands how to map these indices
+    # correctly to the original shape of bayes_p.
     prob = np.take(bayes_p, sort_ids)  # 1D: N x C
     logger.debug(f"Bayes proba range: [{prob[-1]:.3f} {prob[0]:.3f}]")
 
-    # Sort Bayes
+    # Sort bayes_k in descending order, aligning with the sorted bayes_abs.
     bayes_k = np.take(bayes_k, sort_ids)  # 1D: N x C
 
     # Calculate FDR
     fdr = np.cumsum(1 - prob) / np.arange(1, prob.size + 1)  # 1D
     idx = np.argmin(np.abs(fdr - task_config.sig_threshold))
+    # idx will contain the index of the element in fdr that is closest
+    # to task_config.sig_threshold.
+    # This line essentially finds the index where the False Discovery Rate (fdr) is
+    # closest to the significance threshold
+    # (task_config.sig_threshold).
     logger.debug(f"Index is {idx}")
     logger.debug(f"FDR range: [{fdr[0]:.3f} {fdr[-1]:.3f}]")
 
+    # Return elements only up to idx. They will be the significant findings
+    # sort_ids[:idx]: Indices of features sorted by significance.
+    # prob[:idx]: Probabilities of significant associations for selected features.
+    # fdr[:idx]: False Discovery Rate values for selected features.
+    # bayes_k[:idx]: Bayes Factors indicating the strength of evidence for selected
+    # associations.
     return sort_ids[:idx], prob[:idx], fdr[:idx], bayes_k[:idx]
 
 

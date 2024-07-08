@@ -64,8 +64,6 @@ def _bayes_approach_worker(args):
     # all refits (all refits have the same importance)
     # We also set up bayes_k, which has the same dimensions as mean_diff
     mean_diff = np.zeros((num_samples, num_continuous))
-    # This will be what we will put in bayes_k[i,:]
-    bayes_k_worker = np.zeros((num_continuous))
     # Set the normalizer
     # Divide by the number of refits. All the refits will have the same importance
     normalizer = 1 / task_config.num_refits
@@ -131,12 +129,15 @@ def _bayes_approach_worker(args):
         logger.debug(f"Deleting model {model_path}, to see if I can free up space?")
         del model
         logger.debug(f"Deleted model {model_path} in worker {i} to save some space")
+
     # Marc's masking approach (for subset of perturbed cont. features?)
     # difference for only perturbed feature?
-    bayes_mask = (
-        baseline_dataloader.dataset.con_all[0, :]
-        - perturbed_dataloader.dataset.con_all[0, :]
-    )
+    bayes_mask = np.zeros(np.shape(mean_diff.shape))
+    if task_config.target_value in CONTINUOUS_TARGET_VALUE:
+        bayes_mask = (
+            baseline_dataloader.dataset.con_all[0, :]
+            - perturbed_dataloader.dataset.con_all[0, :]
+        )
     bayes_mask[bayes_mask != 0] = 1
     logger.debug(f"mean_diff for feature {i}, calculated, using all refits")
     mean_diff_shape = mean_diff.shape
@@ -151,14 +152,14 @@ def _bayes_approach_worker(args):
     logger.debug(f"prob calculated for feature {i}. Starting to calculate bayes_k")
 
     # Calculate bayes factor
-    bayes_k_worker = np.log(prob + 1e-8) - np.log(1 - prob + 1e-8)
+    bayes_k = np.log(prob + 1e-8) - np.log(1 - prob + 1e-8)
 
     logger.debug(
         f"bayes factor calculated for feature {i}. Woker function {i} finished"
     )
 
-    # Return bayes_k_worker and the index of the feature
-    return i, bayes_k_worker, bayes_mask
+    # Return bayes_k and the index of the feature
+    return i, bayes_k, bayes_mask
 
 
 def _bayes_approach_parallel(

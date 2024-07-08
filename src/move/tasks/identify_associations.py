@@ -290,7 +290,6 @@ def _bayes_approach(
 
     bayes_p = np.exp(bayes_abs) / (1 + np.exp(bayes_abs))  # 2D: N x C
 
-    # ! Marc said this is needed to not identify the features with themselves
     bayes_abs[bayes_mask] = np.min(
         bayes_abs
     )  # Bring feature_i feature_i associations to minimum

@@ -130,15 +130,6 @@ def _bayes_approach_worker(args):
         del model
         logger.debug(f"Deleted model {model_path} in worker {i} to save some space")
 
-    # Marc's masking approach (for subset of perturbed cont. features?)
-    # difference for only perturbed feature?
-    bayes_mask = np.zeros(np.shape(mean_diff.shape))
-    if task_config.target_value in CONTINUOUS_TARGET_VALUE:
-        bayes_mask = (
-            baseline_dataloader.dataset.con_all[0, :]
-            - perturbed_dataloader.dataset.con_all[0, :]
-        )
-    bayes_mask[bayes_mask != 0] = 1
     logger.debug(f"mean_diff for feature {i}, calculated, using all refits")
     mean_diff_shape = mean_diff.shape
     logger.debug(f"Returning mean_diff for feature {i}. Its shape is {mean_diff_shape}")
@@ -153,6 +144,15 @@ def _bayes_approach_worker(args):
 
     # Calculate bayes factor
     bayes_k = np.log(prob + 1e-8) - np.log(1 - prob + 1e-8)
+
+    # Marc's masking approach (for subset of perturbed cont. features?)
+    # difference for only perturbed feature?
+    bayes_mask = np.zeros(np.shape(bayes_k.shape))
+    if task_config.target_value in CONTINUOUS_TARGET_VALUE:
+        bayes_mask = (
+            baseline_dataloader.dataset.con_all[0, :]
+            - perturbed_dataloader.dataset.con_all[0, :]
+        )
 
     logger.debug(
         f"bayes factor calculated for feature {i}. Woker function {i} finished"
@@ -312,17 +312,15 @@ def _bayes_approach_parallel(
         # computed_bayes_k: already normalized probability
         # (log differences, i.e. Bayes factors)
         bayes_k[i, :] = computed_bayes_k
-        if task_config.target_value in CONTINUOUS_TARGET_VALUE:
-            bayes_mask[i, :] = mask_k
+        bayes_mask[i, :] = mask_k
 
     # mask already created in worker function
+    bayes_mask[bayes_mask != 0] = 1
     bayes_mask = np.array(bayes_mask, dtype=bool)
 
     bayes_abs = np.abs(bayes_k)  # Dimensions are (num_perturbed, num_continuous)
     bayes_p = np.exp(bayes_abs) / (1 + np.exp(bayes_abs))  # 2D: N x C
 
-    # NOTE_ : I AM SKIPPING THE MASK STEP, SO I WILL HAVE TO REMOVE
-    # FEATURE I - FEATURE I ASSOCIATIONS LATER, in the results
     bayes_abs[bayes_mask] = np.min(
         bayes_abs
     )  # Bring feature_i feature_i associations to minimum

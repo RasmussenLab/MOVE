@@ -48,9 +48,9 @@ def _bayes_approach_worker(args):
         continuous_shapes,
         categorical_shapes,
         nan_mask,
+        feature_mask,
     ) = args
     # Initialize logging
-    logger = get_logger(__name__)
     logger.debug(f"Inside the worker function for num_perturbed {i}")
 
     # Now we are inside the num_perturbed loop, we will do this for each of the
@@ -143,12 +143,11 @@ def _bayes_approach_worker(args):
     logger.debug(f"Returning mean_diff for feature {i}. Its shape is {mean_diff_shape}")
 
     # Apply nan_mask to the result in mean_diff
-    diff_mask = np.ma.masked_array(mean_diff, mask=nan_mask)
-    diff_mask_shape = diff_mask.shape
-    logger.debug(
-        f"Calculated diff_masked for feature {i}. Its shape is {diff_mask_shape}"
-    )
-    prob = np.ma.compressed(np.mean(diff_mask > 1e-8, axis=0))
+    mask = feature_mask | nan_mask  # 2D: N x C
+    diff = np.ma.masked_array(mean_diff, mask=mask)
+    diff_shape = diff.shape
+    logger.debug(f"Calculated diff (masked) for feature {i}. Its shape is {diff_shape}")
+    prob = np.ma.compressed(np.mean(diff > 1e-8, axis=0))
     logger.debug(f"prob calculated for feature {i}. Starting to calculate bayes_k")
 
     # Calculate bayes factor
@@ -291,6 +290,7 @@ def _bayes_approach_parallel(
             continuous_shapes,
             categorical_shapes,
             nan_mask,
+            feature_mask[:, [i]],
         )
         for i in range(num_perturbed)
     ]

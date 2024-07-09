@@ -120,13 +120,6 @@ def prepare_for_categorical_perturbation(
     )
     dataloaders.append(baseline_dataloader)
 
-    baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
-
-    assert baseline_dataset.con_all is not None
-    orig_con = baseline_dataset.con_all
-    nan_mask = (orig_con == 0).numpy()  # NaN values encoded as 0s
-    logger.debug(f"# NaN values: {np.sum(nan_mask)}/{orig_con.numel()}")
-
     target_dataset_idx = config.data.categorical_names.index(task_config.target_dataset)
     target_dataset = cat_list[target_dataset_idx]
     feature_mask = np.all(target_dataset == target_value, axis=2)  # 2D: N x P
@@ -134,7 +127,6 @@ def prepare_for_categorical_perturbation(
 
     return (
         dataloaders,
-        nan_mask,
         feature_mask,
     )
 
@@ -183,15 +175,7 @@ def prepare_for_continuous_perturbation(
 
     logger.debug(f"Dataloaders length is {len(dataloaders)}")
 
-    baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
-
-    assert baseline_dataset.con_all is not None
-    orig_con = baseline_dataset.con_all
-    nan_mask = (orig_con == 0).numpy()  # NaN values encoded as 0s
-    logger.debug(f"# NaN values: {np.sum(nan_mask)}/{orig_con.numel()}")
-    feature_mask = nan_mask
-
-    return (dataloaders, nan_mask, feature_mask)
+    return dataloaders
 
 
 def _bayes_approach(
@@ -839,6 +823,13 @@ def identify_associations(config: MOVEConfig) -> None:
         cat_list, con_list, shuffle=False, batch_size=task_config.batch_size
     )
 
+    # nan_mask based on baseline dataset
+    baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
+    assert baseline_dataset.con_all is not None
+    orig_con = baseline_dataset.con_all
+    nan_mask = (orig_con == 0).numpy()  # NaN values encoded as 0s
+    logger.debug(f"# NaN values: {np.sum(nan_mask)}/{orig_con.numel()}")
+
     # Indentify associations between continuous features:
     logger.info(f"Perturbing dataset: '{task_config.target_dataset}'")
     if task_config.target_value in CONTINUOUS_TARGET_VALUE:
@@ -846,20 +837,17 @@ def identify_associations(config: MOVEConfig) -> None:
         logger.info(f"Perturbation type: {task_config.target_value}")
         output_subpath = Path(output_path) / "perturbation_visualization"
         output_subpath.mkdir(exist_ok=True, parents=True)
-        (
-            dataloaders,
-            nan_mask,
-            feature_mask,
-        ) = prepare_for_continuous_perturbation(
+
+        dataloaders = prepare_for_continuous_perturbation(
             config, output_subpath, baseline_dataloader
         )
+        feature_mask = nan_mask
 
     # Identify associations between categorical and continuous features:
     else:
         logger.info("Beginning task: identify associations categorical")
         (
             dataloaders,
-            nan_mask,
             feature_mask,
         ) = prepare_for_categorical_perturbation(
             config, interim_path, baseline_dataloader, cat_list

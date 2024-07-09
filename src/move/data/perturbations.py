@@ -313,8 +313,8 @@ def perturb_continuous_data_extended(
         perturbations_list.append(perturbed_con[:, start_idx + i].numpy())
 
         perturbed_dataloader = _build_dataloader(
-            con_data=baseline_dataset.cat_all,
-            cat_data=perturbed_con,
+            cat_data=baseline_dataset.cat_all,
+            con_data=perturbed_con,
             cat_shapes=baseline_dataset.cat_shapes,
             con_shapes=baseline_dataset.con_shapes,
             batch_size=baseline_dataloader.batch_size,

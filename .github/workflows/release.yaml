@@ -53,7 +53,7 @@ jobs:
         run: |
           cd tutorial
           move-dl data=random_small task=random_small__id_assoc_bayes --cfg job
-          move-dl data=random_small task=random_small__id_assoc_bayes task.num_refits=1
+          move-dl data=random_small task=random_small__id_assoc_bayes task.training_loop.num_epochs=100 task.num_refits=2
   run-tutorial-w-multiprocessing:
     name: Run - random_small - multiprocess
     runs-on: ubuntu-latest
@@ -78,7 +78,7 @@ jobs:
         run: |
           cd tutorial
           move-dl data=random_small task=random_small__id_assoc_bayes task.multiprocess=true --cfg job
-          move-dl data=random_small task=random_small__id_assoc_bayes task.multiprocess=true task.num_refits=1
+          move-dl data=random_small task=random_small__id_assoc_bayes task.training_loop.num_epochs=100 task.num_refits=2 task.multiprocess=true 
   run-tutorial-cont:
       name: Run tutorial - random_continuous
       runs-on: ubuntu-latest

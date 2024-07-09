@@ -71,7 +71,7 @@ def encode_data(config: DataConfig):
         fig.savefig(fig_path)
 
         if scale:
-            values, mask_1d = preprocessing.scale(values)
+            values, mask_1d = preprocessing.scale(values, input_config.log2)
             names = names[mask_1d]
             logger.debug(f"Columns with zero variance: {np.sum(~mask_1d)}")
         io.dump_names(interim_data_path / f"{input_config.name}.txt", names)

@@ -17,5 +17,9 @@ categorical_inputs: # a list of categorical datasets
   - name: random.small.drugs
 
 continuous_inputs: # a list of continuous datasets
-  - name: random.small.proteomics
-  - name: random.small.metagenomics
+  - name: random.small.proteomics # filename in raw_data_path
+    scale: true # scale data
+    log2: true # log2 transform data
+  - name: random.small.metagenomics # filename in raw_data_path
+    scale: true # scale data
+    log2: true # log2 transform data

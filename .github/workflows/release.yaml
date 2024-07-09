@@ -55,7 +55,7 @@ jobs:
           move-dl data=random_small task=random_small__id_assoc_bayes --cfg job
           move-dl data=random_small task=random_small__id_assoc_bayes task.training_loop.num_epochs=100 task.num_refits=2
   run-tutorial-w-multiprocessing:
-    name: Run - random_small - multiprocess
+    name: Run - random_continuous - multiprocess
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -67,18 +67,18 @@ jobs:
       - name: Prepare tutorial data
         run: |
           cd tutorial
-          move-dl data=random_small task=encode_data --cfg job
-          move-dl data=random_small task=encode_data
+          move-dl data=random_continuous task=encode_data --cfg job
+          move-dl data=random_continuous task=encode_data
       - name: Train model and analyze latent space - multiprocess
         run: |
           cd tutorial
-          move-dl data=random_small task=random_small__latent task.multiprocess=true --cfg job
-          move-dl data=random_small task=random_small__latent task.multiprocess=true task.training_loop.num_epochs=100
+          move-dl data=random_continuous task=random_continuous__latent task.multiprocess=true --cfg job
+          move-dl data=random_continuous task=random_continuous__latent task.multiprocess=true task.num_refits=1
       - name: Identify associations - bayes factors - multiprocess
         run: |
           cd tutorial
-          move-dl data=random_small task=random_small__id_assoc_bayes task.multiprocess=true --cfg job
-          move-dl data=random_small task=random_small__id_assoc_bayes task.training_loop.num_epochs=100 task.num_refits=2 task.multiprocess=true 
+          move-dl data=random_continuous task=random_continuous__id_assoc_bayes task.multiprocess=true --cfg job
+          move-dl data=random_continuous task=random_continuous__id_assoc_bayes task.num_refits=1 task.multiprocess=true 
   run-tutorial-cont:
       name: Run tutorial - random_continuous
       runs-on: ubuntu-latest

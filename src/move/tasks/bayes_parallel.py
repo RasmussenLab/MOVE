@@ -70,9 +70,10 @@ def _bayes_approach_worker(args):
 
     # Create perturbed dataloader for the current feature (i)
     logger.debug(f"Creating perturbed dataloader for feature {i}")
+    # ! perturb_categorical_data_one for categorical data!
     perturbed_dataloader = perturb_continuous_data_extended_one(
         baseline_dataloader=baseline_dataloader,
-        con_dataset_names=config.data.categorical_names,  # ! error: continuous_names
+        con_dataset_names=config.data.continuous_names,  # ! error: continuous_names
         target_dataset_name=task_config.target_dataset,
         perturbation_type=cast(ContinuousPerturbationType, task_config.target_value),
         index_pert_feat=i,

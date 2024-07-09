@@ -285,7 +285,8 @@ def _bayes_approach(
         mask = feature_mask[:, [i]] | nan_mask  # 2D: N x C
         diff = np.ma.masked_array(mean_diff[i, :, :], mask=mask)  # 2D: N x C
         prob = np.ma.compressed(np.mean(diff > 1e-8, axis=0))  # 1D: C
-        bayes_k[i, :] = np.log(prob + 1e-8) - np.log(1 - prob + 1e-8)
+        computed_bayes_k = np.log(prob + 1e-8) - np.log(1 - prob + 1e-8)
+        bayes_k[i, :] = computed_bayes_k
         if task_config.target_value in CONTINUOUS_TARGET_VALUE:
             bayes_mask[i, :] = (
                 baseline_dataloader.dataset.con_all[0, :]
@@ -298,7 +299,7 @@ def _bayes_approach(
     # Calculate Bayes probabilities
     bayes_abs = np.abs(bayes_k)  # Dimensions are (num_perturbed, num_continuous)
 
-    bayes_p = np.exp(bayes_abs) / (1 + np.exp(bayes_abs))  # 2D: N x C
+    bayes_p = np.exp(bayes_abs) / (1 + np.exp(bayes_abs))  # 2D: P x C
 
     bayes_abs[bayes_mask] = np.min(
         bayes_abs
@@ -308,7 +309,7 @@ def _bayes_approach(
     # vs all continuous features in one 1D array
     # Then, we sort them, and get the indexes in the flattened array. So, we get an
     # list of sorted indexes in the flatenned array
-    sort_ids = np.argsort(bayes_abs, axis=None)[::-1]  # 1D: N x C
+    sort_ids = np.argsort(bayes_abs, axis=None)[::-1]  # 1D: P*C
     logger.debug(f"sort_ids are {sort_ids}")
     # bayes_p is the array from which elements will be taken.
     # sort_ids contains the indices that determine the order in which elements should
@@ -320,7 +321,7 @@ def _bayes_approach(
     # So, even though sort_ids is obtained from a flattened version of bayes_abs,
     # np.take understands how to map these indices
     # correctly to the original shape of bayes_p.
-    prob = np.take(bayes_p, sort_ids)  # 1D: N x C
+    prob = np.take(bayes_p, sort_ids)  # 1D: P*C
     logger.debug(f"Bayes proba range: [{prob[-1]:.3f} {prob[0]:.3f}]")
 
     # Sort bayes_k in descending order, aligning with the sorted bayes_abs.

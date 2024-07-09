@@ -138,8 +138,11 @@ def _bayes_approach_worker(args):
     diff = np.ma.masked_array(mean_diff, mask=mask)
     diff_shape = diff.shape
     logger.debug(f"Calculated diff (masked) for feature {i}. Its shape is {diff_shape}")
-    prob = np.ma.compressed(np.mean(diff > 1e-8, axis=0))
-    logger.debug(f"prob calculated for feature {i}. Starting to calculate bayes_k")
+    prob = np.ma.compressed(np.mean(diff > 1e-8, axis=0))  # 1D: C
+    logger.debug(
+        f"prob ({prob.shape}) calculated for feature {i}."
+        " Starting to calculate bayes_k"
+    )
 
     # Calculate bayes factor
     bayes_k = np.log(prob + 1e-8) - np.log(1 - prob + 1e-8)
@@ -200,10 +203,7 @@ def _bayes_approach_parallel(
             continuous_shapes=baseline_dataset.con_shapes,
             categorical_shapes=baseline_dataset.cat_shapes,
         )
-        if j == 0:
-            # First, we see if the models are already created (if we trained them
-            # before). for each j, we check if model number j has already been created.
-            logger.debug(f"Model: {model}")
+        logger.debug(f"Model: {model} (j={j})")
 
         # Define paths for the baseline reconstruction and for the model
         reconstruction_path = (
@@ -315,7 +315,7 @@ def _bayes_approach_parallel(
     # Calculate Bayes probabilities
     bayes_abs = np.abs(bayes_k)  # Dimensions are (num_perturbed, num_continuous)
 
-    bayes_p = np.exp(bayes_abs) / (1 + np.exp(bayes_abs))  # 2D: N x C
+    bayes_p = np.exp(bayes_abs) / (1.0 + np.exp(bayes_abs))  # 2D: P x C
 
     bayes_abs[bayes_mask] = np.min(
         bayes_abs
@@ -325,7 +325,7 @@ def _bayes_approach_parallel(
     # vs all continuous features in one 1D array
     # Then, we sort them, and get the indexes in the flattened array. So, we get an
     # list of sorted indexes in the flatenned array
-    sort_ids = np.argsort(bayes_abs, axis=None)[::-1]  # 1D: N x C
+    sort_ids = np.argsort(bayes_abs, axis=None)[::-1]  # 1D: P*C
     logger.debug(f"sort_ids are {sort_ids}")
     # bayes_p is the array from which elements will be taken.
     # sort_ids contains the indices that determine the order in which elements should
@@ -337,14 +337,14 @@ def _bayes_approach_parallel(
     # So, even though sort_ids is obtained from a flattened version of bayes_abs,
     # np.take understands how to map these indices
     # correctly to the original shape of bayes_p.
-    prob = np.take(bayes_p, sort_ids)  # 1D: N x C
+    prob = np.take(bayes_p, sort_ids)  # 1D: P*C
     logger.debug(f"Bayes proba range: [{prob[-1]:.3f} {prob[0]:.3f}]")
 
     # Sort bayes_k in descending order, aligning with the sorted bayes_abs.
     bayes_k = np.take(bayes_k, sort_ids)  # 1D: N x C
 
     # Calculate FDR
-    fdr = np.cumsum(1 - prob) / np.arange(1, prob.size + 1)  # 1D
+    fdr = np.cumsum(1 - prob) / np.arange(1, prob.size + 1)  # 1D: P*C
     idx = np.argmin(np.abs(fdr - task_config.sig_threshold))
     # idx will contain the index of the element in fdr that is closest
     # to task_config.sig_threshold.

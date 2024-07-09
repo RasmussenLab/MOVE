@@ -73,7 +73,7 @@ jobs:
         run: |
           cd tutorial
           move-dl data=random_continuous task=random_continuous__latent task.multiprocess=true --cfg job
-          move-dl data=random_continuous task=random_continuous__latent task.multiprocess=true task.num_refits=1
+          move-dl data=random_continuous task=random_continuous__latent task.multiprocess=true
       - name: Identify associations - bayes factors - multiprocess
         run: |
           cd tutorial

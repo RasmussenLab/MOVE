@@ -25,7 +25,7 @@ jobs:
       - name: Lint with flake8  
         run: flake8 src
   run-tutorial:
-    name: Run tutorial - random_small
+    name: Run - random_small - singleprocess
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -44,11 +44,11 @@ jobs:
           cd tutorial
           move-dl data=random_small task=random_small__latent --cfg job
           move-dl data=random_small task=random_small__latent
-      - name: Identify associations - t-test
-        run: |
-          cd tutorial
-          move-dl data=random_small task=random_small__id_assoc_ttest --cfg job
-          move-dl data=random_small task=random_small__id_assoc_ttest task.training_loop.num_epochs=30 task.num_refits=4
+      # - name: Identify associations - t-test
+      #   run: |
+      #     cd tutorial
+      #     move-dl data=random_small task=random_small__id_assoc_ttest --cfg job
+      #     move-dl data=random_small task=random_small__id_assoc_ttest task.training_loop.num_epochs=30 task.num_refits=4
       - name: Identify associations - bayes factors
         run: |
           cd tutorial

@@ -43,7 +43,7 @@ jobs:
         run: |
           cd tutorial
           move-dl data=random_small task=random_small__latent --cfg job
-          move-dl data=random_small task=random_small__latent
+          move-dl data=random_small task=random_small__latent task.training_loop.num_epochs=100
       # - name: Identify associations - t-test
       #   run: |
       #     cd tutorial
@@ -73,7 +73,7 @@ jobs:
         run: |
           cd tutorial
           move-dl data=random_small task=random_small__latent task.multiprocess=true --cfg job
-          move-dl data=random_small task=random_small__latent task.multiprocess=true
+          move-dl data=random_small task=random_small__latent task.multiprocess=true task.training_loop.num_epochs=100
       - name: Identify associations - bayes factors - multiprocess
         run: |
           cd tutorial

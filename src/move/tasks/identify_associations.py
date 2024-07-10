@@ -79,7 +79,6 @@ def prepare_for_categorical_perturbation(
     config: MOVEConfig,
     interim_path: Path,
     baseline_dataloader: DataLoader,
-    cat_list: list[FloatArray],
 ) -> tuple[
     list[DataLoader],
     BoolArray,
@@ -93,7 +92,6 @@ def prepare_for_categorical_perturbation(
         config: main configuration file
         interim_path: path where the intermediate outputs are saved
         baseline_dataloader: reference dataloader that will be perturbed
-        cat_list: list of arrays with categorical data
 
     Returns:
         dataloaders: all dataloaders, including baseline appended last.
@@ -856,7 +854,7 @@ def identify_associations(config: MOVEConfig) -> None:
         feature_mask |= np.sum(target_dataset, axis=2) == 0
         if not task_config.multiprocess:
             dataloaders = prepare_for_categorical_perturbation(
-                config, interim_path, baseline_dataloader, cat_list
+                config, interim_path, baseline_dataloader
             )
         num_perturbed = target_dataset.shape[-1]
         logger.info(

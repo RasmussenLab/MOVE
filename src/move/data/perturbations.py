@@ -1,6 +1,5 @@
 __all__ = [
     "perturb_categorical_data",
-    "perturb_continuous_data",
     "perturb_continuous_data_extended_one",
     "perturb_continuous_data_extended",
 ]
@@ -123,51 +122,6 @@ def perturb_categorical_data(
             batch_size=baseline_dataloader.batch_size,
         )
         dataloaders.append(perturbed_dataloader)
-    return dataloaders
-
-
-# not used anymore
-def perturb_continuous_data(
-    baseline_dataloader: DataLoader,
-    con_dataset_names: list[str],
-    target_dataset_name: str,
-    target_value: float,
-) -> list[DataLoader]:
-    """Add perturbations to continuous data. For each feature in the target
-    dataset, change its value to target.
-
-    Args:
-        baseline_dataloader: Baseline dataloader
-        con_dataset_names: List of continuous dataset names
-        target_dataset_name: Target continuous dataset to perturb
-        target_value: Target value
-
-    Returns:
-        List of dataloaders containing all perturbed datasets
-    """
-
-    baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
-    assert baseline_dataset.con_shapes is not None
-    assert baseline_dataset.con_all is not None
-
-    target_idx = con_dataset_names.index(target_dataset_name)
-    splits = np.cumsum([0] + baseline_dataset.con_shapes)
-    start_idx = splits[target_idx]
-    num_features = baseline_dataset.con_shapes[target_idx]
-
-    dataloaders = []
-    for i in range(num_features):
-        perturbed_con = baseline_dataset.con_all.clone()
-        perturbed_con[:, start_idx + i] = torch.FloatTensor([target_value])
-        perturbed_dataloader = _build_dataloader(
-            cat_data=baseline_dataset.cat_all,
-            con_data=perturbed_con,
-            cat_shapes=baseline_dataset.cat_shapes,
-            con_shapes=baseline_dataset.con_shapes,
-            batch_size=baseline_dataloader.batch_size,
-        )
-        dataloaders.append(perturbed_dataloader)
-
     return dataloaders
 
 

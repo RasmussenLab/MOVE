@@ -878,6 +878,7 @@ def identify_associations(config: MOVEConfig) -> None:
                 task_config=task_config,
                 train_dataloader=train_dataloader,
                 baseline_dataloader=baseline_dataloader,
+                # perturbed dataloaders created in worker function
                 models_path=models_path,
                 num_perturbed=num_perturbed,
                 num_samples=num_samples,

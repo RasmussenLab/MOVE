@@ -11,11 +11,14 @@ from torch.utils.data import DataLoader
 from move.conf.schema import IdentifyAssociationsBayesConfig, MOVEConfig
 from move.core.logging import get_logger
 from move.core.typing import BoolArray, FloatArray, IntArray
+from move.data import io
 from move.data.dataloaders import MOVEDataset
 from move.data.perturbations import (
     ContinuousPerturbationType,
+    perturb_categorical_data_one,
     perturb_continuous_data_extended_one,
 )
+from move.data.preprocessing import one_hot_encode_single
 from move.models.vae import VAE
 
 # We can do three types of statistical tests. Multiprocessing is only implemented
@@ -70,14 +73,28 @@ def _bayes_approach_worker(args):
 
     # Create perturbed dataloader for the current feature (i)
     logger.debug(f"Creating perturbed dataloader for feature {i}")
-    # ! perturb_categorical_data_one for categorical data!
-    perturbed_dataloader = perturb_continuous_data_extended_one(
-        baseline_dataloader=baseline_dataloader,
-        con_dataset_names=config.data.continuous_names,  # ! error: continuous_names
-        target_dataset_name=task_config.target_dataset,
-        perturbation_type=cast(ContinuousPerturbationType, task_config.target_value),
-        index_pert_feat=i,
-    )
+    if task_config.target_value in CONTINUOUS_TARGET_VALUE:
+        perturbed_dataloader = perturb_continuous_data_extended_one(
+            baseline_dataloader=baseline_dataloader,
+            con_dataset_names=config.data.continuous_names,
+            target_dataset_name=task_config.target_dataset,
+            perturbation_type=cast(
+                ContinuousPerturbationType, task_config.target_value
+            ),
+            index_pert_feat=i,
+        )
+    else:
+        interim_path = Path(config.data.interim_data_path)
+        mappings = io.load_mappings(interim_path / "mappings.json")
+        target_mapping = mappings[task_config.target_dataset]
+        target_value = one_hot_encode_single(target_mapping, task_config.target_value)
+        perturbed_dataloader = perturb_categorical_data_one(
+            baseline_dataloader=baseline_dataloader,
+            cat_dataset_names=config.data.categorical_names,
+            target_dataset_name=task_config.target_dataset,
+            target_value=target_value,
+            index_pert_feat=i,
+        )
     logger.debug(f"created perturbed dataloader for feature {i}")
 
     # For each refit, reload baseline reconstruction (obtained in bayes_parallel

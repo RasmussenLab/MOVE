@@ -24,7 +24,31 @@ jobs:
         run: pip install flake8 flake8-bugbear
       - name: Lint with flake8  
         run: flake8 src
-  run-tutorial:
+  # legacy testing of t-test
+  run-tutorial-ttest:
+    name: Run - random_small - t-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: pip install .
+      - name: Prepare tutorial data
+        run: |
+          cd tutorial
+          move-dl data=random_small task=encode_data --cfg job
+          move-dl data=random_small task=encode_data
+          # - name: Identify associations - t-test
+      # at least 4 refits needed for t-test
+      - name: Identify associations - t-test
+        run: |
+          cd tutorial
+          move-dl data=random_small task=random_small__id_assoc_ttest --cfg job
+          move-dl data=random_small task=random_small__id_assoc_ttest task.training_loop.num_epochs=30 task.num_refits=4
+  # categorical dataset pertubation - single and multiprocessed
+  run-tutorial-cat-pert-single:
     name: Run - random_small - singleprocess
     runs-on: ubuntu-latest
     steps:
@@ -44,17 +68,13 @@ jobs:
           cd tutorial
           move-dl data=random_small task=random_small__latent --cfg job
           move-dl data=random_small task=random_small__latent task.training_loop.num_epochs=100
-      # - name: Identify associations - t-test
-      #   run: |
-      #     cd tutorial
-      #     move-dl data=random_small task=random_small__id_assoc_ttest --cfg job
-      #     move-dl data=random_small task=random_small__id_assoc_ttest task.training_loop.num_epochs=30 task.num_refits=4
       - name: Identify associations - bayes factors
         run: |
           cd tutorial
           move-dl data=random_small task=random_small__id_assoc_bayes --cfg job
           move-dl data=random_small task=random_small__id_assoc_bayes task.training_loop.num_epochs=100 task.num_refits=2
-  run-tutorial-w-multiprocessing:
+  # continous dataset perturbation - single and multiprocessed
+  run-tutorial-cont-pert-multi:
     name: Run - random_continuous - multiprocess
     runs-on: ubuntu-latest
     steps:
@@ -78,9 +98,14 @@ jobs:
         run: |
           cd tutorial
           move-dl data=random_continuous task=random_continuous__id_assoc_bayes task.multiprocess=true --cfg job
-          move-dl data=random_continuous task=random_continuous__id_assoc_bayes task.num_refits=1 task.multiprocess=true 
-  run-tutorial-cont:
-      name: Run tutorial - random_continuous
+          move-dl data=random_continuous task=random_continuous__id_assoc_bayes task.num_refits=1 task.multiprocess=true
+      - name: Identify associations - bayes factors - singleprocess w/o training
+        run: |
+          cd tutorial
+          move-dl data=random_continuous task=random_continuous__id_assoc_bayes task.multiprocess=true --cfg job
+          move-dl data=random_continuous task=random_continuous__id_assoc_bayes task.num_refits=1
+  run-tutorial-cont-pert-single:
+      name: Run - random_continuous - singleprocess
       runs-on: ubuntu-latest
       steps:
         - uses: actions/checkout@v4
@@ -98,16 +123,17 @@ jobs:
             cd tutorial
             move-dl data=random_continuous task=random_continuous__latent --cfg job
             move-dl data=random_continuous task=random_continuous__latent
-        # - name: Identify associations - t-test
-        #   run: |
-        #     cd tutorial
-        #     move-dl data=random_continuous task=random_continuous__id_assoc_ttest --cfg job
-        #     move-dl data=random_continuous task=random_continuous__id_assoc_ttest task.num_refits=4
         - name: Identify associations - bayes factors
           run: |
             cd tutorial
             move-dl data=random_continuous task=random_continuous__id_assoc_bayes --cfg job
             move-dl data=random_continuous task=random_continuous__id_assoc_bayes task.num_refits=1
+        - name: Identify associations - bayes factors - w/o training (repeat)
+          run: |
+            cd tutorial
+            move-dl data=random_continuous task=random_continuous__id_assoc_bayes --cfg job
+            move-dl data=random_continuous task=random_continuous__id_assoc_bayes task.num_refits=1
+        # this reuses the same model trained in analyze latent space
         - name: Identify associations - KS
           run: |
             cd tutorial

@@ -54,11 +54,14 @@ docs/build/
 docs/source/_templates/
 
 # VS Code settings
+.vscode
+
 # macOS
 .DS_Store
 
 # Root folder
 /*.*
+!/.gitignore
 !/.readthedocs.yaml
 !/LICENSE
 !/MANIFEST.in

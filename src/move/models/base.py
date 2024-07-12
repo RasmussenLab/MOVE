@@ -125,7 +125,7 @@ class BaseVae(nn.Module, ABC):
             config=config,
             state_dict=self.state_dict(),
         )
-        torch.save(model, model_path)
+        torch.save(model, model_path, pickle_protocol=4)
 
 
 def reload_vae(model_path: Path) -> BaseVae:

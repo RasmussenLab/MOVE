@@ -59,12 +59,6 @@ def encode_data(config: DataConfig):
         )
         fig.savefig(fig_path)
 
-        values, mask_1d = preprocessing.scale(values)
-        names = names[mask_1d]
-        logger.debug(f"Columns with zero variance: {np.sum(~mask_1d)}")
-        io.dump_names(interim_data_path / f"{dataset_name}.txt", names)
-        np.save(interim_data_path / f"{dataset_name}.npy", values)
-
         # Plotting the value distribution for all continuous datasets:
         fig = plot_value_distributions(values)
         fig_path = str(output_path / f"Value_distribution_{dataset_name}.png")
@@ -74,5 +68,5 @@ def encode_data(config: DataConfig):
             values, mask_1d = preprocessing.scale(values, input_config.log2)
             names = names[mask_1d]
             logger.debug(f"Columns with zero variance: {np.sum(~mask_1d)}")
-        io.dump_names(interim_data_path / f"{input_config.name}.txt", names)
-        np.save(interim_data_path / f"{input_config.name}.npy", values)
+        io.dump_names(interim_data_path / f"{dataset_name}.txt", names)
+        np.save(interim_data_path / f"{dataset_name}.npy", values)

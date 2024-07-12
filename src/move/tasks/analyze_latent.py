@@ -406,15 +406,10 @@ def analyze_latent(config: MOVEConfig) -> None:
 
     for i, dataset_name in enumerate(config.data.continuous_names):
         logger.debug(f"Generating plot: feature importance '{dataset_name}'")
-        # NOT SURE IF IT WORKS THE SAME FOR CONTINUOUS FEATURES, CHECK THIS
-        # I did sth that did not work, I'll try again now.
         con_dataset_names = config.data.continuous_names
         target_idx = con_dataset_names.index(dataset_name)
-        # num_features = target_shape[0]
 
         num_features = test_dataset.con_shapes[target_idx]
-
-        # num_features = len(dataloaders)
 
         # We will use this inside the loop that iterates over all features:
         # We create one diff per dataset, to not store all of them in memory

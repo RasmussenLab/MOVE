@@ -157,7 +157,7 @@ class SubTask(SubTaskMixin, Task):
     ...
 
 
-CsvRow = dict[str, float]
+CsvRow = dict[str, Any]
 
 
 class CsvWriterMixin(LoggerMixin):
@@ -206,14 +206,17 @@ class CsvWriterMixin(LoggerMixin):
     def output_dir(self, value: PathLike) -> None:
         self.parent = OutputDir(value)
 
-    def init_csv_writer(self, filepath: Path, **writer_kwargs) -> None:
+    def init_csv_writer(self, filepath: Path, mode: str = "w", **writer_kwargs) -> None:
         """Initialize the CSV writer."""
         self.csv_filepath = filepath
-        if self.csv_filepath.exists():
+        exists = self.csv_filepath.exists()
+        if exists and mode == "w":  # Warn about overwriting
             self.log(FILE_EXISTS_WARNING.format(self.csv_filepath))
-        self.csv_file = open(self.csv_filepath, "w", newline="")
+        self.csv_file = open(self.csv_filepath, mode, newline="")  # type: ignore
         self.csv_writer = CsvWriter(self.csv_file, **writer_kwargs)
-        self.csv_writer.writeheader()
+        # Do not write header if file exists and appending
+        if (not exists) or mode != "a":
+            self.csv_writer.writeheader()
 
     def write_cols(self, cols: dict[str, Union[Sequence[Any], NDArray]]) -> None:
         """Directly write columns to CSV file.

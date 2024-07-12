@@ -166,13 +166,12 @@ class IdentifyAssociationsConfig(TaskConfig):
     num_refits: int = MISSING
     sig_threshold: float = 0.05
     save_refits: bool = False
+    multiprocess: bool = False
 
 
 @dataclass
 class IdentifyAssociationsBayesConfig(IdentifyAssociationsConfig):
     """Configure the probabilistic approach to identify associations."""
-
-    multiprocess: bool = False  # Default value is False
 
     ...
 
@@ -188,7 +187,6 @@ class IdentifyAssociationsTTestConfig(IdentifyAssociationsConfig):
     """
 
     num_latent: list[int] = MISSING
-    multiprocess: bool = False  # Multiprocessiong not implemented for t-test approach
 
 
 @dataclass
@@ -210,7 +208,6 @@ class IdentifyAssociationsKSConfig(IdentifyAssociationsConfig):
 
     perturbed_feature_names: list[str] = field(default_factory=list)
     target_feature_names: list[str] = field(default_factory=list)
-    multiprocess: bool = False  # Multiprocessiong not implemented for KS approach
 
 
 @dataclass

@@ -9,7 +9,6 @@ import hydra
 import numpy as np
 import pandas as pd
 import torch
-import torch.multiprocessing
 from omegaconf import OmegaConf
 from scipy.stats import ks_2samp, pearsonr  # type: ignore
 from torch.utils.data import DataLoader
@@ -79,11 +78,7 @@ def prepare_for_categorical_perturbation(
     config: MOVEConfig,
     interim_path: Path,
     baseline_dataloader: DataLoader,
-) -> tuple[
-    list[DataLoader],
-    BoolArray,
-    BoolArray,
-]:
+) -> list[DataLoader]:
     """
     This function creates the required dataloaders and masks
     for further categorical association analysis.
@@ -125,11 +120,7 @@ def prepare_for_continuous_perturbation(
     config: MOVEConfig,
     output_subpath: Path,
     baseline_dataloader: DataLoader,
-) -> tuple[
-    list[DataLoader],
-    BoolArray,
-    BoolArray,
-]:
+) -> list[DataLoader]:
     """
     This function creates the required dataloaders and masks
     for further continuous association analysis.

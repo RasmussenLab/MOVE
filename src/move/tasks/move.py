@@ -63,7 +63,13 @@ class MoveTask(ParentTask):
         )
 
     def init_training_loop(self, set_parent: bool = True) -> TrainingLoop:
-        """Initialize a training loop."""
+        """Initialize a training loop.
+
+        Args:
+            set_parent:
+                Whether the training task is linked to a parent task. If
+                orphaned, this task cannot use the logger to track its progress.
+        """
         if self.training_loop_config is None:
             raise UnsetProperty("Training loop config")
         training_loop: TrainingLoop = hydra.utils.instantiate(

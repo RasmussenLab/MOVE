@@ -207,7 +207,13 @@ class CsvWriterMixin(LoggerMixin):
         self.parent = OutputDir(value)
 
     def init_csv_writer(self, filepath: Path, mode: str = "w", **writer_kwargs) -> None:
-        """Initialize the CSV writer."""
+        """Initialize the CSV writer.
+
+        Args:
+            filepath: Where to save the CSV file
+            mode: Whether to open the file in 'w' or 'a' mode
+            writer_args: Args passed to the CSV Writer object
+        """
         self.csv_filepath = filepath
         exists = self.csv_filepath.exists()
         if exists and mode == "w":  # Warn about overwriting

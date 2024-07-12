@@ -19,10 +19,12 @@ from move.analysis.metrics import (
     calculate_accuracy,
     calculate_cosine_similarity,
 )
+from move.core.exceptions import FILE_EXISTS_WARNING
 from move.core.logging import get_logger
 from move.core.typing import BoolArray, FloatArray, PathLike
 from move.data import io
-from move.data.dataloaders import MOVEDataset, make_dataloader, split_samples
+from move.data.dataloader import MoveDataLoader
+from move.models.base import reload_vae, BaseVae, LossDict
 from move.tasks.base import CsvWriterMixin
 from move.tasks.move import MoveTask
 
@@ -58,7 +60,7 @@ class TuneModel(CsvWriterMixin, MoveTask):
             Config of the training loop
     """
 
-    loop_filename: str = "loop.yaml"
+    loss_filename: str = "loss.csv"
     model_filename_fmt: str = "model_{}.pt"
     results_subdir: str = "tuning"
     results_filename: str = "metrics.csv"
@@ -99,14 +101,65 @@ class TuneModel(CsvWriterMixin, MoveTask):
             key, value = item.split(kv_sep)
             self.override_dict[key] = value
 
-    def run(self):
-        model_path = self.output_dir / self.model_filename_fmt.format(self.job_num)
+    def record_loss(self, model: BaseVae, dataloader: MoveDataLoader):
+        """Record final loss in a CSV row."""
+
+        colnames = ["job_num", *self.override_dict.keys()]
+        colnames.extend(LossDict.__annotations__.keys())
 
         self.init_csv_writer(
             self.output_dir / self.results_filename,
             mode="a",
-            fieldnames=["job_num", *self.override_dict.keys()],
+            fieldnames=colnames,
             extrasaction="ignore",
         )
-        self.add_row_to_buffer(dict(job_num=self.job_num, **self.override_dict))
-        self.close_csv_writer()
+
+        loss_epoch = None
+
+        for (batch,) in dataloader:
+            loss_batch = model.compute_loss(batch, 1.0)
+            if loss_epoch is None:
+                loss_epoch = loss_batch
+            else:
+                for key in loss_batch.keys():
+                    loss_epoch[key] += loss_batch[key]
+
+        csv_row: dict[str, Any] = dict(job_num=self.job_num, **self.override_dict)
+
+        assert loss_epoch is not None
+        for key, value in loss_epoch.items():
+            if isinstance(value, torch.Tensor):
+                csv_row[key] = value.item() / len(dataloader)
+            else:
+                csv_row[key] = cast(float, value) / len(dataloader)
+
+        # Append to file
+        self.add_row_to_buffer(csv_row)
+        self.close_csv_writer(True)
+
+    def run(self):
+        model_path = self.output_dir / self.model_filename_fmt.format(self.job_num)
+        loss_filepath = self.output_dir / self.loss_filename
+
+        if loss_filepath.exists():
+            loss_filepath.unlink()
+            self.log(FILE_EXISTS_WARNING.format(loss_filepath))
+
+        if model_path.exists():
+            self.logger.warning(
+                f"A model file was found: '{model_path}' and will be reloaded. "
+                "Erase the file if you wish to train a new model."
+            )
+            self.logger.debug("Re-loading model")
+            model = reload_vae(model_path)
+        else:
+            self.logger.debug("Training a new model")
+            train_dataloader = self.make_dataloader()
+            model = self.init_model(train_dataloader)
+            training_loop = self.init_training_loop(False)
+            training_loop.train(model, train_dataloader)
+            model.save(model_path)
+
+        model.freeze()
+
+        self.record_loss(model, train_dataloader)

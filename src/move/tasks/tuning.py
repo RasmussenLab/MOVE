@@ -21,7 +21,7 @@ from move.analysis.metrics import (
 )
 from move.core.exceptions import FILE_EXISTS_WARNING
 from move.core.logging import get_logger
-from move.core.typing import BoolArray, FloatArray, PathLike
+from move.core.typing import Split, PathLike
 from move.data import io
 from move.data.dataloader import MoveDataLoader
 from move.models.base import reload_vae, BaseVae, LossDict
@@ -154,7 +154,7 @@ class TuneModel(CsvWriterMixin, MoveTask):
             model = reload_vae(model_path)
         else:
             self.logger.debug("Training a new model")
-            train_dataloader = self.make_dataloader()
+            train_dataloader = self.make_dataloader("train")
             model = self.init_model(train_dataloader)
             training_loop = self.init_training_loop(False)
             training_loop.train(model, train_dataloader)
@@ -162,4 +162,5 @@ class TuneModel(CsvWriterMixin, MoveTask):
 
         model.freeze()
 
-        self.record_loss(model, train_dataloader)
+        test_dataloader = self.make_dataloader("test")
+        self.record_loss(model, test_dataloader)

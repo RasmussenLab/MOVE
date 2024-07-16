@@ -36,6 +36,9 @@ class DataConfig:
     continuous_names: list[str] = MISSING
     categorical_weights: list[int] = MISSING
     continuous_weights: list[int] = MISSING
+    train_frac: float = MISSING
+    test_frac: float = MISSING
+    valid_frac: float = MISSING
 
 
 @dataclass
@@ -55,6 +58,9 @@ class EncodeDataConfig(TaskConfig):
     sample_names_filename: str = "${data.sample_names}"
     discrete_inputs: list[dict[str, Any]] = "${data.categorical_inputs}"  # type: ignore
     continuous_inputs: list[dict[str, Any]] = "${data.continuous_inputs}"  # type: ignore
+    train_frac: float = "${data.train_frac}"  # type: ignore
+    test_frac: float = "${data.test_frac}"  # type: ignore
+    valid_frac: float = "${data.valid_frac}"  # type: ignore
 
 
 @dataclass

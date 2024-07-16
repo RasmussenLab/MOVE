@@ -1,15 +1,23 @@
-__all__ = ["one_hot_encode", "one_hot_encode_single", "scale"]
+__all__ = [
+    "one_hot_encode",
+    "one_hot_encode_single",
+    "log_n_standardize",
+    "standardize",
+]
 
-from typing import Any, Literal, Optional, cast
+from typing import Any, Literal, Optional, Union, cast
 
 import numpy as np
 import pandas as pd
+import torch
 from numpy.typing import ArrayLike
-from sklearn.preprocessing import scale as standardize
+from sklearn.preprocessing import StandardScaler
 
 from move.core.typing import BoolArray, FloatArray, IntArray
 
-PreprocessingOpName = Literal["one_hot_encoding", "standardization", "none"]
+PreprocessingOpName = Literal[
+    "one_hot_encode", "log_and_standardize", "standardize", "none"
+]
 
 
 def _category_name(value: Any) -> str:
@@ -66,20 +74,47 @@ def one_hot_encode_single(mapping: dict[str, int], value: Optional[str]) -> Floa
     return encoded_value
 
 
-def scale(x: np.ndarray) -> tuple[FloatArray, BoolArray]:
+Indices = Optional[Union[IntArray, torch.Tensor]]
+
+
+def log_n_standardize(
+    x: np.ndarray, train_indices: Optional[Indices] = None
+) -> FloatArray:
+    """Apply base-2 logarithm. Then, center to mean and scale to unit variance.
+    Convert NaN values to 0.
+
+    Args:
+        x: 2D array with samples in its rows and features in its columns
+        train_indices: Array with indices corresponding to training data subset
+
+    Returns:
+        Tuple containing standardized output
+    """
+    logx = np.log2(x + 1)
+    return standardize(logx, train_indices)
+
+
+def standardize(x: np.ndarray, train_indices: Optional[Indices] = None) -> FloatArray:
     """Center to mean and scale to unit variance. Convert NaN values to 0.
 
     Args:
         x: 2D array with samples in its rows and features in its columns
+        train_indices: Array with indices corresponding to training data subset
 
     Returns:
-        Tuple containing (1) scaled output and (2) a 1D mask marking columns
-        (i.e., features) without zero variance
+        Tuple containing standardized output
     """
-    logx = np.log2(x + 1)
-    mask_1d = ~np.isclose(np.nanstd(logx, axis=0), 0.0)
-    scaled_x = standardize(logx[:, mask_1d], axis=0)
-    return fill(cast(FloatArray, scaled_x)), mask_1d
+    op = StandardScaler()
+    if train_indices is None:
+        scaled_x = op.fit_transform(x)
+    else:
+        # Standardize based only on training subset
+        train_x = np.take(x, train_indices, axis=0)
+        op.fit(train_x)
+        # Apply transformation to all data
+        scaled_x = op.transform(x)
+    # Fill NaNs with zeros
+    return fill(cast(FloatArray, scaled_x))
 
 
 def fill(x: np.ndarray) -> FloatArray:

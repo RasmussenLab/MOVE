@@ -11,7 +11,8 @@ from torch import nn
 from torch.utils.data import Dataset
 
 from move.core.exceptions import UnsetProperty
-from move.core.typing import EncodedData
+from move.core.typing import EncodedData, IndicesDict, Split
+from move.tasks.encode_data import EncodeData
 
 DataType = Literal["continuous", "discrete"]
 Index = Union[int, tuple[str, int], tuple[int, int]]
@@ -79,13 +80,16 @@ class NamedDataset(Dataset, ABC):
         return self.num_features
 
     @classmethod
-    def load(cls: Type[T], path: Path) -> T:
+    def load(cls: Type[T], path: Path, indices: Optional[torch.Tensor] = None) -> T:
         """Load dataset.
 
         Args:
             path: Path to encoded data
+            indices: Use to load only a subset of the data. Load all data if None.
         """
         enc_data = cast(EncodedData, torch.load(path))
+        if indices is not None:
+            enc_data["tensor"] = enc_data["tensor"][indices, :]
         return cls(**enc_data)
 
     def select(self, feature_name: str) -> torch.Tensor:
@@ -358,6 +362,7 @@ class MoveDataset(Dataset):
         path: Path,
         discrete_dataset_names: list[str],
         continuous_dataset_names: list[str],
+        split: Split = "all",
     ) -> "MoveDataset":
         """Load dataset.
 
@@ -365,12 +370,22 @@ class MoveDataset(Dataset):
             path: Path to encoded data
             discrete_dataset_names: Names of discrete datasets
             continuous_dataset_names: Names of continuous datasets
+            split: Subset of data to load ('train', 'test', 'valid', or 'all')
         """
+        if split != "all":
+            ind_dict: IndicesDict = torch.load(path / EncodeData.indices_filename)
+            indices = ind_dict.get(f"{split}_indices")
+            if indices is None:
+                raise KeyError(f"Unknown data subset: '{split}'")
+        else:
+            indices = None
         datasets: list[NamedDataset] = []
         for dataset_name in discrete_dataset_names:
-            datasets.append(DiscreteDataset.load(path / f"{dataset_name}.pt"))
+            dataset = DiscreteDataset.load(path / f"{dataset_name}.pt", indices)
+            datasets.append(dataset)
         for dataset_name in continuous_dataset_names:
-            datasets.append(ContinuousDataset.load(path / f"{dataset_name}.pt"))
+            dataset = ContinuousDataset.load(path / f"{dataset_name}.pt", indices)
+            datasets.append(dataset)
         return cls(*datasets)
 
     def feature_names_of(self, dataset_name: str) -> list[str]:

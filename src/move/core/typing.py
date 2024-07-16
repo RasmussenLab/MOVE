@@ -20,7 +20,14 @@ LoggingLevel = Union[
 ]
 PathLike = Union[str, os.PathLike]
 
-Split = Literal["train", "valid", "test"]
+Split = Literal["all", "train", "valid", "test"]
+
+
+class IndicesDict(TypedDict):
+    train_indices: torch.Tensor
+    test_indices: torch.Tensor
+    valid_indices: torch.Tensor
+
 
 BoolArray = NDArray[np.bool_]
 IntArray = Union[NDArray[np.int_], NDArray[np.uint]]

@@ -9,6 +9,7 @@ from move.conf.models import ModelConfig
 from move.conf.training import (
     DataLoaderConfig,
     TestDataLoaderConfig,
+    TrainingDataLoaderConfig,
     TrainingLoopConfig,
 )
 from move.core.exceptions import UnsetProperty
@@ -39,17 +40,23 @@ class MoveTask(ParentTask):
         self.training_dataloader_config = training_dataloader_config
         self.training_loop_config = training_loop_config
 
-    def make_dataloader(self, split: Split = "train") -> MoveDataLoader:
+    def make_dataloader(self, split: Split = "all") -> MoveDataLoader:
         """Make a MOVE dataloader. For the training split, data will be shuffled
         and the last batch will be dropped."""
         dataset = MoveDataset.load(
-            self.input_dir, self.discrete_dataset_names, self.continuous_dataset_names
+            self.input_dir,
+            self.discrete_dataset_names,
+            self.continuous_dataset_names,
+            split,
         )
         config = self.training_dataloader_config
-        if split == "test":
+        batch_size = config.batch_size
+        if split == "test" or split == "valid":
             # Duplicate config, but set shuffle/drop_last to False
-            batch_size = getattr(config, "batch_size")
             config = TestDataLoaderConfig(batch_size)
+        else:
+            # Duplicate config, but ensure shuffle/drop_last to True
+            config = TrainingDataLoaderConfig(batch_size)
         return hydra.utils.instantiate(config, dataset=dataset)
 
     def init_model(self, dataloader: MoveDataLoader) -> BaseVae:

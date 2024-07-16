@@ -25,11 +25,9 @@ def split_samples(
 
     train_size = int(train_frac * num_samples)
     test_size = int(test_frac * num_samples)
-    valid_size = num_samples - train_size - test_size
 
     perm = torch.randperm(num_samples)
 
-    tup = torch.split(perm, (train_size, test_size, valid_size))
-    out = tuple(map(torch.msort, tup))
-    assert len(out) == 3
-    return out
+    tup = tuple(torch.tensor_split(perm, (train_size, train_size + test_size)))
+    assert len(tup) == 3
+    return tup

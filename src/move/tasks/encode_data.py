@@ -60,7 +60,7 @@ class EncodeData(ParentTask):
         input_configs: list[InputConfig],
         default_op_name: preprocessing.PreprocessingOpName,
     ) -> None:
-        """Read TSV files containing datasets and run pre-processing operations.
+        """Read CSV or TSV files containing datasets and run pre-processing operations.
 
         Args:
             input_configs:
@@ -79,6 +79,7 @@ class EncodeData(ParentTask):
             self.logger.info(f"{action_name} '{dataset_name}'")
             dataset_path = self.input_dir / f"{dataset_name}.tsv"
             if not dataset_path.exists():
+                # Try to load CSV if TSV does not exist
                 dataset_path = self.input_dir / f"{dataset_name}.csv"
             enc_data_path = self.output_dir / f"{dataset_name}.pt"
             if enc_data_path.exists():

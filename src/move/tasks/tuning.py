@@ -1,5 +1,6 @@
 __all__ = ["TuneModel"]
 
+from collections import defaultdict
 from pathlib import Path
 from random import shuffle
 from typing import Any, Literal, cast
@@ -12,8 +13,6 @@ from hydra.core.hydra_config import HydraConfig
 from hydra.types import RunMode
 from matplotlib.cbook import boxplot_stats
 from numpy.typing import ArrayLike
-from omegaconf import OmegaConf
-from sklearn.metrics.pairwise import cosine_similarity
 
 from move.analysis.metrics import (
     calculate_accuracy,
@@ -21,7 +20,7 @@ from move.analysis.metrics import (
 )
 from move.core.exceptions import FILE_EXISTS_WARNING
 from move.core.logging import get_logger
-from move.core.typing import Split, PathLike
+from move.core.typing import FloatArray, Split, PathLike
 from move.data import io
 from move.data.dataloader import MoveDataLoader
 from move.models.base import reload_vae, BaseVae, LossDict
@@ -29,6 +28,8 @@ from move.tasks.base import CsvWriterMixin
 from move.tasks.move import MoveTask
 
 TaskType = Literal["reconstruction", "stability"]
+
+BOXPLOT_STATS = ["mean", "med", "q1", "q3", "iqr", "cilo", "cihi", "whislo", "whishi"]
 
 
 def _get_record(values: ArrayLike, **kwargs) -> dict[str, Any]:
@@ -61,9 +62,9 @@ class TuneModel(CsvWriterMixin, MoveTask):
     """
 
     loss_filename: str = "loss.csv"
+    metrics_filename: str = "metrics.csv"
     model_filename_fmt: str = "model_{}.pt"
     results_subdir: str = "tuning"
-    results_filename: str = "metrics.csv"
 
     def __init__(
         self,
@@ -101,6 +102,78 @@ class TuneModel(CsvWriterMixin, MoveTask):
             key, value = item.split(kv_sep)
             self.override_dict[key] = value
 
+    def record_metrics(
+        self, model: BaseVae, dataloader_dict: dict[str, MoveDataLoader]
+    ):
+        """Record accuracy metric for each dataloader.
+
+        Args:
+            model: VAE model
+            dataloader_dict: Dict of dataloaders corresponding to different data subsets
+        """
+
+        colnames = [
+            "job_num",
+            *self.override_dict.keys(),
+            "metric",
+            "dataset_name",
+            "split",
+        ]
+        colnames.extend(BOXPLOT_STATS)
+
+        self.init_csv_writer(
+            self.output_dir / self.metrics_filename,
+            mode="a",
+            fieldnames=colnames,
+            extrasaction="ignore",
+        )
+
+        for split, dataloader in dataloader_dict.items():
+            datasets = dataloader.datasets
+            scores_per_dataset: dict[str, list[FloatArray]] = defaultdict(list)
+
+            for (batch,) in dataloader:
+                batch_disc, batch_cont = model.split_input(batch)
+                recon = model.reconstruct(batch, as_one=True)
+                recon_disc, recon_cont = model.split_input(recon)
+
+                for i, dataset in enumerate(datasets[: len(batch_disc)]):
+                    target = batch_disc[i].numpy()
+                    preds = torch.argmax(
+                        (torch.log_softmax(recon_disc[i], dim=-1)), dim=-1
+                    ).numpy()
+                    scores = calculate_accuracy(target, preds)
+                    scores_per_dataset[dataset.name].append(scores)
+
+                for i, dataset in enumerate(datasets[len(batch_disc) :]):
+                    target = batch_cont[i].numpy()
+                    preds = recon_cont[i].numpy()
+                    scores = calculate_cosine_similarity(target, preds)
+                    scores_per_dataset[dataset.name].append(scores)
+
+            for dataset in datasets:
+                metric = (
+                    "accuracy"
+                    if dataset.data_type == "discrete"
+                    else "cosine_similarity"
+                )
+                csv_row: dict[str, Any] = dict(
+                    job_num=self.job_num,
+                    **self.override_dict,
+                    metric=metric,
+                    dataset_name=dataset.name,
+                    split=split,
+                )
+                scores = np.concatenate(scores_per_dataset[dataset.name], axis=0)
+                bxp_stas, *_ = boxplot_stats(scores)
+                bxp_stas.pop("fliers")
+                csv_row.update(bxp_stas)
+
+                self.add_row_to_buffer(csv_row)
+
+        # Append to file
+        self.close_csv_writer(True)
+
     def record_loss(self, model: BaseVae, dataloader: MoveDataLoader):
         """Record final loss in a CSV row."""
 
@@ -108,7 +181,7 @@ class TuneModel(CsvWriterMixin, MoveTask):
         colnames.extend(LossDict.__annotations__.keys())
 
         self.init_csv_writer(
-            self.output_dir / self.results_filename,
+            self.output_dir / self.loss_filename,
             mode="a",
             fieldnames=colnames,
             extrasaction="ignore",
@@ -140,27 +213,33 @@ class TuneModel(CsvWriterMixin, MoveTask):
     def run(self):
         model_path = self.output_dir / self.model_filename_fmt.format(self.job_num)
         loss_filepath = self.output_dir / self.loss_filename
+        metrics_filepath = self.output_dir / self.metrics_filename
 
-        if loss_filepath.exists():
-            loss_filepath.unlink()
-            self.log(FILE_EXISTS_WARNING.format(loss_filepath))
+        for filepath in (loss_filepath, metrics_filepath):
+            if filepath.exists() and self.job_num == 1:
+                filepath.unlink()
+                self.logger.warning(FILE_EXISTS_WARNING.format(filepath))
+
+        dataloaders = {
+            "train": self.make_dataloader("train"),
+            "test": self.make_dataloader("test"),
+        }
 
         if model_path.exists():
             self.logger.warning(
                 f"A model file was found: '{model_path}' and will be reloaded. "
                 "Erase the file if you wish to train a new model."
             )
-            self.logger.debug("Re-loading model")
+            self.logger.debug(f"Re-loading model {self.job_num}")
             model = reload_vae(model_path)
         else:
-            self.logger.debug("Training a new model")
-            train_dataloader = self.make_dataloader("train")
-            model = self.init_model(train_dataloader)
+            self.logger.debug(f"Training a new model {self.job_num}")
+            model = self.init_model(dataloaders["train"])
             training_loop = self.init_training_loop(False)
-            training_loop.train(model, train_dataloader)
+            training_loop.train(model, dataloaders["train"])
             model.save(model_path)
 
         model.freeze()
 
-        test_dataloader = self.make_dataloader("test")
-        self.record_loss(model, test_dataloader)
+        self.record_loss(model, dataloaders["test"])
+        self.record_metrics(model, dataloaders)

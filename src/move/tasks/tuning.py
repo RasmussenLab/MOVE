@@ -2,26 +2,22 @@ __all__ = ["TuneModel"]
 
 from collections import defaultdict
 from pathlib import Path
-from random import shuffle
 from typing import Any, Literal, cast
 
-import hydra
 import numpy as np
-import pandas as pd
 import torch
 from hydra.core.hydra_config import HydraConfig
 from hydra.types import RunMode
 from matplotlib.cbook import boxplot_stats
 from numpy.typing import ArrayLike
+from sklearn.metrics.pairwise import cosine_similarity
 
 from move.analysis.metrics import (
     calculate_accuracy,
     calculate_cosine_similarity,
 )
 from move.core.exceptions import FILE_EXISTS_WARNING
-from move.core.logging import get_logger
-from move.core.typing import FloatArray, Split, PathLike
-from move.data import io
+from move.core.typing import FloatArray, PathLike
 from move.data.dataloader import MoveDataLoader
 from move.models.base import reload_vae, BaseVae, LossDict
 from move.tasks.base import CsvWriterMixin
@@ -105,7 +101,7 @@ class TuneModel(CsvWriterMixin, MoveTask):
     def record_metrics(
         self, model: BaseVae, dataloader_dict: dict[str, MoveDataLoader]
     ):
-        """Record accuracy metric for each dataloader.
+        """Record accuracy or cosine similarity metric for each dataloader.
 
         Args:
             model: VAE model
@@ -243,3 +239,90 @@ class TuneModel(CsvWriterMixin, MoveTask):
 
         self.record_loss(model, dataloaders["test"])
         self.record_metrics(model, dataloaders)
+
+
+class TuneStability(TuneModel):
+    """Train a number of models and compute the stability of their latent space.
+
+    Args:
+        num_refits: Number of models to train
+    """
+
+    stabilility_filename: str = "stability.csv"
+
+    def __init__(self, num_refits: int, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.num_refits = num_refits
+        self.baseline_cosine_sim = None
+
+    def calculate_stability(self, latent_repr: FloatArray) -> float:
+        """Compute stability (mean difference between the cosine similarities of two
+        latent representations).
+
+        Args:
+            latent_repr: Latent representation"""
+
+        if self.baseline_cosine_sim is None:
+            raise ValueError("Cannot calculate stability without a baseline.")
+        cosine_sim = cosine_similarity(latent_repr)
+        abs_diff = np.absolute(cosine_sim - self.baseline_cosine_sim)
+        # Remove diagonal (cosine similarity with itself)
+        diff = abs_diff[~np.eye(abs_diff.shape[0], dtype=bool)].reshape(
+            abs_diff.shape[0], -1
+        )
+        return np.mean(diff).item()
+
+    def run(self) -> None:
+        results_filepath = self.output_dir / self.stabilility_filename
+
+        if results_filepath.exists() and self.job_num == 1:
+            results_filepath.unlink()
+            self.logger.warning(FILE_EXISTS_WARNING.format(results_filepath))
+
+        train_dataloader = self.make_dataloader("train")
+        test_dataloader = self.make_dataloader("test")
+
+        stabs: list[float] = []
+
+        for i in range(self.num_refits):
+            self.logger.debug(f"Refit: {i+1}/{self.num_refits}")
+            model = self.init_model(train_dataloader)
+            training_loop = self.init_training_loop(False)
+            training_loop.train(model, train_dataloader)
+            model.freeze()
+
+            # Create latent representation for all samples
+            latent_reprs = []
+            for (batch,) in test_dataloader:
+                latent_reprs.append(model.project(batch))
+            latent_repr = torch.concat(latent_reprs).numpy()
+
+            if self.baseline_cosine_sim is None:
+                # Store first cosine similarity as baseline
+                self.baseline_cosine_sim = cosine_similarity(latent_repr)
+            else:
+                # Calculate stability from a pair of cosine similarity arrays
+                stability = self.calculate_stability(latent_repr)
+                stabs.append(stability)
+
+        # Append row to CSV file
+        colnames = ["job_num", *self.override_dict.keys(), "metric"]
+        colnames.extend(BOXPLOT_STATS)
+
+        self.init_csv_writer(
+            results_filepath,
+            mode="a",
+            fieldnames=colnames,
+            extrasaction="ignore",
+        )
+        csv_row: dict[str, Any] = dict(
+            job_num=self.job_num,
+            **self.override_dict,
+            metric="stability",
+        )
+        bxp_stas, *_ = boxplot_stats(stabs)
+        bxp_stas.pop("fliers")
+        csv_row.update(bxp_stas)
+
+        self.add_row_to_buffer(csv_row)
+        self.close_csv_writer()

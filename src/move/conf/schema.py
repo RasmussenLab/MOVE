@@ -21,7 +21,7 @@ from move.core.qualname import get_fully_qualname
 from move.tasks.associations import Associations
 from move.tasks.encode_data import EncodeData
 from move.tasks.latent_space_analysis import LatentSpaceAnalysis
-from move.tasks.tuning import TuneModel
+from move.tasks.tuning import TuneModel, TuneStability
 
 
 @dataclass
@@ -134,6 +134,22 @@ class TuningConfig(MoveTaskConfig):
 
 
 @dataclass
+class StabilityTuningConfig(TuningConfig):
+    """Configure tuning for stability."""
+
+    defaults: list[Any] = field(
+        default_factory=lambda: [
+            dict(training_loop_config="schema_training_loop"),
+        ]
+    )
+
+    _target_: str = field(
+        default=get_fully_qualname(TuneStability), init=False, repr=False
+    )
+    num_refits: int = 10
+
+
+@dataclass
 class MOVEConfig:
     """Configure MOVE command line."""
 
@@ -165,6 +181,11 @@ config_store.store(
     name="task_tuning",
     node=TuningConfig,
 )
+config_store.store(
+    group="task",
+    name="task_tune_stability",
+    node=StabilityTuningConfig,
+)
 
 register_resolvers()
 
@@ -173,5 +194,6 @@ SUPPORTED_TASKS: tuple[Type, ...] = (
     EncodeDataConfig,
     LatentSpaceAnalysisConfig,
     TuningConfig,
+    StabilityTuningConfig,
 )
 """List of tasks that can be ran from the command line."""

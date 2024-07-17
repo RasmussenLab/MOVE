@@ -143,7 +143,14 @@ def read_tsv(
         Tuple containing (1) feature names and (2) 2D matrix (samples x
         features)
     """
-    data = pd.read_csv(path, index_col=0, sep="\t")
+    extension = Path(path).suffix
+    if extension == ".tsv":
+        sep = "\t"
+    elif extension == ".csv":
+        sep = ","
+    else:
+        raise ValueError(f"Unsupported file type: {extension}")
+    data = pd.read_csv(path, index_col=0, sep=sep)
     if sample_names is not None:
         data.index = data.index.astype(str, False)
         data = data.loc[sample_names]

@@ -90,6 +90,12 @@ class BaseVae(nn.Module, ABC):
         self, batch: torch.Tensor, as_one: Literal[True]
     ) -> torch.Tensor: ...
 
+    @overload
+    @abstractmethod
+    def reconstruct(
+        self, batch: torch.Tensor, as_one: bool = False
+    ) -> Union[torch.Tensor, tuple[torch.Tensor, torch.Tensor]]: ...
+
     @torch.no_grad()
     @abstractmethod
     def reconstruct(

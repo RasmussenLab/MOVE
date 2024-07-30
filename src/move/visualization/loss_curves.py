@@ -42,8 +42,15 @@ def plot_loss_curves(
         Figure
     """
     is_df = isinstance(losses, pd.DataFrame)
-    num_epochs = len(losses) if is_df else len(losses[0])
-    epochs = np.arange(num_epochs)
+    if is_df:
+        # Calculate epoch from steps
+        max_epochs = losses["epoch"].max() + 1
+        max_steps = len(losses["step"])
+        steps_epoch = max_steps / max_epochs
+        x_values = (losses["step"] + 1) / steps_epoch
+        losses.drop(["epoch", "step"], axis=1, inplace=True)
+    else:
+        x_values = np.arange(len(losses[0]))
     with style_settings(style), color_cycle(colormap):
         fig, ax = create_figure()
         for i, label in enumerate(labels):
@@ -52,7 +59,7 @@ def plot_loss_curves(
                 loss = losses[colname]
             else:
                 loss = losses[i]
-            ax.plot(epochs, loss, label=label, linestyle="-")
+            ax.plot(x_values, loss, label=label, linestyle="-")
         ax.legend()
         ax.set(xlabel=xlabel, ylabel="Loss")
     return fig

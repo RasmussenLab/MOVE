@@ -109,9 +109,10 @@ class LatentSpaceAnalysis(MoveTask):
 
         model.eval()
 
+        all_dataloader = self.make_dataloader()
         test_dataloader = self.make_dataloader(split="test")
 
-        project_subtask = Project(model, test_dataloader, self.reducer_config)
+        project_subtask = Project(model, all_dataloader, self.reducer_config)
         project_subtask.parent = self
         project_subtask.run()
         if self.features_to_plot:
@@ -123,7 +124,7 @@ class LatentSpaceAnalysis(MoveTask):
             metrics_subtask.plot()
 
         if self.compute_feature_importance:
-            fi_subtask = FeatureImportance(self, model, test_dataloader)
+            fi_subtask = FeatureImportance(self, model, all_dataloader)
             fi_subtask.run()
             fi_subtask.plot()
 

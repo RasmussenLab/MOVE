@@ -135,8 +135,6 @@ class Associations(CsvWriterMixin, MoveTask):
 
         # Compute bayes factor per feature per perturbation
         for i, perturbed_feature_name in enumerate(perturbation_names, 1):
-            self.logger.info(f"Perturbing ({i}/{num_perturbations})")
-
             mean_diff = None
             for model in self.get_trained_model(train_dataloader):
                 # Perturb feature
@@ -168,6 +166,7 @@ class Associations(CsvWriterMixin, MoveTask):
                 else:
                     mean_diff += cat_diff
 
+            self.logger.info(f"Perturbing ({i}/{num_perturbations})")
             if mean_diff is not None:
                 prob = torch.sum(mean_diff > 1e-8, dim=0) / mean_diff.count_nonzero(
                     dim=0

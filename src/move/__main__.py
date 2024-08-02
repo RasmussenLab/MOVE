@@ -6,6 +6,7 @@ from omegaconf import OmegaConf
 from move import HYDRA_VERSION_BASE
 from move.conf.schema import SUPPORTED_TASKS, MOVEConfig
 from move.core.logging import get_logger
+from move.core.seed import set_global_seed
 from move.tasks.base import Task
 
 
@@ -27,6 +28,8 @@ def main(config: MOVEConfig) -> None:
         logger = get_logger("move")
         logger.info("No task specified.")
     elif issubclass(task_type, SUPPORTED_TASKS):
+        if config.seed is not None:
+            set_global_seed(config.seed)
         task: Task = hydra.utils.instantiate(config.task, _recursive_=False)
         task.run()
     else:

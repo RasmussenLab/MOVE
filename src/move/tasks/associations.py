@@ -167,22 +167,21 @@ class Associations(CsvWriterMixin, MoveTask):
                     mean_diff += cat_diff
 
             self.logger.info(f"Perturbing ({i}/{num_perturbations})")
-            if mean_diff is not None:
-                prob = torch.sum(mean_diff > 1e-8, dim=0) / mean_diff.count_nonzero(
-                    dim=0
-                )
-                bayes_k = torch.log(prob + 1e-8) - torch.log(1 - prob + 1e-8)
-                abs_prob = torch.special.expit(torch.abs(bayes_k))
+            assert mean_diff is not None
 
-                self.write_cols(
-                    {
-                        "perturbed_feature": [perturbed_feature_name]
-                        * dataset.num_continuous_features,
-                        "target_feature": dataset.continuous_feature_names,
-                        "prob": abs_prob.numpy(),
-                        "bayes_k": bayes_k.numpy(),
-                    }
-                )
+            prob = torch.sum(mean_diff > 1e-8, dim=0) / mean_diff.count_nonzero(dim=0)
+            bayes_k = torch.log(prob + 1e-8) - torch.log(1 - prob + 1e-8)
+            abs_prob = torch.special.expit(torch.abs(bayes_k))
+
+            self.write_cols(
+                {
+                    "perturbed_feature": [perturbed_feature_name]
+                    * dataset.num_continuous_features,
+                    "target_feature": dataset.continuous_feature_names,
+                    "prob": abs_prob.numpy(),
+                    "bayes_k": bayes_k.numpy(),
+                }
+            )
 
         self.logger.info("Complete! Writing out results")
         self.close_csv_writer()
@@ -193,13 +192,13 @@ class Associations(CsvWriterMixin, MoveTask):
         results = pd.read_csv(self.csv_filepath)
         results.sort_values("prob", ascending=False, inplace=True, ignore_index=True)
         results["fdr"] = np.cumsum(1 - results["prob"]) / np.arange(1, len(results) + 1)
-        results["is_significant"] = results["fdr"] < self.sig_threshold
+        results["pred_significant"] = results["fdr"] < self.sig_threshold
 
-        sig = results[results.is_significant]
+        sig = results[results.pred_significant]
         self.logger.info(f"Significant associations found: {len(sig)}")
 
         if self.write_only_sig:
             results = sig
-            results.drop(columns=["is_significant"], inplace=True)
+            results.drop(columns=["pred_significant"], inplace=True)
 
         results.to_csv(self.csv_filepath, index=False)

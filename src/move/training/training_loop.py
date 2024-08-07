@@ -72,13 +72,11 @@ def training_loop(
     counter = 0
 
     kld_weight = 0.0
-    kld_rate = 20 / len(kld_warmup_steps)
-    kld_multiplier = 1 + kld_rate
+
 
     for epoch in range(1, num_epochs + 1):
         if epoch in kld_warmup_steps:
-            kld_weight = 0.05 * kld_multiplier
-            kld_multiplier += kld_rate
+            kld_weight += 1 / len(kld_warmup_steps)
 
         if epoch in batch_dilation_steps:
             train_dataloader = dilate_batch(train_dataloader)

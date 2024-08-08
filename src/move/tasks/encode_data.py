@@ -60,7 +60,9 @@ def encode_data(config: DataConfig):
         fig.savefig(fig_path)
 
         if scale:
-            logger.debug(f"Scaling dataset: {dataset_name}, log2 transform: {input_config.log2}")
+            logger.debug(
+                f"Scaling dataset: {dataset_name}, log2 transform: {input_config.log2}"
+            )
             values, mask_1d = preprocessing.scale(values, input_config.log2)
             names = names[mask_1d]
             logger.debug(f"Columns with zero variance: {np.sum(~mask_1d)}")

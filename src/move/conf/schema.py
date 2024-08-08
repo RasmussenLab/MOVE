@@ -32,6 +32,7 @@ class InputConfig:
 @dataclass
 class ContinuousInputConfig(InputConfig):
     scale: bool = True
+    log2: bool = False
 
 
 @dataclass

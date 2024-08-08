@@ -73,7 +73,6 @@ def training_loop(
 
     kld_weight = 0.0
 
-
     for epoch in range(1, num_epochs + 1):
         if epoch in kld_warmup_steps:
             kld_weight += 1 / len(kld_warmup_steps)

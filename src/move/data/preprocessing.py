@@ -64,7 +64,7 @@ def one_hot_encode_single(mapping: dict[str, int], value: Optional[str]) -> IntA
     return encoded_value
 
 
-def scale(x: np.ndarray) -> tuple[FloatArray, BoolArray]:
+def scale(x: np.ndarray, log2: bool = False) -> tuple[FloatArray, BoolArray]:
     """Center to mean and scale to unit variance. Convert NaN values to 0.
 
     Args:
@@ -74,7 +74,9 @@ def scale(x: np.ndarray) -> tuple[FloatArray, BoolArray]:
         Tuple containing (1) scaled output and (2) a 1D mask marking columns
         (i.e., features) without zero variance
     """
-    logx = np.log2(x + 1)
+    logx = x
+    if log2:
+        logx = np.log2(x + 1)
     mask_1d = ~np.isclose(np.nanstd(logx, axis=0), 0.0)
     scaled_x = standardize(logx[:, mask_1d], axis=0)
     scaled_x[np.isnan(scaled_x)] = 0

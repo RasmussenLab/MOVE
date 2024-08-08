@@ -55,18 +55,19 @@ def encode_data(config: DataConfig):
         # before preprocessing:
         fig = plot_value_distributions(values)
         fig_path = str(
-            output_path / "Value_distribution_{}_unprocessed.png".format(dataset_name)
+            output_path / f"Value_distribution_{dataset_name}_unprocessed.png"
         )
         fig.savefig(fig_path)
 
-        # Plotting the value distribution for all continuous datasets:
-        fig = plot_value_distributions(values)
-        fig_path = str(output_path / f"Value_distribution_{dataset_name}.png")
-        fig.savefig(fig_path)
-
         if scale:
-            values, mask_1d = preprocessing.scale(values)
+            logger.debug(f"Scaling dataset: {dataset_name}, log2 transform: {input_config.log2}")
+            values, mask_1d = preprocessing.scale(values, input_config.log2)
             names = names[mask_1d]
             logger.debug(f"Columns with zero variance: {np.sum(~mask_1d)}")
-        io.dump_names(interim_data_path / f"{input_config.name}.txt", names)
-        np.save(interim_data_path / f"{input_config.name}.npy", values)
+            # Plotting the value distribution for all continuous datasets:
+            fig = plot_value_distributions(values)
+            fig_path = str(output_path / f"Value_distribution_{dataset_name}.png")
+            fig.savefig(fig_path)
+
+        io.dump_names(interim_data_path / f"{dataset_name}.txt", names)
+        np.save(interim_data_path / f"{dataset_name}.npy", values)

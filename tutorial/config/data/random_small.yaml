@@ -18,4 +18,8 @@ categorical_inputs: # a list of categorical datasets
 
 continuous_inputs: # a list of continuous datasets
   - name: random.small.proteomics
+    log2: true #apply log2 before scaling
+    scale: true #scale data (z-score normalize)
   - name: random.small.metagenomics
+    log2: true
+    scale: true

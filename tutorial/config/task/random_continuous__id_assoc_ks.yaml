@@ -1,0 +1,27 @@
+defaults:
+  - identify_associations_ks
+
+batch_size: 10
+
+num_refits: 10
+sig_threshold: 0.05
+
+target_dataset: random.continuous.proteomics
+target_value: plus_std
+save_refits: True
+
+model:
+  num_hidden:
+    - 100
+  num_latent: 50
+  beta: 0.1
+  dropout: 0.1
+
+training_loop:
+  lr: 1e-4
+  num_epochs: 200
+
+perturbed_feature_names:
+  - proteomics_3
+target_feature_names:
+  - metagenomics_9

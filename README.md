@@ -42,7 +42,7 @@ Medication data
 
 ## Installing MOVE package
 
-MOVE is written in Python and can therefore be installed using `pip`:
+MOVE is written in Python and can be installed using `pip`:
 
 ```bash
 >>> pip install move-dl
@@ -78,11 +78,11 @@ MOVE has five-six steps:
 ## How to run MOVE
 
 Please refer to our [**documentation**](https://move-dl.readthedocs.io/) for
-examples and [tutorials](https://move-dl.readthedocs.io/tutorial/index.html) 
+examples and [tutorials](https://move-dl.readthedocs.io/tutorial/index.html)
 on how to run MOVE.
 
-Additionally, you can copy 
-[this notebook](https://colab.research.google.com/drive/1RFWNsuGymCmppPsElBvDuA9zRbGskKmi?usp=sharing) 
+Additionally, you can copy
+[this notebook](https://colab.research.google.com/drive/1RFWNsuGymCmppPsElBvDuA9zRbGskKmi?usp=sharing)
 and follow its instructions to get familiar with our pipeline.
 
 # Data sets

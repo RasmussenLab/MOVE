@@ -81,3 +81,21 @@ def norm(x: np.ma.MaskedArray, axis: int = 1) -> np.ma.MaskedArray:
         1D array with the specified axis removed.
     """
     return np.sqrt(np.sum(x**2, axis=axis))
+
+
+def get_2nd_order_polynomial(
+    x_array: FloatArray, y_array: FloatArray, n_points=100
+) -> tuple[FloatArray, FloatArray, tuple[float, float, float]]:
+    """
+    Given a set of x an y values, find the 2nd oder polynomial fitting best the data.
+
+    Returns:
+        x_pol: x coordinates for the polynomial function evaluation.
+        y_pol: y coordinates for the polynomial function evaluation.
+    """
+    a2, a1, a = np.polyfit(x_array, y_array, deg=2)
+
+    x_pol = np.linspace(np.min(x_array), np.max(x_array), n_points)
+    y_pol = np.array([a2 * x * x + a1 * x + a for x in x_pol])
+
+    return x_pol, y_pol, (a2, a1, a)

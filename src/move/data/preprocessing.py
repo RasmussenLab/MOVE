@@ -69,6 +69,7 @@ def scale(x: np.ndarray, log2: bool = False) -> tuple[FloatArray, BoolArray]:
 
     Args:
         x: 2D array with samples in its rows and features in its columns
+        log2: whether to apply log2 transformation to the input
 
     Returns:
         Tuple containing (1) scaled output and (2) a 1D mask marking columns

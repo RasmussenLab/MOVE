@@ -32,6 +32,7 @@ from move.data.perturbations import (
 )
 from move.data.preprocessing import one_hot_encode_single
 from move.models.vae import VAE
+from move.tasks.bayes_parallel import _bayes_approach_parallel
 from move.visualization.dataset_distributions import (
     plot_correlations,
     plot_cumulative_distributions,
@@ -39,8 +40,14 @@ from move.visualization.dataset_distributions import (
     plot_reconstruction_movement,
 )
 
+# We can do three types of statistical tests. Multiprocessing is only implemented
+# for bayes at the moment
 TaskType = Literal["bayes", "ttest", "ks"]
+
+# Possible values for continuous pertrubation
 CONTINUOUS_TARGET_VALUE = ["minimum", "maximum", "plus_std", "minus_std"]
+
+logger = get_logger(__name__)
 
 
 def _get_task_type(
@@ -71,12 +78,7 @@ def prepare_for_categorical_perturbation(
     config: MOVEConfig,
     interim_path: Path,
     baseline_dataloader: DataLoader,
-    cat_list: list[FloatArray],
-) -> tuple[
-    list[DataLoader],
-    BoolArray,
-    BoolArray,
-]:
+) -> list[DataLoader]:
     """
     This function creates the required dataloaders and masks
     for further categorical association analysis.
@@ -85,7 +87,6 @@ def prepare_for_categorical_perturbation(
         config: main configuration file
         interim_path: path where the intermediate outputs are saved
         baseline_dataloader: reference dataloader that will be perturbed
-        cat_list: list of arrays with categorical data
 
     Returns:
         dataloaders: all dataloaders, including baseline appended last.
@@ -95,7 +96,6 @@ def prepare_for_categorical_perturbation(
 
     # Read original data and create perturbed datasets
     task_config = cast(IdentifyAssociationsConfig, config.task)
-    logger = get_logger(__name__)
 
     # Loading mappings:
     mappings = io.load_mappings(interim_path / "mappings.json")
@@ -113,34 +113,14 @@ def prepare_for_categorical_perturbation(
     )
     dataloaders.append(baseline_dataloader)
 
-    baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
-
-    assert baseline_dataset.con_all is not None
-    orig_con = baseline_dataset.con_all
-    nan_mask = (orig_con == 0).numpy()  # NaN values encoded as 0s
-    logger.debug(f"# NaN values: {np.sum(nan_mask)}/{orig_con.numel()}")
-
-    target_dataset_idx = config.data.categorical_names.index(task_config.target_dataset)
-    target_dataset = cat_list[target_dataset_idx]
-    feature_mask = np.all(target_dataset == target_value, axis=2)  # 2D: N x P
-    feature_mask |= np.sum(target_dataset, axis=2) == 0
-
-    return (
-        dataloaders,
-        nan_mask,
-        feature_mask,
-    )
+    return dataloaders
 
 
 def prepare_for_continuous_perturbation(
     config: MOVEConfig,
     output_subpath: Path,
     baseline_dataloader: DataLoader,
-) -> tuple[
-    list[DataLoader],
-    BoolArray,
-    BoolArray,
-]:
+) -> list[DataLoader]:
     """
     This function creates the required dataloaders and masks
     for further continuous association analysis.
@@ -163,7 +143,6 @@ def prepare_for_continuous_perturbation(
     """
 
     # Read original data and create perturbed datasets
-    logger = get_logger(__name__)
     task_config = cast(IdentifyAssociationsConfig, config.task)
 
     dataloaders = perturb_continuous_data_extended(
@@ -175,15 +154,9 @@ def prepare_for_continuous_perturbation(
     )
     dataloaders.append(baseline_dataloader)
 
-    baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
+    logger.debug(f"Dataloaders length is {len(dataloaders)}")
 
-    assert baseline_dataset.con_all is not None
-    orig_con = baseline_dataset.con_all
-    nan_mask = (orig_con == 0).numpy()  # NaN values encoded as 0s
-    logger.debug(f"# NaN values: {np.sum(nan_mask)}/{orig_con.numel()}")
-    feature_mask = nan_mask
-
-    return (dataloaders, nan_mask, feature_mask)
+    return dataloaders
 
 
 def _bayes_approach(
@@ -203,16 +176,17 @@ def _bayes_approach(
     assert task_config.model is not None
     device = torch.device("cuda" if task_config.model.cuda else "cpu")
 
-    # Train models
-    logger = get_logger(__name__)
-    logger.info("Training models")
+    # Train or reload models
+    logger.info("Training or reloading models")
     mean_diff = np.zeros((num_perturbed, num_samples, num_continuous))
     normalizer = 1 / task_config.num_refits
 
-    # Last appended dataloader is the baseline
+    # non-perturbed baseline dataset
     baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
 
     for j in range(task_config.num_refits):
+        # We create as many models (refits) as indicated in the config file
+        # For each j (number of refits) we train a different model, but on the same data
         # Initialize model
         model: VAE = hydra.utils.instantiate(
             task_config.model,
@@ -236,31 +210,37 @@ def _bayes_approach(
                 model=model,
                 train_dataloader=train_dataloader,
             )
+            # Save the refits, to use them later
             if task_config.save_refits:
-                torch.save(model.state_dict(), model_path)
+                # pickle_protocol=4 is necessary for very big models
+                torch.save(model.state_dict(), model_path, pickle_protocol=4)
         model.eval()
 
         # Calculate baseline reconstruction
-        _, baseline_recon = model.reconstruct(baseline_dataloader)
-        min_feat, max_feat = np.zeros((num_perturbed, num_continuous)), np.zeros(
-            (num_perturbed, num_continuous)
+        # For each model j, we get a different reconstruction for the baseline.
+        # We haven't perturbed anything yet, we are just
+        # getting the reconstruction for the baseline, to make sure that we get
+        # the same reconstruction for each refit, we cannot
+        # do it inside each process because the results might be different
+        reconstruction_path = (
+            models_path / f"baseline_recon_{task_config.model.num_latent}_{j}.pt"
         )
-        min_baseline, max_baseline = np.min(baseline_recon, axis=0), np.max(
-            baseline_recon, axis=0
-        )
+        if reconstruction_path.exists():
+            logger.debug(f"Loading baseline reconstruction from {reconstruction_path}.")
+            baseline_recon = torch.load(reconstruction_path)
+        else:
+            _, baseline_recon = model.reconstruct(baseline_dataloader)
+
+            # # Save the baseline reconstruction for each model
+            # logger.debug(f"Saving baseline reconstruction {j}")
+            # torch.save(baseline_recon, reconstruction_path, pickle_protocol=4)
+            # logger.debug(f"Saved baseline reconstruction {j}")
 
         # Calculate perturb reconstruction => keep track of mean difference
         for i in range(num_perturbed):
             _, perturb_recon = model.reconstruct(dataloaders[i])
             diff = perturb_recon - baseline_recon  # 2D: N x C
             mean_diff[i, :, :] += diff * normalizer
-
-            min_perturb, max_perturb = np.min(perturb_recon, axis=0), np.max(
-                perturb_recon, axis=0
-            )
-            min_feat[i, :], max_feat[i, :] = np.min(
-                [min_baseline, min_perturb], axis=0
-            ), np.max([max_baseline, max_perturb], axis=0)
 
     # Calculate Bayes factors
     logger.info("Identifying significant features")
@@ -270,7 +250,8 @@ def _bayes_approach(
         mask = feature_mask[:, [i]] | nan_mask  # 2D: N x C
         diff = np.ma.masked_array(mean_diff[i, :, :], mask=mask)  # 2D: N x C
         prob = np.ma.compressed(np.mean(diff > 1e-8, axis=0))  # 1D: C
-        bayes_k[i, :] = np.log(prob + 1e-8) - np.log(1 - prob + 1e-8)
+        computed_bayes_k = np.log(prob + 1e-8) - np.log(1 - prob + 1e-8)
+        bayes_k[i, :] = computed_bayes_k
         if task_config.target_value in CONTINUOUS_TARGET_VALUE:
             bayes_mask[i, :] = (
                 baseline_dataloader.dataset.con_all[0, :]
@@ -281,23 +262,53 @@ def _bayes_approach(
     bayes_mask = np.array(bayes_mask, dtype=bool)
 
     # Calculate Bayes probabilities
-    bayes_abs = np.abs(bayes_k)
-    bayes_p = np.exp(bayes_abs) / (1 + np.exp(bayes_abs))  # 2D: N x C
+    bayes_abs = np.abs(bayes_k)  # Dimensions are (num_perturbed, num_continuous)
+
+    bayes_p = np.exp(bayes_abs) / (1 + np.exp(bayes_abs))  # 2D: P x C
+
     bayes_abs[bayes_mask] = np.min(
         bayes_abs
     )  # Bring feature_i feature_i associations to minimum
-    sort_ids = np.argsort(bayes_abs, axis=None)[::-1]  # 1D: N x C
-    prob = np.take(bayes_p, sort_ids)  # 1D: N x C
+    # Get only the significant associations:
+    # This will flatten the array, so we get all bayes_abs for all perturbed features
+    # vs all continuous features in one 1D array
+    # Then, we sort them, and get the indexes in the flattened array. So, we get an
+    # list of sorted indexes in the flatenned array
+    sort_ids = np.argsort(bayes_abs, axis=None)[::-1]  # 1D: P*C
+    logger.debug(f"sort_ids are {sort_ids}")
+    # bayes_p is the array from which elements will be taken.
+    # sort_ids contains the indices that determine the order in which elements should
+    # be taken from bayes_p.
+    # This operation essentially rearranges the elements of bayes_p based on the
+    # sorting order specified by sort_ids
+    # np.take considers the input array as if it were flattened when extracting
+    # elements using the provided indices.
+    # So, even though sort_ids is obtained from a flattened version of bayes_abs,
+    # np.take understands how to map these indices
+    # correctly to the original shape of bayes_p.
+    prob = np.take(bayes_p, sort_ids)  # 1D: P*C
     logger.debug(f"Bayes proba range: [{prob[-1]:.3f} {prob[0]:.3f}]")
 
-    # Sort Bayes
+    # Sort bayes_k in descending order, aligning with the sorted bayes_abs.
     bayes_k = np.take(bayes_k, sort_ids)  # 1D: N x C
 
     # Calculate FDR
     fdr = np.cumsum(1 - prob) / np.arange(1, prob.size + 1)  # 1D
     idx = np.argmin(np.abs(fdr - task_config.sig_threshold))
+    # idx will contain the index of the element in fdr that is closest
+    # to task_config.sig_threshold.
+    # This line essentially finds the index where the False Discovery Rate (fdr) is
+    # closest to the significance threshold
+    # (task_config.sig_threshold).
+    logger.debug(f"Index is {idx}")
     logger.debug(f"FDR range: [{fdr[0]:.3f} {fdr[-1]:.3f}]")
 
+    # Return elements only up to idx. They will be the significant findings
+    # sort_ids[:idx]: Indices of features sorted by significance.
+    # prob[:idx]: Probabilities of significant associations for selected features.
+    # fdr[:idx]: False Discovery Rate values for selected features.
+    # bayes_k[:idx]: Bayes Factors indicating the strength of evidence for selected
+    # associations.
     return sort_ids[:idx], prob[:idx], fdr[:idx], bayes_k[:idx]
 
 
@@ -321,7 +332,6 @@ def _ttest_approach(
     device = torch.device("cuda" if task_config.model.cuda else "cpu")
 
     # Train models
-    logger = get_logger(__name__)
     logger.info("Training models")
     pvalues = np.empty(
         (
@@ -485,7 +495,6 @@ def _ks_approach(
     baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
 
     # Train models
-    logger = get_logger(__name__)
     logger.info("Training models")
 
     target_dataset_idx = config.data.continuous_names.index(task_config.target_dataset)
@@ -693,7 +702,6 @@ def save_results(
         extra_cols: extra data when calling the approach function
         extra_colnames: names for the extra data columns
     """
-    logger = get_logger(__name__)
     logger.info(f"Significant hits found: {sig_ids.size}")
     task_config = cast(IdentifyAssociationsConfig, config.task)
     task_type = _get_task_type(task_config)
@@ -710,11 +718,15 @@ def save_results(
             target_dataset_idx = config.data.continuous_names.index(
                 task_config.target_dataset
             )
+            # This creates a DataFrame named a_df with one column
+            # named "feature_a_name". The values in this column are
+            # taken from con_names using the target_dataset_idx index.
             a_df = pd.DataFrame(dict(feature_a_name=con_names[target_dataset_idx]))
         else:
             target_dataset_idx = config.data.categorical_names.index(
                 task_config.target_dataset
             )
+
             a_df = pd.DataFrame(dict(feature_a_name=cat_names[target_dataset_idx]))
         a_df.index.name = "feature_a_id"
         a_df.reset_index(inplace=True)
@@ -750,7 +762,6 @@ def identify_associations(config: MOVEConfig) -> None:
     # DATA PREPARATION ######################
     # Read original data and create perturbed datasets####
 
-    logger = get_logger(__name__)
     task_config = cast(IdentifyAssociationsConfig, config.task)
     task_type = _get_task_type(task_config)
     _validate_task_config(task_config, task_type)
@@ -771,9 +782,12 @@ def identify_associations(config: MOVEConfig) -> None:
         config.data.continuous_names,
     )
 
+    logger.debug(
+        "Making train dataloader in main function identify_associations_selected"
+    )
     train_dataloader = make_dataloader(
-        cat_list,
-        con_list,
+        cat_list,  # List of categorical datasets
+        con_list,  # List of continuous datasets
         shuffle=True,
         batch_size=task_config.batch_size,
         drop_last=True,
@@ -790,6 +804,13 @@ def identify_associations(config: MOVEConfig) -> None:
         cat_list, con_list, shuffle=False, batch_size=task_config.batch_size
     )
 
+    # nan_mask based on baseline dataset
+    baseline_dataset = cast(MOVEDataset, baseline_dataloader.dataset)
+    assert baseline_dataset.con_all is not None
+    orig_con = baseline_dataset.con_all
+    nan_mask = (orig_con == 0).numpy()  # NaN values encoded as 0s
+    logger.debug(f"# NaN values: {np.sum(nan_mask)}/{orig_con.numel()}")
+
     # Indentify associations between continuous features:
     logger.info(f"Perturbing dataset: '{task_config.target_dataset}'")
     if task_config.target_value in CONTINUOUS_TARGET_VALUE:
@@ -797,50 +818,88 @@ def identify_associations(config: MOVEConfig) -> None:
         logger.info(f"Perturbation type: {task_config.target_value}")
         output_subpath = Path(output_path) / "perturbation_visualization"
         output_subpath.mkdir(exist_ok=True, parents=True)
-        (
-            dataloaders,
-            nan_mask,
-            feature_mask,
-        ) = prepare_for_continuous_perturbation(
-            config, output_subpath, baseline_dataloader
-        )
+        if not task_config.multiprocess:
+            dataloaders = prepare_for_continuous_perturbation(
+                config, output_subpath, baseline_dataloader
+            )
+        feature_mask = nan_mask
+        con_dataset_names = config.data.continuous_names
+        target_idx = con_dataset_names.index(
+            task_config.target_dataset
+        )  # dataset index
+        logger.debug(f"Cont. shapes: {baseline_dataset.con_shapes} [take {target_idx}]")
+        num_perturbed = baseline_dataset.con_shapes[target_idx]
 
     # Identify associations between categorical and continuous features:
     else:
         logger.info("Beginning task: identify associations categorical")
-        (
-            dataloaders,
-            nan_mask,
-            feature_mask,
-        ) = prepare_for_categorical_perturbation(
-            config, interim_path, baseline_dataloader, cat_list
+        task_config = cast(IdentifyAssociationsConfig, config.task)
+        target_dataset_idx = config.data.categorical_names.index(
+            task_config.target_dataset
         )
-
-    num_perturbed = len(dataloaders) - 1  # P
-    logger.debug(f"# perturbed features: {num_perturbed}")
+        target_dataset = cat_list[target_dataset_idx]
+        mappings = io.load_mappings(interim_path / "mappings.json")
+        target_mapping = mappings[task_config.target_dataset]
+        target_value = one_hot_encode_single(target_mapping, task_config.target_value)
+        feature_mask = np.all(target_dataset == target_value, axis=2)  # 2D: N x P
+        feature_mask |= np.sum(target_dataset, axis=2) == 0
+        if not task_config.multiprocess:
+            dataloaders = prepare_for_categorical_perturbation(
+                config, interim_path, baseline_dataloader
+            )
+        num_perturbed = target_dataset.shape[-1]
+        logger.info(
+            f"Cat. shapes: {baseline_dataset.cat_shapes}"
+            f" [take {target_dataset_idx}]"
+        )
+        target_shape = baseline_dataset.cat_shapes[target_dataset_idx]
+        num_perturbed = target_shape[0]
 
     # APPROACH EVALUATION ##########################
+    # num_perturbed = len(dataloaders) - 1  # P
+    # logger.debug(f"# perturbed features: {num_perturbed}")
 
     if task_type == "bayes":
         task_config = cast(IdentifyAssociationsBayesConfig, task_config)
-        sig_ids, *extra_cols = _bayes_approach(
-            config,
-            task_config,
-            train_dataloader,
-            baseline_dataloader,
-            dataloaders,
-            models_path,
-            num_perturbed,
-            num_samples,
-            num_continuous,
-            nan_mask,
-            feature_mask,
-        )
+        if task_config.multiprocess:
+            sig_ids, *extra_cols = _bayes_approach_parallel(
+                config=config,
+                task_config=task_config,
+                train_dataloader=train_dataloader,
+                baseline_dataloader=baseline_dataloader,
+                # perturbed dataloaders created in worker function
+                models_path=models_path,
+                num_perturbed=num_perturbed,
+                num_samples=num_samples,
+                num_continuous=num_continuous,
+                nan_mask=nan_mask,
+                feature_mask=feature_mask,
+            )
+            logger.debug(
+                "Completed bayes task (parallel function in main function "
+                "(identify_associations_selected))"
+            )
+        else:
+            sig_ids, *extra_cols = _bayes_approach(
+                config,
+                task_config,
+                train_dataloader=train_dataloader,
+                baseline_dataloader=baseline_dataloader,
+                dataloaders=dataloaders,
+                models_path=models_path,
+                num_perturbed=num_perturbed,
+                num_samples=num_samples,
+                num_continuous=num_continuous,
+                nan_mask=nan_mask,
+                feature_mask=feature_mask,
+            )
 
         extra_colnames = ["proba", "fdr", "bayes_k"]
 
     elif task_type == "ttest":
         task_config = cast(IdentifyAssociationsTTestConfig, task_config)
+        if task_config.multiprocess:
+            raise NotImplementedError("Multiprocessing is not supported for T-test.")
         sig_ids, *extra_cols = _ttest_approach(
             task_config,
             train_dataloader,
@@ -859,6 +918,8 @@ def identify_associations(config: MOVEConfig) -> None:
 
     elif task_type == "ks":
         task_config = cast(IdentifyAssociationsKSConfig, task_config)
+        if task_config.multiprocess:
+            raise NotImplementedError("Multiprocessing is not supported for KS.")
         sig_ids, *extra_cols = _ks_approach(
             config,
             task_config,

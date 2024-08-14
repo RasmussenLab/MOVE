@@ -1,6 +1,8 @@
 defaults:
   - identify_associations_bayes
 
+multiprocess: False
+
 batch_size: 10
 
 num_refits: 10

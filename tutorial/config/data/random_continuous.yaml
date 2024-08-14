@@ -16,9 +16,10 @@ sample_names:
 categorical_inputs: [] # no categorical inputs
 
 continuous_inputs: # a list of continuous datasets
-  - name: random.continuous.proteomics
-    log2: true
-    scale: true
-  - name: random.continuous.metagenomics
-    log2: true
-    scale: true
+  - name: random.continuous.proteomics # filename in raw_data_path
+    log2: true # log2 transform data
+    scale: true # scale data
+  - name: random.continuous.metagenomics # filename in raw_data_path
+    log2: true # log2 transform data
+    scale: true # scale data
+ 

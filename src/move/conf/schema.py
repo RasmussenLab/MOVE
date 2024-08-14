@@ -135,6 +135,7 @@ class AnalyzeLatentConfig(TaskConfig):
 
     feature_names: list[str] = field(default_factory=list)
     reducer: dict[str, Any] = MISSING
+    multiprocess: bool = False
 
 
 @dataclass
@@ -165,6 +166,7 @@ class IdentifyAssociationsConfig(TaskConfig):
     num_refits: int = MISSING
     sig_threshold: float = 0.05
     save_refits: bool = False
+    multiprocess: bool = False
 
 
 @dataclass

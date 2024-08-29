@@ -150,10 +150,10 @@ def read_tsv(
         sep = ","
     else:
         raise ValueError(f"Unsupported file type: {extension}")
-    data = pd.read_csv(path, index_col=0, sep=sep)
+    data = pd.read_csv(path, index_col=0, sep=sep, na_values=["./."])
     if sample_names is not None:
         data.index = data.index.astype(str, False)
-        data = data.loc[sample_names]
+        data = data.reindex(sample_names)
     return data.columns.values, data.values
 
 

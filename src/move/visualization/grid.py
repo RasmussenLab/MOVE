@@ -1,8 +1,9 @@
-__all__ = ["find_grid_dimensions", "facet_grid"]
+__all__ = ["find_grid_dimensions", "facet_grid", "generate_grid"]
 
 import math
-from typing import Any, Literal, Optional
+from typing import Literal, Optional
 
+import matplotlib.axes
 import matplotlib.figure
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -88,6 +89,82 @@ def facet_grid(
         use_lognorm:
             Whether the hue variable should be represented in the log dimension
     """
+    levels = data[facet_name].unique()
+    if len(levels) == len(data):
+        raise ValueError(f"f{facet_name} is not discrete.")
+
+    vmin, vmax = data[hue_name].min(), data[hue_name].max()
+    norm_class = LogNorm if use_lognorm else Normalize
+    norm = norm_class(vmin, vmax)
+
+    with style_settings("ggplot"):
+        fig, axs, cax = generate_grid(
+            len(levels),
+            x_label,
+            y_label,
+            cbar_orientation,
+            cbar_location,
+            sharex,
+            sharey,
+        )
+        markers = None
+
+        for i, level in enumerate(levels):
+            subset = data[data[facet_name] == level]
+
+            ax = axs[i]
+            ax.plot(
+                subset[x_name], subset[y_name], color="k", alpha=0.75, linestyle=":"
+            )
+            markers = ax.scatter(
+                subset[x_name],
+                subset[y_name],
+                c=subset[hue_name],
+                norm=norm,
+                zorder=100,
+            )
+            ax.set(title=facet_title_fmt.format(level))
+
+        assert markers is not None
+        fig.colorbar(markers, cax, orientation=cbar_orientation)
+        if hue_label:
+            if cbar_orientation == "horizontal":
+                cax.set(xlabel=hue_label)
+            else:
+                cax.set(ylabel=hue_label)
+
+        fig.tight_layout()
+
+    return fig
+
+
+def generate_grid(
+    num_subplots: int,
+    x_label: Optional[str] = None,
+    y_label: Optional[str] = None,
+    cbar_orientation: Orientation = "vertical",
+    cbar_location: Location = "right",
+    sharex: bool = False,
+    sharey: bool = False,
+) -> tuple[matplotlib.figure.Figure, list[matplotlib.axes.Axes], matplotlib.axes.Axes]:
+    """Form a matrix of panels to visualize multiple variables.
+
+    Args:
+        num_subplots:
+            Number of subplots to accomodate in the grid
+        x_label:
+            Label of the x-axis
+        y_label:
+            Label of the y-axis
+        cbar_orientation:
+            Whether the colorbar is displayed horizontally or vertically
+        cbar_location:
+            Where the colorbar should be positioned
+        sharex:
+            Whether all subplots should share the same x-axis
+        sharey:
+            Whether all subplots should share the same y-axis
+    """
     if cbar_orientation == "horizontal":
         if cbar_location not in ("top", "bottom"):
             raise ValueError(
@@ -101,92 +178,52 @@ def facet_grid(
     else:
         raise ValueError("Only 'horizontal' or 'vertical' alignment allowed")
 
-    levels = data[facet_name].unique()
-    if len(levels) == len(data):
-        raise ValueError(f"f{facet_name} is not discrete.")
+    ncols, nrows = find_grid_dimensions(num_subplots)
+    num_unused = ncols * nrows - num_subplots
 
-    ncols, nrows = find_grid_dimensions(len(levels))
-    num_unused = ncols * nrows - len(levels)
+    fig = plt.figure(figsize=(4 * ncols, 3 * nrows))
 
-    vmin, vmax = data[hue_name].min(), data[hue_name].max()
-    norm_class = LogNorm if use_lognorm else Normalize
-    norm = norm_class(vmin, vmax)
-
-    ax0 = None
-
-    with style_settings("ggplot"):
-        fig = plt.figure(figsize=(4 * ncols, 3 * nrows))
-        assert isinstance(fig, matplotlib.figure.Figure)
-
-        if cbar_orientation == "horizontal":
-            if cbar_location == "top":
-                cax_idx = 0
-                height_ratios = [1] + [3 * ncols] * nrows
-            else:
-                cax_idx = -1
-                height_ratios = [3 * ncols] * nrows + [1]
-
-            gs = fig.add_gridspec(nrows + 1, ncols, height_ratios=height_ratios)
-            cax = fig.add_subplot(gs[cax_idx, :])
+    if cbar_orientation == "horizontal":
+        if cbar_location == "top":
+            cax_idx = 0
+            height_ratios = [1] + [3 * ncols] * nrows
         else:
-            if cbar_location == "left":
-                cax_idx = 0
-                width_ratios = [1] + [4 * nrows] * ncols
-            else:
-                cax_idx = -1
-                width_ratios = [4 * nrows] * ncols + [1]
+            cax_idx = -1
+            height_ratios = [3 * ncols] * nrows + [1]
 
-            gs = fig.add_gridspec(nrows, ncols + 1, width_ratios=width_ratios)
-            cax = fig.add_subplot(gs[:, cax_idx])
+        gs = fig.add_gridspec(nrows + 1, ncols, height_ratios=height_ratios)
+        cax = fig.add_subplot(gs[cax_idx, :])
+    else:
+        if cbar_location == "left":
+            cax_idx = 0
+            width_ratios = [1] + [4 * nrows] * ncols
+        else:
+            cax_idx = -1
+            width_ratios = [4 * nrows] * ncols + [1]
 
-        axs = []
-        markers = None
+        gs = fig.add_gridspec(nrows, ncols + 1, width_ratios=width_ratios)
+        cax = fig.add_subplot(gs[:, cax_idx])
 
-        for i, level in enumerate(levels):
-            subset = data[data[facet_name] == level]
+    axs = []
+    for i in range(num_subplots):
+        x_coord = (i // ncols) + 1 * (cbar_location == "top")
+        y_coord = (i % ncols) + 1 * (cbar_location == "left")
 
-            x_coord = (i // ncols) + 1 * (cbar_location == "top")
-            y_coord = (i % ncols) + 1 * (cbar_location == "left")
+        kwargs = {}
+        if sharex and len(axs) > 0:
+            kwargs["sharex"] = axs[0]
+        if sharey and len(axs) > 0:
+            kwargs["sharey"] = axs[0]
 
-            kwargs: dict[str, Any] = {}
-            if sharex and ax0 is not None:
-                kwargs["sharex"] = ax0
-            if sharey and ax0 is not None:
-                kwargs["sharey"] = ax0
+        ax = fig.add_subplot(gs[x_coord, y_coord], **kwargs)
+        axs.append(ax)
 
-            ax = fig.add_subplot(gs[x_coord, y_coord], **kwargs)
-            if ax0 is None:
-                ax0 = ax
+    if x_label:
+        for ax in axs[-(ncols - num_unused) :]:
+            ax.set(xlabel=x_label)
 
-            ax.plot(
-                subset[x_name], subset[y_name], color="k", alpha=0.75, linestyle=":"
-            )
-            markers = ax.scatter(
-                subset[x_name],
-                subset[y_name],
-                c=subset[hue_name],
-                norm=norm,
-                zorder=100,
-            )
-            ax.set(title=facet_title_fmt.format(level))
-            axs.append(ax)
+    if y_label:
+        for i in range(0, len(axs), ncols):
+            axs[i].set(ylabel=y_label)
 
-        if x_label:
-            for ax in axs[-(ncols - num_unused) :]:
-                ax.set(xlabel=x_label)
-
-        if y_label:
-            for i in range(0, len(axs), ncols):
-                axs[i].set(ylabel=y_label)
-
-        assert markers is not None
-        fig.colorbar(markers, cax, orientation=cbar_orientation)
-        if hue_label:
-            if cbar_orientation == "horizontal":
-                cax.set(xlabel=hue_label)
-            else:
-                cax.set(ylabel=hue_label)
-
-        fig.tight_layout()
-
-    return fig
+    return fig, axs, cax

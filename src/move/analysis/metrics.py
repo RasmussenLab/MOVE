@@ -74,7 +74,7 @@ def calculate_cosine_similarity(
 
     # Equivalent to `np.diag(sklearn.metrics.pairwise.cosine_similarity(x, y))`
     # But can handle masked arrays
-    scores = np.ma.compressed(np.sum(x * y, axis=1)) / (norm(x) * norm(y))
+    scores = np.ma.filled(np.sum(x * y, axis=1), np.nan) / (norm(x) * norm(y))
 
     return scores
 

@@ -109,7 +109,7 @@ class LatentSpaceAnalysis(MoveTask):
 
         model.eval()
 
-        all_dataloader = self.make_dataloader()
+        all_dataloader = self.make_dataloader(shuffle=False, drop_last=False)
         test_dataloader = self.make_dataloader(split="test")
 
         project_subtask = Project(model, all_dataloader, self.reducer_config)

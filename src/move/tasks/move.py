@@ -6,12 +6,7 @@ import hydra
 from torch import nn
 
 from move.conf.models import ModelConfig
-from move.conf.training import (
-    DataLoaderConfig,
-    TestDataLoaderConfig,
-    TrainingDataLoaderConfig,
-    TrainingLoopConfig,
-)
+from move.conf.training import DataLoaderConfig, TrainingLoopConfig
 from move.core.exceptions import UnsetProperty
 from move.core.typing import Split
 from move.data.dataloader import MoveDataLoader
@@ -28,8 +23,8 @@ class MoveTask(ParentTask):
         self,
         discrete_dataset_names: list[str],
         continuous_dataset_names: list[str],
+        batch_size: int,
         model_config: Optional[ModelConfig],
-        training_dataloader_config: DataLoaderConfig,  # TODO: make optional too
         training_loop_config: Optional[TrainingLoopConfig],
         **kwargs,
     ) -> None:
@@ -37,10 +32,12 @@ class MoveTask(ParentTask):
         self.discrete_dataset_names = discrete_dataset_names
         self.continuous_dataset_names = continuous_dataset_names
         self.model_config = model_config
-        self.training_dataloader_config = training_dataloader_config
+        self.batch_size = batch_size
         self.training_loop_config = training_loop_config
 
-    def make_dataloader(self, split: Split = "all") -> MoveDataLoader:
+    def make_dataloader(
+        self, split: Split = "all", **dataloader_kwargs
+    ) -> MoveDataLoader:
         """Make a MOVE dataloader. For the training split, data will be shuffled
         and the last batch will be dropped."""
         dataset = MoveDataset.load(
@@ -49,14 +46,16 @@ class MoveTask(ParentTask):
             self.continuous_dataset_names,
             split,
         )
-        config = self.training_dataloader_config
-        batch_size = config.batch_size
-        if split == "test" or split == "valid":
-            # Duplicate config, but set shuffle/drop_last to False
-            config = TestDataLoaderConfig(batch_size)
-        else:
-            # Duplicate config, but ensure shuffle/drop_last to True
-            config = TrainingDataLoaderConfig(batch_size)
+
+        is_training = not (split == "test" or split == "valid")
+        if "shuffle" not in dataloader_kwargs:
+            dataloader_kwargs["shuffle"] = is_training
+
+        if "drop_last" not in dataloader_kwargs:
+            dataloader_kwargs["drop_last"] = is_training
+
+        dataloader_kwargs["batch_size"] = self.batch_size
+        config = DataLoaderConfig(**dataloader_kwargs)
         return hydra.utils.instantiate(config, dataset=dataset)
 
     def init_model(self, dataloader: MoveDataLoader) -> BaseVae:

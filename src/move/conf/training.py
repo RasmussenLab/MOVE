@@ -76,8 +76,3 @@ config_store.store(
     name="schema_training_loop",
     node=TrainingLoopConfig,
 )
-config_store.store(
-    group="task/training_dataloader_config",
-    name="schema_dataloader",
-    node=DataLoaderConfig,
-)

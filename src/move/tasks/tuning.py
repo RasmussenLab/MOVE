@@ -49,10 +49,10 @@ class TuneModel(CsvWriterMixin, MoveTask):
             Names of discrete datasets
         continuous_dataset_names:
             Names of continuous datasets
+        batch_size:
+            Number of samples in one batch (used during training and testing)
         model_config:
             Config of the VAE
-        training_dataloader_config:
-            Config of the training data loader
         training_loop_config:
             Config of the training loop
     """

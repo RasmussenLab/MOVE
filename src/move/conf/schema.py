@@ -69,8 +69,8 @@ class MoveTaskConfig(TaskConfig):
 
     discrete_dataset_names: list[str] = "${data.categorical_names}"  # type: ignore
     continuous_dataset_names: list[str] = "${data.continuous_names}"  # type: ignore
+    batch_size: int = 16
     model_config: Optional[ModelConfig] = MISSING  # "${model}"  # type: ignore
-    training_dataloader_config: DataLoaderConfig = TrainingDataLoaderConfig(16)
     training_loop_config: Optional[TrainingLoopConfig] = MISSING
 
 

@@ -1,14 +1,18 @@
 __all__ = ["FeatureImportance"]
 
+from typing import TYPE_CHECKING
+
 import pandas as pd
 import torch
 
 import move.visualization as viz
 from move.core.exceptions import UnsetProperty
-from move.data.dataloader import MoveDataLoader
 from move.data.io import sanitize_filename
-from move.models.base import BaseVae
 from move.tasks.base import CsvWriterMixin, ParentTask, SubTask
+
+if TYPE_CHECKING:
+    from move.data.dataloader import MoveDataLoader
+    from move.models.base import BaseVae
 
 
 class FeatureImportance(CsvWriterMixin, SubTask):
@@ -24,7 +28,7 @@ class FeatureImportance(CsvWriterMixin, SubTask):
     plot_filename_fmt: str = "feature_importance_{}.png"
 
     def __init__(
-        self, parent: ParentTask, model: BaseVae, dataloader: MoveDataLoader
+        self, parent: ParentTask, model: "BaseVae", dataloader: "MoveDataLoader"
     ) -> None:
         self.parent = parent
         self.model = model

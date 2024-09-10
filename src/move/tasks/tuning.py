@@ -2,7 +2,7 @@ __all__ = ["TuneModel", "TuneStability"]
 
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import numpy as np
 import torch
@@ -17,10 +17,12 @@ from move.analysis.metrics import (
 )
 from move.core.exceptions import FILE_EXISTS_WARNING
 from move.core.typing import FloatArray, PathLike
-from move.data.dataloader import MoveDataLoader
-from move.models.base import BaseVae, LossDict, reload_vae
 from move.tasks.base import CsvWriterMixin
 from move.tasks.move import MoveTask
+
+if TYPE_CHECKING:
+    from move.data.dataloader import MoveDataLoader
+    from move.models.base import BaseVae
 
 TaskType = Literal["reconstruction", "stability"]
 
@@ -90,7 +92,7 @@ class TuneModel(CsvWriterMixin, MoveTask):
             self.override_dict[key] = value
 
     def record_metrics(
-        self, model: BaseVae, dataloader_dict: dict[str, MoveDataLoader]
+        self, model: "BaseVae", dataloader_dict: dict[str, "MoveDataLoader"]
     ):
         """Record accuracy or cosine similarity metric for each dataloader.
 
@@ -161,8 +163,9 @@ class TuneModel(CsvWriterMixin, MoveTask):
         # Append to file
         self.close_csv_writer(True)
 
-    def record_loss(self, model: BaseVae, dataloader: MoveDataLoader):
+    def record_loss(self, model: "BaseVae", dataloader: "MoveDataLoader"):
         """Record final loss in a CSV row."""
+        from move.models.base import LossDict
 
         colnames = ["job_num", *self.override_dict.keys()]
         colnames.extend(LossDict.__annotations__.keys())
@@ -198,6 +201,8 @@ class TuneModel(CsvWriterMixin, MoveTask):
         self.close_csv_writer(True)
 
     def run(self):
+        from move.models.base import reload_vae
+
         model_path = self.output_dir / self.model_filename_fmt.format(self.job_num)
         loss_filepath = self.output_dir / self.loss_filename
         metrics_filepath = self.output_dir / self.metrics_filename

@@ -7,14 +7,13 @@ from torch import nn
 
 from move.core.exceptions import UnsetProperty
 from move.core.typing import Split
-from move.data.dataloader import MoveDataLoader
-from move.data.dataset import MoveDataset
-from move.models.base import BaseVae
 from move.tasks.base import ParentTask
 
 if TYPE_CHECKING:
     from move.conf.models import ModelConfig
     from move.conf.training import TrainingLoopConfig
+    from move.data.dataloader import MoveDataLoader
+    from move.models.base import BaseVae
     from move.training.loop import TrainingLoop
 
 
@@ -39,10 +38,11 @@ class MoveTask(ParentTask):
 
     def make_dataloader(
         self, split: Split = "all", **dataloader_kwargs
-    ) -> MoveDataLoader:
+    ) -> "MoveDataLoader":
         """Make a MOVE dataloader. For the training split, data will be shuffled
         and the last batch will be dropped."""
         from move.conf.training import DataLoaderConfig
+        from move.data.dataset import MoveDataset
 
         dataset = MoveDataset.load(
             self.input_dir,
@@ -62,7 +62,7 @@ class MoveTask(ParentTask):
         config = DataLoaderConfig(**dataloader_kwargs)
         return hydra.utils.instantiate(config, dataset=dataset)
 
-    def init_model(self, dataloader: MoveDataLoader) -> BaseVae:
+    def init_model(self, dataloader: "MoveDataLoader") -> "BaseVae":
         """Initialize a MOVE model."""
         if self.model_config is None:
             raise UnsetProperty("Model config")

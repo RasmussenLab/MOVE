@@ -5,15 +5,15 @@ from typing import TYPE_CHECKING, Any, Union
 
 import hydra
 
-from move.conf.models import ModelConfig
 from move.core.exceptions import FILE_EXISTS_WARNING
 from move.core.typing import PathLike
-from move.data import MoveDataLoader, MoveDataset
-from move.models.base import BaseVae
 from move.tasks.base import ParentTask
 
 if TYPE_CHECKING:
+    from move.conf.models import ModelConfig
     from move.conf.training import TrainingLoopConfig
+    from move.data.dataloader import MoveDataLoader
+    from move.models.base import BaseVae
     from move.training.loop import TrainingLoop
 
 
@@ -31,7 +31,7 @@ class TrainModel(ParentTask):
         discrete_dataset_names: list[str],
         continuous_dataset_names: list[str],
         batch_size: int,
-        model_config: Union[ModelConfig, dict[str, Any]],
+        model_config: Union["ModelConfig", dict[str, Any]],
         training_loop_config: Union["TrainingLoopConfig", dict[str, Any]],
     ) -> None:
         super().__init__(
@@ -44,7 +44,10 @@ class TrainModel(ParentTask):
         self.training_loop_config = training_loop_config
         self.model_config = model_config
 
-    def make_dataloader(self, **kwargs) -> MoveDataLoader:
+    def make_dataloader(self, **kwargs) -> "MoveDataLoader":
+        from move.data.dataloader import MoveDataLoader
+        from move.data.dataset import MoveDataset
+
         dataset = MoveDataset.load(
             self.input_dir, self.discrete_dataset_names, self.continuous_dataset_names
         )
@@ -58,7 +61,7 @@ class TrainModel(ParentTask):
         dataloader = self.make_dataloader(
             batch_size=self.batch_size, shuffle=True, drop_last=True
         )
-        model: BaseVae = hydra.utils.instantiate(
+        model: "BaseVae" = hydra.utils.instantiate(
             self.model_config,
             discrete_shapes=dataloader.dataset.discrete_shapes,
             continuous_shapes=dataloader.dataset.continuous_shapes,

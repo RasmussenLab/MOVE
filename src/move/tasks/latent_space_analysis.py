@@ -1,7 +1,7 @@
 __all__ = []
 
 from pathlib import Path
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 import hydra
 import numpy as np
@@ -16,12 +16,14 @@ from move.analysis.metrics import ComputeAccuracyMetrics
 from move.conf.tasks import ReducerConfig
 from move.core.exceptions import UnsetProperty
 from move.core.typing import PathLike
-from move.data.dataloader import MoveDataLoader
-from move.data.dataset import DiscreteDataset
 from move.data.io import sanitize_filename
-from move.models.base import BaseVae, reload_vae
 from move.tasks.base import CsvWriterMixin, SubTask
 from move.tasks.move import MoveTask
+
+if TYPE_CHECKING:
+    from move.data.dataloader import MoveDataLoader
+    from move.data.dataset import DiscreteDataset
+    from move.models.base import BaseVae
 
 
 class LatentSpaceAnalysis(MoveTask):
@@ -88,6 +90,8 @@ class LatentSpaceAnalysis(MoveTask):
         self.compute_feature_importance = compute_feature_importance
 
     def run(self) -> Any:
+        from move.models.base import reload_vae
+
         model_path = self.output_dir / self.model_filename
 
         if model_path.exists():
@@ -146,8 +150,8 @@ class Project(CsvWriterMixin, SubTask):
 
     def __init__(
         self,
-        model: BaseVae,
-        dataloader: MoveDataLoader,
+        model: "BaseVae",
+        dataloader: "MoveDataLoader",
         reducer_config: Optional[ReducerConfig],
         output_dir: Optional[PathLike] = None,
     ):
@@ -184,7 +188,7 @@ class Project(CsvWriterMixin, SubTask):
                 continue
             # Obtain target values for color coding
             target_values = dataset.select(name).numpy()
-            if isinstance(dataset, DiscreteDataset):
+            if isinstance(dataset, "DiscreteDataset"):
                 # Convert one-hot encoded values to category codes
                 is_nan = target_values.sum(axis=1) == 0
                 target_values = np.argmax(target_values, axis=1)

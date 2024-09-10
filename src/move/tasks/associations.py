@@ -1,7 +1,7 @@
 __all__ = []
 
 from pathlib import Path
-from typing import Any, Iterator
+from typing import TYPE_CHECKING, Any, Iterator
 
 import numpy as np
 import pandas as pd
@@ -10,9 +10,11 @@ import torch
 import move.visualization as viz
 from move.conf.tasks import PerturbationConfig
 from move.core.typing import PathLike
-from move.models.base import BaseVae
 from move.tasks.base import CsvWriterMixin
 from move.tasks.move import MoveTask
+
+if TYPE_CHECKING:
+    from move.models.base import BaseVae
 
 
 class Associations(CsvWriterMixin, MoveTask):
@@ -44,7 +46,7 @@ class Associations(CsvWriterMixin, MoveTask):
         batch_size:
             Number of samples in one batch (used during training and testing)
         model_config:
-            Config of the VAE
+            Config of the VAEexit
         training_loop_config:
             Config of the training loop
         perturbation_config:
@@ -87,16 +89,18 @@ class Associations(CsvWriterMixin, MoveTask):
         self.sig_threshold = sig_threshold
         self.write_only_sig = write_only_sig
 
-    def get_trained_model(self, train_dataloader) -> Iterator[BaseVae]:
+    def get_trained_model(self, train_dataloader) -> Iterator["BaseVae"]:
         """Yield a trained model. Model will be trained from scratch or
         re-loaded if it already exists."""
+        from move.models.base import reload_vae
+
         for i in range(self.num_refits):
             model_path = self.output_dir / self.model_filename_fmt.format(i)
 
             if model_path.exists():
                 if i == 0:
                     self.logger.debug(f"Re-loading models")
-                model = BaseVae.reload(model_path)
+                model = reload_vae(model_path)
             else:
                 if i == 0:
                     self.logger.debug(f"Training models from scratch")

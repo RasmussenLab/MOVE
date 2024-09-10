@@ -1,7 +1,7 @@
 __all__ = ["calculate_accuracy", "calculate_cosine_similarity"]
 
 from abc import ABC, abstractmethod
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 import pandas as pd
@@ -9,10 +9,11 @@ import torch
 
 import move.visualization as viz
 from move.core.typing import FloatArray
-from move.data.dataloader import MoveDataLoader
-from move.data.dataset import ContinuousDataset, DiscreteDataset
-from move.models.base import BaseVae
 from move.tasks.base import CsvWriterMixin, ParentTask, SubTask
+
+if TYPE_CHECKING:
+    from move.data.dataloader import MoveDataLoader
+    from move.models.base import BaseVae
 
 
 def calculate_accuracy(
@@ -101,7 +102,7 @@ class ComputeAccuracyMetrics(CsvWriterMixin, SubTask):
     plot_filename: str = "reconstruction_metrics.png"
 
     def __init__(
-        self, parent: ParentTask, model: BaseVae, dataloader: MoveDataLoader
+        self, parent: ParentTask, model: "BaseVae", dataloader: "MoveDataLoader"
     ) -> None:
         self.parent = parent
         self.model = model

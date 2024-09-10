@@ -19,7 +19,7 @@ from move.core.typing import PathLike
 from move.data.dataloader import MoveDataLoader
 from move.data.dataset import DiscreteDataset
 from move.data.io import sanitize_filename
-from move.models.base import reload_vae
+from move.models.base import BaseVae, reload_vae
 from move.tasks.base import CsvWriterMixin, SubTask
 from move.tasks.move import MoveTask
 

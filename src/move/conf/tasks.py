@@ -21,12 +21,12 @@ class InputConfig:
 
 @dataclass
 class DiscreteInputConfig(InputConfig):
-    preprocessing: PreprocessingOpName = "one_hot_encoding"
+    preprocessing: PreprocessingOpName = "one_hot_encode"
 
 
 @dataclass
 class ContinuousInputConfig(InputConfig):
-    preprocessing: PreprocessingOpName = "standardization"
+    preprocessing: PreprocessingOpName = "standardize"
 
 
 @dataclass

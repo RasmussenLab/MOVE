@@ -90,7 +90,7 @@ def norm(x: np.ma.MaskedArray, axis: int = 1) -> FloatArray:
     Returns:
         1D array with the specified axis removed.
     """
-    return np.ma.compressed(np.sqrt(np.sum(x**2, axis=axis)))
+    return np.ma.filled(np.sqrt(np.sum(x**2, axis=axis)), np.nan)
 
 
 class ComputeAccuracyMetrics(CsvWriterMixin, SubTask):

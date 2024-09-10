@@ -1,11 +1,11 @@
-__all__ = ["VaeConfig", "VaeTConfig"]
+__all__ = ["VaeConfig", "VaeNormalConfig", "VaeTConfig"]
 
 from dataclasses import dataclass, field
 
 from move.conf.config_store import config_store
 from move.core.qualname import get_fully_qualname
 from move.models.vae import Vae
-from move.models.vae_distribution import VaeDistribution
+from move.models.vae_distribution import VaeNormal
 from move.models.vae_t import VaeT
 
 
@@ -33,7 +33,7 @@ class VaeConfig(ModelConfig):
 class VaeNormalConfig(VaeConfig):
     """Configure a t-distribution variational autoencoder."""
 
-    _target_: str = field(default=get_fully_qualname(VaeDistribution), init=False)
+    _target_: str = field(default=get_fully_qualname(VaeNormal), init=False)
 
 
 @dataclass

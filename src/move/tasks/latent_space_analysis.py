@@ -19,7 +19,7 @@ from move.core.typing import PathLike
 from move.data.dataloader import MoveDataLoader
 from move.data.dataset import DiscreteDataset
 from move.data.io import sanitize_filename
-from move.models.base import BaseVae
+from move.models.base import reload_vae
 from move.tasks.base import CsvWriterMixin, SubTask
 from move.tasks.move import MoveTask
 
@@ -96,7 +96,7 @@ class LatentSpaceAnalysis(MoveTask):
                 "Erase the file if you wish to train a new model."
             )
             self.logger.debug("Re-loading model")
-            model = BaseVae.reload(model_path)
+            model = reload_vae(model_path)
         else:
             self.logger.debug("Training a new model")
             train_dataloader = self.make_dataloader()

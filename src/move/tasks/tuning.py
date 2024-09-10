@@ -1,4 +1,4 @@
-__all__ = ["TuneModel"]
+__all__ = ["TuneModel", "TuneStability"]
 
 from collections import defaultdict
 from pathlib import Path
@@ -9,7 +9,6 @@ import torch
 from hydra.core.hydra_config import HydraConfig
 from hydra.types import RunMode
 from matplotlib.cbook import boxplot_stats
-from numpy.typing import ArrayLike
 from sklearn.metrics.pairwise import cosine_similarity
 
 from move.analysis.metrics import (
@@ -19,21 +18,13 @@ from move.analysis.metrics import (
 from move.core.exceptions import FILE_EXISTS_WARNING
 from move.core.typing import FloatArray, PathLike
 from move.data.dataloader import MoveDataLoader
-from move.models.base import reload_vae, BaseVae, LossDict
+from move.models.base import BaseVae, LossDict, reload_vae
 from move.tasks.base import CsvWriterMixin
 from move.tasks.move import MoveTask
 
 TaskType = Literal["reconstruction", "stability"]
 
 BOXPLOT_STATS = ["mean", "med", "q1", "q3", "iqr", "cilo", "cihi", "whislo", "whishi"]
-
-
-def _get_record(values: ArrayLike, **kwargs) -> dict[str, Any]:
-    record = kwargs
-    bxp_stats, *_ = boxplot_stats(values)
-    bxp_stats.pop("fliers")
-    record.update(bxp_stats)
-    return record
 
 
 class TuneModel(CsvWriterMixin, MoveTask):

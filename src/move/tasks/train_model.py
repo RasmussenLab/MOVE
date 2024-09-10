@@ -1,18 +1,20 @@
-__all__ = []
+__all__ = ["TrainModel"]
 
 from pathlib import Path
-from typing import Any, Union
+from typing import TYPE_CHECKING, Any, Union
 
 import hydra
 
 from move.conf.models import ModelConfig
-from move.conf.training import TrainingLoopConfig
 from move.core.exceptions import FILE_EXISTS_WARNING
 from move.core.typing import PathLike
 from move.data import MoveDataLoader, MoveDataset
 from move.models.base import BaseVae
 from move.tasks.base import ParentTask
-from move.training.loop import TrainingLoop
+
+if TYPE_CHECKING:
+    from move.conf.training import TrainingLoopConfig
+    from move.training.loop import TrainingLoop
 
 
 class TrainModel(ParentTask):
@@ -30,7 +32,7 @@ class TrainModel(ParentTask):
         continuous_dataset_names: list[str],
         batch_size: int,
         model_config: Union[ModelConfig, dict[str, Any]],
-        training_loop_config: Union[TrainingLoopConfig, dict[str, Any]],
+        training_loop_config: Union["TrainingLoopConfig", dict[str, Any]],
     ) -> None:
         super().__init__(
             input_dir=interim_data_path,
@@ -63,7 +65,7 @@ class TrainModel(ParentTask):
         )
         self.logger.info("Training model")
         # Train
-        training_loop: TrainingLoop = hydra.utils.instantiate(
+        training_loop: "TrainingLoop" = hydra.utils.instantiate(
             self.training_loop_config, _recursive_=False
         )
         training_loop.parent = self

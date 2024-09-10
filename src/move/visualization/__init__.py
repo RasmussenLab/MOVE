@@ -1,6 +1,7 @@
 __all__ = [
     "LOSS_LABELS",
     "color_cycle",
+    "generate_grid",
     "plot_categorical_feature_importance",
     "plot_continuous_feature_importance",
     "plot_latent_space_with_cat",
@@ -15,6 +16,7 @@ from move.visualization.feature_importance import (
     plot_categorical_feature_importance,
     plot_continuous_feature_importance,
 )
+from move.visualization.grid import generate_grid
 from move.visualization.latent_space import (
     plot_latent_space_with_cat,
     plot_latent_space_with_con,

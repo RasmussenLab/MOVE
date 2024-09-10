@@ -9,11 +9,11 @@ from typing import Any, Optional, Sequence, Type, TypeVar, Union, cast
 
 import hydra
 from numpy.typing import NDArray
-from omegaconf import OmegaConf, DictConfig
+from omegaconf import DictConfig, OmegaConf
 
-from move.core.qualname import get_fully_qualname
 from move.core.exceptions import FILE_EXISTS_WARNING, UnsetProperty
 from move.core.logging import get_logger
+from move.core.qualname import get_fully_qualname
 from move.core.typing import LoggingLevel, PathLike
 from move.data.writer import CsvWriter
 

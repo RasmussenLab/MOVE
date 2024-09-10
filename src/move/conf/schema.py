@@ -11,12 +11,8 @@ from omegaconf import MISSING
 from move.conf.config_store import config_store
 from move.conf.models import ModelConfig
 from move.conf.resolvers import register_resolvers
-from move.conf.tasks import InputConfig, ReducerConfig, PerturbationConfig
-from move.conf.training import (
-    DataLoaderConfig,
-    TrainingDataLoaderConfig,
-    TrainingLoopConfig,
-)
+from move.conf.tasks import InputConfig, PerturbationConfig, ReducerConfig
+from move.conf.training import TrainingLoopConfig
 from move.core.qualname import get_fully_qualname
 from move.tasks.associations import Associations
 from move.tasks.encode_data import EncodeData

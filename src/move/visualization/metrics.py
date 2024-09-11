@@ -1,7 +1,7 @@
 __all__ = ["plot_metrics_boxplot"]
 
 from collections.abc import Sequence
-from typing import Optional, Union, cast
+from typing import Callable, Optional, Union, cast
 
 import matplotlib
 import matplotlib.figure
@@ -36,7 +36,8 @@ def plot_metrics_boxplot(
         Figure
     """
     is_df = isinstance(scores, pd.DataFrame)
-    values = scores.values if is_df else scores
+    not_na: Callable[[pd.Series], pd.Series] = lambda sr: sr.notna()
+    values = [scores[col][not_na].values for col in scores.columns] if is_df else scores  # type: ignore
     if labels is None:
         if not is_df:
             raise ValueError("Label names missing")

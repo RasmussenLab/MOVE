@@ -3,7 +3,7 @@ __all__ = ["DiscreteDataset", "ContinuousDataset", "MoveDataset"]
 import operator
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Literal, Optional, Type, TypeVar, Union, cast
+from typing import Callable, Literal, Optional, Type, TypeVar, Union, cast
 
 import pandas as pd
 import torch
@@ -32,6 +32,7 @@ class NamedDataset(Dataset, ABC):
         tensor: torch.Tensor,
         dataset_name: str,
         feature_names: Optional[list[str]] = None,
+        is_metadata: bool = False,
     ) -> None:
         self.tensor = tensor
         self.name = dataset_name
@@ -40,6 +41,7 @@ class NamedDataset(Dataset, ABC):
         else:
             feature_names = [f"{self.name}_{i}" for i in range(self.num_features)]
         self.feature_names = feature_names
+        self._is_metadata = is_metadata
 
     def __add__(self, other: "NamedDataset") -> "MoveDataset":  # type: ignore[override]
         return MoveDataset(self, other)
@@ -70,6 +72,10 @@ class NamedDataset(Dataset, ABC):
     @abstractmethod
     def data_type(self) -> DataType:
         raise NotImplementedError()
+
+    @property
+    def is_metadata(self) -> bool:
+        return self._is_metadata
 
     @property
     def num_features(self) -> int:
@@ -120,6 +126,7 @@ class DiscreteDataset(NamedDataset):
         dataset_name: str,
         feature_names: Optional[list[str]] = None,
         mapping: Optional[dict[str, int]] = None,
+        is_metadata: bool = False,
     ):
         if tensor.dim() != 3:
             raise ValueError("Discrete datasets must have three dimensions.")
@@ -127,7 +134,7 @@ class DiscreteDataset(NamedDataset):
         self.original_shape = (dim0, dim1)
         self.mapping = mapping
         flattened_tensor = torch.flatten(tensor, start_dim=1)
-        super().__init__(flattened_tensor, dataset_name, feature_names)
+        super().__init__(flattened_tensor, dataset_name, feature_names, is_metadata)
 
     @property
     def data_type(self) -> DataType:
@@ -187,7 +194,12 @@ class MoveDataset(Dataset):
             len(args[0]) == len(dataset) for dataset in args[1:]
         ):
             raise ValueError("Size mismatch between datasets")
-        self._list = sorted(args, key=operator.attrgetter("data_type"), reverse=True)
+        # sort order: discrete, continuous, metadata
+        sort_fn: Callable[[NamedDataset], tuple[bool, str]] = lambda dataset: (
+            not dataset.is_metadata,
+            dataset.data_type,
+        )
+        self._list = sorted(args, key=sort_fn, reverse=True)
         self.datasets = {dataset.name: dataset for dataset in self._list}
         if len(self.datasets) != len(args):
             raise ValueError("One or more datasets have the same name")
@@ -195,10 +207,17 @@ class MoveDataset(Dataset):
 
     def __getitem__(self, index: int) -> tuple[torch.Tensor, ...]:
         indices = None
-        items = [[dataset[index] for dataset in self.datasets.values()]]
+        items: list[list[torch.Tensor]] = []
+        values: list[torch.Tensor] = []
+        for dataset in self.datasets.values():
+            if not dataset.is_metadata:
+                values.append(dataset[index])
+        items.append(values)
         if self.perturbation is not None:
-            values: list[torch.Tensor] = []
+            values = []
             for dataset in self._list:
+                if dataset.is_metadata:
+                    continue
                 if dataset.name == self.perturbation.dataset_name:
                     left, _, right = torch.tensor_split(
                         dataset[index], self.perturbation.feature_indices
@@ -237,7 +256,7 @@ class MoveDataset(Dataset):
                 + "</td><td style='text-align:center'>".join(
                     (
                         dataset.name,
-                        dataset.data_type,
+                        "metadata" if dataset.is_metadata else dataset.data_type,
                         f"{dataset.num_feature_names:,}",
                         num_classes,
                     )
@@ -265,35 +284,35 @@ class MoveDataset(Dataset):
 
     @property
     def num_features(self) -> int:
-        return sum(dataset.num_features for dataset in self._list)
+        return self.num_discrete_features + self.num_continuous_features
 
     @property
     def num_discrete_features(self) -> int:
-        return sum(
-            dataset.num_features
-            for dataset in self._list
-            if isinstance(dataset, DiscreteDataset)
-        )
+        return sum(dataset.num_features for dataset in self.discrete_datasets)
 
     @property
     def num_continuous_features(self) -> int:
-        return sum(
-            dataset.num_features
-            for dataset in self._list
-            if isinstance(dataset, ContinuousDataset)
-        )
+        return sum(dataset.num_features for dataset in self.continuous_datasets)
 
     @property
     def discrete_datasets(self) -> list[DiscreteDataset]:
         return [
-            dataset for dataset in self._list if isinstance(dataset, DiscreteDataset)
+            dataset
+            for dataset in self._list
+            if isinstance(dataset, DiscreteDataset) and not dataset.is_metadata
         ]
 
     @property
     def continuous_datasets(self) -> list[ContinuousDataset]:
         return [
-            dataset for dataset in self._list if isinstance(dataset, ContinuousDataset)
+            dataset
+            for dataset in self._list
+            if isinstance(dataset, ContinuousDataset) and not dataset.is_metadata
         ]
+
+    @property
+    def metadata(self) -> list[NamedDataset]:
+        return [dataset for dataset in self._list if dataset.is_metadata]
 
     @property
     def discrete_shapes(self) -> list[tuple[int, int]]:
@@ -344,6 +363,8 @@ class MoveDataset(Dataset):
                     "MOVE dataset"
                 )
             dataset = self.datasets[value.dataset_name]
+            if dataset.is_metadata:
+                raise ValueError("Cannot perturb metadata.")
             if value.feature_name not in dataset.feature_names:
                 raise KeyError(
                     f"Target feature {value.feature_name} not found in "
@@ -362,6 +383,8 @@ class MoveDataset(Dataset):
         path: Path,
         discrete_dataset_names: list[str],
         continuous_dataset_names: list[str],
+        discrete_metadata_names: Optional[list[str]] = None,
+        continuous_metadata_names: Optional[list[str]] = None,
         split: Split = "all",
     ) -> "MoveDataset":
         """Load dataset.
@@ -370,6 +393,8 @@ class MoveDataset(Dataset):
             path: Path to encoded data
             discrete_dataset_names: Names of discrete datasets
             continuous_dataset_names: Names of continuous datasets
+            discrete_metadata_names: Names of discrete metadata
+            continuous_metadata_names: Names of continuous metadata
             split: Subset of data to load ('train', 'test', 'valid', or 'all')
         """
         if split != "all":
@@ -380,12 +405,22 @@ class MoveDataset(Dataset):
         else:
             indices = None
         datasets: list[NamedDataset] = []
-        for dataset_name in discrete_dataset_names:
-            dataset = DiscreteDataset.load(path / f"{dataset_name}.pt", indices)
-            datasets.append(dataset)
-        for dataset_name in continuous_dataset_names:
-            dataset = ContinuousDataset.load(path / f"{dataset_name}.pt", indices)
-            datasets.append(dataset)
+        dataset_zip = zip(
+            (DiscreteDataset, ContinuousDataset, DiscreteDataset, ContinuousDataset),
+            (
+                discrete_dataset_names,
+                continuous_dataset_names,
+                discrete_metadata_names,
+                continuous_metadata_names,
+            ),
+        )
+        for dataset_class, dataset_names in dataset_zip:
+            if dataset_names is None:
+                continue
+            for dataset_name in dataset_names:
+                dataset_path = path / f"{dataset_name}.pt"
+                dataset = dataset_class.load(dataset_path, indices)
+                datasets.append(dataset)
         return cls(*datasets)
 
     def feature_names_of(self, dataset_name: str) -> list[str]:

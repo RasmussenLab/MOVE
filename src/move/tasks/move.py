@@ -27,11 +27,15 @@ class MoveTask(ParentTask):
         batch_size: int,
         model_config: Optional["ModelConfig"],
         training_loop_config: Optional["TrainingLoopConfig"],
+        discrete_metadata_names: Optional[list[str]] = None,
+        continuous_metadata_names: Optional[list[str]] = None,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
         self.discrete_dataset_names = discrete_dataset_names
         self.continuous_dataset_names = continuous_dataset_names
+        self.discrete_metadata_names = discrete_metadata_names
+        self.continuous_metadata_names = continuous_metadata_names
         self.model_config = model_config
         self.batch_size = batch_size
         self.training_loop_config = training_loop_config
@@ -48,6 +52,8 @@ class MoveTask(ParentTask):
             self.input_dir,
             self.discrete_dataset_names,
             self.continuous_dataset_names,
+            self.discrete_metadata_names,
+            self.continuous_metadata_names,
             split,
         )
 

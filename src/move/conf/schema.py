@@ -28,8 +28,8 @@ class DataConfig:
     sample_names: str = MISSING
     categorical_inputs: list[InputConfig] = MISSING
     continuous_inputs: list[InputConfig] = MISSING
-    categorical_names: list[str] = MISSING
-    continuous_names: list[str] = MISSING
+    discrete_metadata: list[InputConfig] = MISSING
+    continuous_metadata: list[InputConfig] = MISSING
     categorical_weights: list[int] = MISSING
     continuous_weights: list[int] = MISSING
     train_frac: float = MISSING
@@ -54,6 +54,8 @@ class EncodeDataConfig(TaskConfig):
     sample_names_filename: str = "${data.sample_names}"
     discrete_inputs: list[dict[str, Any]] = "${data.categorical_inputs}"  # type: ignore
     continuous_inputs: list[dict[str, Any]] = "${data.continuous_inputs}"  # type: ignore
+    discrete_metadata: list[dict[str, Any]] = "${data.discrete_metadata}"  # type: ignore
+    continuous_metadata: list[dict[str, Any]] = "${data.continuous_metadata}"  # type: ignore
     train_frac: float = "${data.train_frac}"  # type: ignore
     test_frac: float = "${data.test_frac}"  # type: ignore
     valid_frac: float = "${data.valid_frac}"  # type: ignore
@@ -63,8 +65,10 @@ class EncodeDataConfig(TaskConfig):
 class MoveTaskConfig(TaskConfig):
     """Configure generic MOVE task."""
 
-    discrete_dataset_names: list[str] = "${data.categorical_names}"  # type: ignore
-    continuous_dataset_names: list[str] = "${data.continuous_names}"  # type: ignore
+    discrete_dataset_names: list[str] = "${names:${data.categorical_inputs}}"  # type: ignore
+    continuous_dataset_names: list[str] = "${names:${data.continuous_inputs}}"  # type: ignore
+    discrete_metadata_names: list[str] = "${names:${data.discrete_metadata}}"  # type: ignore
+    continuous_metadata_names: list[str] = "${names:${data.continuous_metadata}}"  # type: ignore
     batch_size: int = 16
     model_config: Optional[ModelConfig] = MISSING  # "${model}"  # type: ignore
     training_loop_config: Optional[TrainingLoopConfig] = MISSING

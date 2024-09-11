@@ -12,8 +12,9 @@ categorical_inputs: []
 
 continuous_inputs: []
 
-categorical_names: ${names:${data.categorical_inputs}}
-continuous_names: ${names:${data.continuous_inputs}}
+discrete_metadata: []
+continuous_metadata: []
+
 categorical_weights: ${weights:${data.categorical_inputs}}
 continuous_weights: ${weights:${data.continuous_inputs}}
 

@@ -1,7 +1,7 @@
 __all__ = ["TrainModel"]
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 import hydra
 
@@ -33,6 +33,8 @@ class TrainModel(ParentTask):
         batch_size: int,
         model_config: Union["ModelConfig", dict[str, Any]],
         training_loop_config: Union["TrainingLoopConfig", dict[str, Any]],
+        discrete_metadata_names: Optional[list[str]] = None,
+        continuous_metadata_names: Optional[list[str]] = None,
     ) -> None:
         super().__init__(
             input_dir=interim_data_path,
@@ -40,6 +42,8 @@ class TrainModel(ParentTask):
         )
         self.discrete_dataset_names = discrete_dataset_names
         self.continuous_dataset_names = continuous_dataset_names
+        self.discrete_metadata_names = discrete_metadata_names
+        self.continuous_metadata_names = continuous_metadata_names
         self.batch_size = batch_size
         self.training_loop_config = training_loop_config
         self.model_config = model_config
@@ -49,7 +53,10 @@ class TrainModel(ParentTask):
         from move.data.dataset import MoveDataset
 
         dataset = MoveDataset.load(
-            self.input_dir, self.discrete_dataset_names, self.continuous_dataset_names
+            self.input_dir,
+            self.discrete_dataset_names,
+            self.continuous_dataset_names,
+            self.discrete_metadata_names,
         )
         return MoveDataLoader(dataset, **kwargs)
 

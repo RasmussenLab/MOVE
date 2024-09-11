@@ -13,7 +13,7 @@ class MoveDataLoader(DataLoader):
 
     @property
     def datasets(self) -> list[NamedDataset]:
-        return list(self.dataset.datasets.values())
+        return [dataset for dataset in self.dataset._list if not dataset.is_metadata]
 
     def __iter__(self) -> Iterator[tuple[torch.Tensor, ...]]:
         return super().__iter__()

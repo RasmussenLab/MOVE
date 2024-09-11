@@ -1,5 +1,7 @@
 __all__ = ["EncodeData"]
 
+from typing import Optional
+
 import numpy as np
 import torch
 
@@ -48,17 +50,22 @@ class EncodeData(ParentTask):
         train_frac: float = 0.9,
         test_frac: float = 0.1,
         valid_frac: float = 0.0,
+        discrete_metadata: Optional[list[InputConfig]] = None,
+        continuous_metadata: Optional[list[InputConfig]] = None,
     ) -> None:
         super().__init__(raw_data_path, interim_data_path)
         self.sample_names_filepath = self.input_dir / f"{sample_names_filename}.txt"
         self.discrete_inputs = discrete_inputs
         self.continuous_inputs = continuous_inputs
         self.split_fracs = (train_frac, test_frac, valid_frac)
+        self.discrete_metadata = discrete_metadata
+        self.continuous_metadata = continuous_metadata
 
     def encode_datasets(
         self,
         input_configs: list[InputConfig],
         default_op_name: preprocessing.PreprocessingOpName,
+        is_metadata: bool = False,
     ) -> None:
         """Read CSV or TSV files containing datasets and run pre-processing operations.
 
@@ -69,6 +76,9 @@ class EncodeData(ParentTask):
                 'log_and_standardize'
             default_op_name:
                 Default operation if no operation in config
+            is_metadata:
+                Whether the dataset is metadata. Metadata is not fed to the model, but
+                can be used for plotting
         """
         for config in input_configs:
             op_name: preprocessing.PreprocessingOpName = getattr(
@@ -102,6 +112,7 @@ class EncodeData(ParentTask):
                 "dataset_name": dataset_name,
                 "tensor": tensor,
                 "feature_names": feature_names.tolist(),
+                "is_metadata": is_metadata,
             }
             if mapping is not None:
                 data["mapping"] = mapping
@@ -121,5 +132,9 @@ class EncodeData(ParentTask):
         self.logger.info("Beginning task: encode data")
         self.sample_names = io.read_names(self.sample_names_filepath)
         self.split_samples()
-        self.encode_datasets(self.discrete_inputs, "one_hot_encode")
-        self.encode_datasets(self.continuous_inputs, "standardize")
+        self.encode_datasets(self.discrete_inputs, "one_hot_encode", False)
+        self.encode_datasets(self.continuous_inputs, "standardize", False)
+        if self.discrete_metadata is not None:
+            self.encode_datasets(self.discrete_metadata, "one_hot_encode", True)
+        if self.continuous_metadata is not None:
+            self.encode_datasets(self.continuous_metadata, "standardize", True)

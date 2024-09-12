@@ -22,7 +22,6 @@ from move.tasks.move import MoveTask
 
 if TYPE_CHECKING:
     from move.data.dataloader import MoveDataLoader
-    from move.data.dataset import DiscreteDataset
     from move.models.base import BaseVae
 
 
@@ -188,11 +187,10 @@ class Project(CsvWriterMixin, SubTask):
                 continue
             # Obtain target values for color coding
             target_values = dataset.select(name).numpy()
-            if isinstance(dataset, "DiscreteDataset"):
+            if dataset.data_type == "discrete":
                 # Convert one-hot encoded values to category codes
                 is_nan = target_values.sum(axis=1) == 0
                 target_values = np.argmax(target_values, axis=1)
-                assert dataset.mapping is not None
                 code2cat_map = {
                     str(code): category for category, code in dataset.mapping.items()
                 }

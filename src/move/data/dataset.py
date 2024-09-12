@@ -72,6 +72,10 @@ class NamedDataset(Dataset, ABC):
         raise NotImplementedError()
 
     @property
+    def mapping(self) -> dict[str, int]:
+        raise NotImplementedError()
+
+    @property
     def num_features(self) -> int:
         return self.tensor.size(1)
 
@@ -125,13 +129,19 @@ class DiscreteDataset(NamedDataset):
             raise ValueError("Discrete datasets must have three dimensions.")
         *_, dim0, dim1 = tensor.shape
         self.original_shape = (dim0, dim1)
-        self.mapping = mapping
+        self._mapping = mapping
         flattened_tensor = torch.flatten(tensor, start_dim=1)
         super().__init__(flattened_tensor, dataset_name, feature_names)
 
     @property
     def data_type(self) -> DataType:
         return "discrete"
+
+    @property
+    def mapping(self) -> dict[str, int]:
+        if self._mapping is not None:
+            return self._mapping
+        return {str(i): i for i in range(self.num_classes)}
 
     @property
     def num_classes(self) -> int:

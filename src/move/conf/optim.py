@@ -1,6 +1,7 @@
 __all__ = [
     "AdamConfig",
     "AdamWConfig",
+    "ProdigyConfig",
     "SgdConfig",
     "ExponentialLrConfig",
     "CosineAnnealingLrConfig",
@@ -18,6 +19,7 @@ from torch.optim.lr_scheduler import (
 
 from move.conf.config_store import config_store
 from move.core.qualname import get_fully_qualname
+from move.training.optim.prodigy import Prodigy
 
 
 @dataclass
@@ -41,6 +43,16 @@ class AdamWConfig(AdamConfig):
     """Configure AdamW algorithm."""
 
     _target_: str = field(default=get_fully_qualname(AdamW), init=False)
+
+
+@dataclass
+class ProdigyConfig(OptimizerConfig):
+    """Configure Prodigy algorithm."""
+
+    _target_: str = field(default=get_fully_qualname(Prodigy), init=False)
+    weight_decay: float = 0.0
+    decouple: bool = True
+    d_coef: float = 1.0
 
 
 @dataclass
@@ -95,6 +107,11 @@ config_store.store(
     group="task/training_loop_config/optimizer_config",
     name="optim_adamw",
     node=AdamWConfig,
+)
+config_store.store(
+    group="task/training_loop_config/optimizer_config",
+    name="optim_prodigy",
+    node=ProdigyConfig,
 )
 config_store.store(
     group="task/training_loop_config/optimizer_config",

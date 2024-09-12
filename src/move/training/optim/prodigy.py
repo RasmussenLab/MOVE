@@ -83,9 +83,6 @@ class Prodigy(torch.optim.Optimizer):
         if not 0.0 <= betas[1] < 1.0:
             raise ValueError("Invalid beta parameter at index 1: {}".format(betas[1]))
 
-        if decouple and weight_decay > 0:
-            print(f"Using decoupled weight decay")
-
         defaults = dict(
             lr=lr,
             betas=betas,

@@ -2,13 +2,14 @@ __all__ = ["Chunk", "SplitInput", "SplitOutput"]
 
 import itertools
 import operator
-from typing import Any, Optional, Type, TypeVar, Union, cast
+from typing import TYPE_CHECKING, Any, Optional, Type, TypeVar, Union, cast
 
 import torch
 from torch import nn
 from torch.distributions import Distribution, constraints
 
-from move.data.dataset import ContinuousDataset, DiscreteDataset, MoveDataset
+if TYPE_CHECKING:
+    from move.data.dataset import MoveDataset
 
 DiscreteData = list[torch.Tensor]
 ContinuousData = list[torch.Tensor]
@@ -147,16 +148,15 @@ class SplitOutput(nn.Module):
         return super().__call__(*args, **kwds)
 
     @classmethod
-    def from_move_dataset(cls: Type[T], move_dataset: MoveDataset) -> T:
+    def from_move_dataset(cls: Type[T], move_dataset: "MoveDataset") -> T:
+        """Create layer from shapes of discrete and continuous datasets contained in a
+        MOVE dataset."""
         discrete_dataset_shapes = []
         continuous_dataset_shapes = []
-        for dataset in move_dataset:
-            if isinstance(dataset, DiscreteDataset):
-                discrete_dataset_shapes.append(dataset.original_shape)
-            elif isinstance(dataset, ContinuousDataset):
-                continuous_dataset_shapes.append(dataset.num_features)
-            else:
-                raise ValueError("Unsupported dataset type detected.")
+        for dataset in move_dataset.discrete_datasets:
+            discrete_dataset_shapes.append(dataset.original_shape)
+        for dataset in move_dataset.continuous_datasets:
+            continuous_dataset_shapes.append(dataset.num_features)
         return cls(discrete_dataset_shapes, continuous_dataset_shapes)
 
     def forward(self, x: torch.Tensor) -> SplitData:

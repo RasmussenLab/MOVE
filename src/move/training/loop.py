@@ -15,6 +15,7 @@ from move.conf.optim import LrSchedulerConfig, OptimizerConfig
 from move.data.dataloader import MoveDataLoader
 from move.models.base import BaseVae, LossDict
 from move.tasks.base import CsvWriterMixin, SubTask
+from move.training.optim.prodigy import Prodigy
 
 AnnealingFunction = Literal["linear", "cosine", "sigmoid", "stairs"]
 AnnealingSchedule = Literal["monotonic", "cyclical"]
@@ -45,6 +46,8 @@ class TrainingLoop(CsvWriterMixin, SubTask):
             every step.
         log_grad:
             Whether gradients should be logged.
+        log_lr:
+            Whether LR should be logged.
     """
 
     max_steps: int
@@ -61,6 +64,7 @@ class TrainingLoop(CsvWriterMixin, SubTask):
         annealing_schedule: AnnealingSchedule = "monotonic",
         prog_every_n_epoch: Optional[int] = 10,
         log_grad: bool = False,
+        log_lr: bool = False,
     ):
         if annealing_epochs < 0:
             raise ValueError("Annealing epochs must be a non-negative integer")
@@ -78,6 +82,7 @@ class TrainingLoop(CsvWriterMixin, SubTask):
         self.current_epoch = 0
         self.prog_every_n_epoch = prog_every_n_epoch
         self.log_grad = log_grad
+        self.log_lr = log_lr
 
     def _repr_html_(self) -> str:
         return ""
@@ -149,15 +154,32 @@ class TrainingLoop(CsvWriterMixin, SubTask):
                 if param_names:
                     colnames.append(module_name)
                     colnames.extend(param_names)
+        if self.log_lr:
+            colnames.append("lr")
         return colnames
 
-    def make_row(self, loss_dict: LossDict, model: BaseVae) -> dict[str, float]:
+    def get_last_lr(
+        self, optimizer: Optimizer, lr_scheduler: Optional[LRScheduler]
+    ) -> float:
+        if isinstance(optimizer, Prodigy):
+            d = optimizer.param_groups[0]["d"]
+            lr = optimizer.param_groups[0]["lr"]
+            return d * lr
+        elif lr_scheduler is None:
+            return optimizer.param_groups[0]["lr"]
+        else:
+            return lr_scheduler.get_last_lr()[0]
+
+    def make_row(
+        self, loss_dict: LossDict, model: BaseVae, lr: Optional[float]
+    ) -> dict[str, float]:
         """Format a loss dictionary and the model's gradients into a dictionary
         representing a CSV row.
 
         Args:
             loss_dict: dictionary with loss metrics
-            model: deep-learning model"""
+            model: deep-learning model
+        """
         csv_row: dict[str, float] = {
             "epoch": self.current_epoch,
             "step": self.global_step,
@@ -177,6 +199,8 @@ class TrainingLoop(CsvWriterMixin, SubTask):
                         csv_row[param_name] = grad.item()
                 if len(grads) > 0:
                     csv_row[module_name] = torch.norm(torch.stack(grads)).item()
+        if self.log_lr and lr is not None:
+            csv_row["lr"] = lr
         return csv_row
 
     def train(
@@ -236,7 +260,13 @@ class TrainingLoop(CsvWriterMixin, SubTask):
 
                 optimizer.step()
 
-                csv_row = self.make_row(loss_dict, model)
+                lr = (
+                    None
+                    if not self.log_lr
+                    else self.get_last_lr(optimizer, lr_scheduler)
+                )
+
+                csv_row = self.make_row(loss_dict, model, lr)
                 self.add_row_to_buffer(csv_row)
 
                 self.global_step += 1

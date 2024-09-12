@@ -69,6 +69,7 @@ class TrainingLoopConfig:
     prog_every_n_epoch: Optional[int] = 10
 
     log_grad: bool = False
+    log_lr: bool = False
 
 
 config_store.store(

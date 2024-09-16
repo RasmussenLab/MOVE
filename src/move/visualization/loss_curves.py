@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 
 from move.visualization.figure import create_figure
+from move.visualization.scale import axis_scale
 from move.visualization.style import (
     DEFAULT_PLOT_STYLE,
     DEFAULT_QUALITATIVE_PALETTE,
@@ -45,12 +46,14 @@ def plot_loss_curves(
     if is_df:
         # Calculate epoch from steps
         max_epochs = losses["epoch"].max() + 1
-        max_steps = len(losses["step"])
+        max_steps = losses["step"].max() + 1
         steps_epoch = max_steps / max_epochs
         x_values = (losses["step"] + 1) / steps_epoch
         losses.drop(["epoch", "step"], axis=1, inplace=True)
+        yscale = axis_scale(losses.iloc[:, 0])
     else:
         x_values = np.arange(len(losses[0]))
+        yscale = axis_scale(losses[0])
     with style_settings(style), color_cycle(colormap):
         fig, ax = create_figure()
         for i, label in enumerate(labels):
@@ -61,5 +64,5 @@ def plot_loss_curves(
                 loss = losses[i]
             ax.plot(x_values, loss, label=label, linestyle="-")
         ax.legend()
-        ax.set(xlabel=xlabel, ylabel="Loss")
+        ax.set(xlabel=xlabel, ylabel="Loss", yscale=yscale)
     return fig

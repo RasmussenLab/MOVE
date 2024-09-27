@@ -20,8 +20,7 @@ model_config:
   kl_weight: 1e-4
   dropout_rate: 0.1
 
-training_dataloader_config:
-  batch_size: 10
+batch_size: 10
 
 training_loop_config:
   max_epochs: 40

@@ -45,10 +45,10 @@ def plot_loss_curves(
     is_df = isinstance(losses, pd.DataFrame)
     if is_df:
         # Calculate epoch from steps
-        max_epochs = losses["epoch"].max() + 1
-        max_steps = losses["step"].max() + 1
+        max_epochs = losses["epoch"].max()
+        max_steps = losses["step"].max()
         steps_epoch = max_steps / max_epochs
-        x_values = (losses["step"] + 1) / steps_epoch
+        x_values = losses["step"] / steps_epoch
         losses.drop(["epoch", "step"], axis=1, inplace=True)
         yscale = axis_scale(losses.iloc[:, 0])
     else:

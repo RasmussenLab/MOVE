@@ -159,8 +159,8 @@ class TrainingLoop(CsvWriterMixin, SubTask):
             loss_dict: dictionary with loss metrics
             model: deep-learning model"""
         csv_row: dict[str, float] = {
-            "epoch": self.current_epoch,
-            "step": self.global_step,
+            "epoch": self.current_epoch + 1,
+            "step": self.global_step + 1,
         }
         for key, value in loss_dict.items():
             if isinstance(value, torch.Tensor):

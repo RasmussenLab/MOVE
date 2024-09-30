@@ -54,12 +54,10 @@ class Vae(BaseVae):
             raise ValueError("Shapes of input datasets must be provided.")
 
         self.discrete_shapes = discrete_shapes
-        self.disc_split_sizes = []
         self.num_disc_features = 0
         self.discrete_weights = [1.0] * len(self.discrete_shapes)
-        if discrete_shapes is not None:
+        if discrete_shapes is not None and len(discrete_shapes) > 0:
             (*shapes_1d,) = itertools.starmap(operator.mul, discrete_shapes)
-            *self.disc_split_sizes, _ = itertools.accumulate(shapes_1d)
             self.num_disc_features = sum(shapes_1d)
             if discrete_weights is not None:
                 if len(discrete_shapes) != len(discrete_weights):
@@ -69,13 +67,9 @@ class Vae(BaseVae):
                 self.discrete_weights = discrete_weights
 
         self.continuous_shapes = continuous_shapes
-        self.cont_split_sizes = []
         self.num_cont_features = 0
         self.continuous_weights = [1.0] * len(self.continuous_shapes)
-        if continuous_shapes is not None:
-            *self.cont_split_sizes, _ = itertools.accumulate(
-                [shape * self.output_args for shape in continuous_shapes]
-            )
+        if continuous_shapes is not None and len(continuous_shapes) > 0:
             self.num_cont_features = sum(continuous_shapes)
             if continuous_weights is not None:
                 if len(continuous_shapes) != len(continuous_weights):
@@ -167,7 +161,10 @@ class Vae(BaseVae):
             multiplier = disc_wt / operator.mul(*disc_input.shape[:-1])
             loss = self.nll_loss(disc_recon, disc_cats) * multiplier
             disc_losses.append(loss)
-        disc_loss = torch.stack(disc_losses).sum()
+        if len(disc_losses) > 0:
+            disc_loss = torch.stack(disc_losses).sum()
+        else:
+            disc_loss = torch.zeros(1)
 
         # Compute continuous dataset losses
         cont_losses = []
@@ -178,7 +175,10 @@ class Vae(BaseVae):
             multiplier = cont_wt / operator.mul(*cont_input.shape)
             loss = self.mse_loss(na_mask * cont_recon, cont_input) * multiplier
             cont_losses.append(loss)
-        cont_loss = torch.stack(cont_losses).sum()
+        if len(cont_losses) > 0:
+            cont_loss = torch.stack(cont_losses).sum()
+        else:
+            cont_loss = torch.zeros(1)
 
         # Compute KL divergence
         z_loc, z_var = out["z_loc"], out["z_scale"] ** 2

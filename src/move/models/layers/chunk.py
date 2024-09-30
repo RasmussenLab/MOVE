@@ -134,15 +134,21 @@ class SplitOutput(nn.Module):
         )
 
         # Compute split indices
-        *self.discrete_split_indices, _ = itertools.accumulate(
-            self.discrete_dataset_shapes_1d
-        )
-        *self.continuous_split_indices, _ = itertools.accumulate(
-            [
-                shape * self.num_distribution_args
-                for shape in self.continuous_dataset_shapes
-            ]
-        )
+        if len(self.discrete_dataset_shapes_1d) > 0:
+            *self.discrete_split_indices, _ = itertools.accumulate(
+                self.discrete_dataset_shapes_1d
+            )
+        else:
+            self.discrete_split_indices = []
+        if len(self.continuous_dataset_shapes) > 0:
+            *self.continuous_split_indices, _ = itertools.accumulate(
+                [
+                    shape * self.num_distribution_args
+                    for shape in self.continuous_dataset_shapes
+                ]
+            )
+        else:
+            self.continuous_split_indices = []
 
     def __call__(self, *args: Any, **kwds: Any) -> SplitData:
         return super().__call__(*args, **kwds)

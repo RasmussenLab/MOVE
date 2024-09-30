@@ -63,12 +63,10 @@ class VaeDistribution(BaseVae):
             raise ValueError("Shapes of input datasets must be provided.")
 
         self.discrete_shapes = discrete_shapes
-        self.disc_split_sizes = []
         self.num_disc_features = 0
         self.discrete_weights = [1.0] * len(self.discrete_shapes)
-        if discrete_shapes is not None:
+        if discrete_shapes is not None and len(discrete_shapes) > 0:
             (*shapes_1d,) = itertools.starmap(operator.mul, discrete_shapes)
-            *self.disc_split_sizes, _ = itertools.accumulate(shapes_1d)
             self.num_disc_features = sum(shapes_1d)
             if discrete_weights is not None:
                 if len(discrete_shapes) != len(discrete_weights):
@@ -78,13 +76,9 @@ class VaeDistribution(BaseVae):
                 self.discrete_weights = discrete_weights
 
         self.continuous_shapes = continuous_shapes
-        self.cont_split_sizes = []
         self.num_cont_features = 0
         self.continuous_weights = [1.0] * len(self.continuous_shapes)
-        if continuous_shapes is not None:
-            *self.cont_split_sizes, _ = itertools.accumulate(
-                [shape * self.output_args for shape in continuous_shapes]
-            )
+        if continuous_shapes is not None and len(continuous_shapes) > 0:
             self.num_cont_features = sum(continuous_shapes)
             if continuous_weights is not None:
                 if len(continuous_shapes) != len(continuous_weights):

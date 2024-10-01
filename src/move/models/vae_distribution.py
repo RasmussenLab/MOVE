@@ -192,7 +192,7 @@ class VaeDistribution(BaseVae):
         out_cont = cast(ContinuousDistribution, out_cont)
 
         # Compute discrete dataset losses
-        disc_rec_loss = torch.tensor(0.0)
+        disc_rec_loss = torch.zeros(())
         for i, args in enumerate(out_disc):
             y = torch.argmax(batch_disc[i], dim=-1)
             ignore_mask = torch.any(batch_disc[i] == 1, dim=-1).float()  # Ignore NaNs
@@ -201,7 +201,7 @@ class VaeDistribution(BaseVae):
             )
 
         # Compute continuous dataset losses
-        cont_rec_loss = torch.tensor(0.0)
+        cont_rec_loss = torch.zeros(())
         for i, args in enumerate(out_cont):
             ignore_mask = torch.logical_not(batch_cont[i] == 0.0)  # Ignore NaNs
             cont_rec_loss -= self.compute_log_prob(

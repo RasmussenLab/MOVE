@@ -164,7 +164,7 @@ class Vae(BaseVae):
         if len(disc_losses) > 0:
             disc_loss = torch.stack(disc_losses).sum()
         else:
-            disc_loss = torch.zeros(1)
+            disc_loss = torch.zeros(())
 
         # Compute continuous dataset losses
         cont_losses = []
@@ -178,7 +178,7 @@ class Vae(BaseVae):
         if len(cont_losses) > 0:
             cont_loss = torch.stack(cont_losses).sum()
         else:
-            cont_loss = torch.zeros(1)
+            cont_loss = torch.zeros(())
 
         # Compute KL divergence
         z_loc, z_var = out["z_loc"], out["z_scale"] ** 2

@@ -38,11 +38,10 @@ class FeatureImportance(CsvWriterMixin, SubTask):
         if self.parent is None:
             return
         for dataset in self.dataloader.datasets:
-            sanitized_name = sanitize_filename(dataset.name)
-            csv_filename = self.data_filename_fmt.format(sanitized_name)
-            csv_filepath = self.parent.output_dir / csv_filename
-            fig_filename = self.plot_filename_fmt.format(sanitized_name)
-            fig_filepath = self.parent.output_dir / fig_filename
+            csv_filename = self.data_filename_fmt.format(dataset.name)
+            csv_filepath = self.parent.output_dir / sanitize_filename(csv_filename)
+            fig_filename = self.plot_filename_fmt.format(dataset.name)
+            fig_filepath = self.parent.output_dir / sanitize_filename(fig_filename)
 
             diffs = pd.read_csv(csv_filepath)
 

@@ -27,6 +27,8 @@ class VaeConfig(ModelConfig):
     kl_weight: float
     dropout_rate: float
     use_cuda: bool = False
+    discrete_weights: list[float] = "${data.categorical_weights}"  # type: ignore
+    continuous_weights: list[float] = "${data.continuous_weights}"  # type: ignore
 
 
 @dataclass

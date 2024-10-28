@@ -196,7 +196,7 @@ class VaeDistribution(BaseVae):
         for i, args in enumerate(out_disc):
             y = torch.argmax(batch_disc[i], dim=-1)
             ignore_mask = torch.any(batch_disc[i] == 1, dim=-1).float()  # Ignore NaNs
-            disc_rec_loss -= self.compute_log_prob(
+            disc_rec_loss -= self.discrete_weights[i] * self.compute_log_prob(
                 Categorical, y, ignore_mask, logits=args
             )
 
@@ -204,7 +204,7 @@ class VaeDistribution(BaseVae):
         cont_rec_loss = torch.zeros(())
         for i, args in enumerate(out_cont):
             ignore_mask = torch.logical_not(batch_cont[i] == 0.0)  # Ignore NaNs
-            cont_rec_loss -= self.compute_log_prob(
+            cont_rec_loss -= self.continuous_weights[i] * self.compute_log_prob(
                 self.decoder_distribution, batch_cont[i], ignore_mask, **args
             )
 

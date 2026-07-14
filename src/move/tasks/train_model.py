@@ -18,7 +18,17 @@ if TYPE_CHECKING:
 
 
 class TrainModel(ParentTask):
-    """Train a single model."""
+    """Train a single model.
+
+    Args:
+        interim_data_path: Directory where encoded data is stored
+        results_path: Directory where results will be saved
+        discrete_dataset_names: Names of discrete datasets
+        continuous_dataset_names: Names of continuous datasets
+        batch_size: Number of samples in one batch
+        model_config: Config of the VAE
+        training_loop_config: Config of the training loop
+    """
 
     model_filename: str = "model.pt"
     loop_filename: str = "loop.yaml"
@@ -45,6 +55,11 @@ class TrainModel(ParentTask):
         self.model_config = model_config
 
     def make_dataloader(self, **kwargs) -> "MoveDataLoader":
+        """Build a dataloader over the encoded data in :attr:`input_dir`.
+
+        Args:
+            **kwargs: Passed to :class:`~move.data.dataloader.MoveDataLoader`
+        """
         from move.data.dataloader import MoveDataLoader
         from move.data.dataset import MoveDataset
 
@@ -54,6 +69,8 @@ class TrainModel(ParentTask):
         return MoveDataLoader(dataset, **kwargs)
 
     def run(self) -> None:
+        """Train the configured model on the encoded data and save the model,
+        its training loop config, and loss plot to :attr:`output_dir`."""
         model_path = self.output_dir / self.model_filename
         if model_path.exists():
             self.logger.warning(FILE_EXISTS_WARNING.format(model_path))

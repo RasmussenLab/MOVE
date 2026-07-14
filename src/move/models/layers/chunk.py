@@ -47,6 +47,7 @@ class Chunk(nn.Module):
         return super().__call__(*args, **kwds)
 
     def forward(self, input: torch.Tensor) -> tuple[torch.Tensor, ...]:
+        """Split ``input`` into :attr:`chunks` tensors along :attr:`dim`."""
         if self.chunks == 1:
             return (input,)
         return tuple(torch.chunk(input, self.chunks, self.dim))
@@ -166,6 +167,9 @@ class SplitOutput(nn.Module):
         return cls(discrete_dataset_shapes, continuous_dataset_shapes)
 
     def forward(self, x: torch.Tensor) -> SplitData:
+        """Split a concatenated 2D tensor back into per-dataset discrete and
+        continuous subsets (or continuous distribution argument dicts, if a
+        distribution was configured)."""
         if x.dim() != 2:
             raise ValueError("Input expected to be 2D.")
 

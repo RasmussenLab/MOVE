@@ -69,18 +69,23 @@ class NamedDataset(Dataset, ABC):
     @property
     @abstractmethod
     def data_type(self) -> DataType:
+        """Either 'discrete' or 'continuous'."""
         raise NotImplementedError()
 
     @property
     def mapping(self) -> dict[str, int]:
+        """Mapping of category name to its encoded (one-hot) index."""
         raise NotImplementedError()
 
     @property
     def num_features(self) -> int:
+        """Number of columns in the underlying tensor."""
         return self.tensor.size(1)
 
     @property
     def num_feature_names(self) -> int:
+        """Number of (unique) feature names, i.e., number of original features
+        before any encoding was applied."""
         return self.num_features
 
     @classmethod
@@ -91,7 +96,7 @@ class NamedDataset(Dataset, ABC):
             path: Path to encoded data
             indices: Use to load only a subset of the data. Load all data if None.
         """
-        enc_data = cast(EncodedData, torch.load(path))
+        enc_data = cast(EncodedData, torch.load(path, weights_only=False))
         if indices is not None:
             enc_data["tensor"] = enc_data["tensor"][indices, :]
         return cls(**enc_data)
@@ -145,14 +150,18 @@ class DiscreteDataset(NamedDataset):
 
     @property
     def num_classes(self) -> int:
+        """Number of categories each feature was one-hot encoded into."""
         return self.original_shape[1]
 
     @property
     def num_features(self) -> int:
+        """Number of columns in the flattened tensor, i.e.,
+        ``num_feature_names * num_classes``."""
         return operator.mul(*self.original_shape)
 
     @property
     def num_feature_names(self) -> int:
+        """Number of original (unencoded) features."""
         return self.original_shape[0]
 
     def one_hot_encode(self, value: Union[str, float, None]) -> torch.Tensor:
@@ -190,7 +199,11 @@ class MoveDataset(Dataset):
     output as if there was no perturbation. The second element of the tuple
     will correspond to the output affected by the perturbation. Lastly, the
     third element is a boolean indicating whether the perturbation changed or
-    not the original value."""
+    not the original value.
+
+    Args:
+        *args: Constituent datasets, each with a unique name and matching
+            number of samples"""
 
     def __init__(self, *args: NamedDataset) -> None:
         if len(args) > 1 and not all(
@@ -275,10 +288,12 @@ class MoveDataset(Dataset):
 
     @property
     def num_features(self) -> int:
+        """Total number of (encoded) features across all constituent datasets."""
         return sum(dataset.num_features for dataset in self._list)
 
     @property
     def num_discrete_features(self) -> int:
+        """Total number of (encoded) features across discrete datasets only."""
         return sum(
             dataset.num_features
             for dataset in self._list
@@ -287,6 +302,7 @@ class MoveDataset(Dataset):
 
     @property
     def num_continuous_features(self) -> int:
+        """Total number of features across continuous datasets only."""
         return sum(
             dataset.num_features
             for dataset in self._list
@@ -295,30 +311,38 @@ class MoveDataset(Dataset):
 
     @property
     def discrete_datasets(self) -> list[DiscreteDataset]:
+        """List of constituent discrete datasets."""
         return [
             dataset for dataset in self._list if isinstance(dataset, DiscreteDataset)
         ]
 
     @property
     def continuous_datasets(self) -> list[ContinuousDataset]:
+        """List of constituent continuous datasets."""
         return [
             dataset for dataset in self._list if isinstance(dataset, ContinuousDataset)
         ]
 
     @property
     def discrete_shapes(self) -> list[tuple[int, int]]:
+        """Original (unflattened) shape, i.e., ``(num_feature_names,
+        num_classes)``, of each discrete dataset."""
         return [dataset.original_shape for dataset in self.discrete_datasets]
 
     @property
     def continuous_shapes(self) -> list[int]:
+        """Number of features of each continuous dataset."""
         return [dataset.num_features for dataset in self.continuous_datasets]
 
     @property
     def dataset_names(self) -> list[str]:
+        """Names of all constituent datasets."""
         return list(self.datasets.keys())
 
     @property
     def feature_names(self) -> list[str]:
+        """Feature names across all constituent datasets, in concatenation
+        order."""
         feature_names = []
         for dataset in self._list:
             if dataset.feature_names:
@@ -329,6 +353,7 @@ class MoveDataset(Dataset):
 
     @property
     def discrete_feature_names(self) -> list[str]:
+        """Feature names across discrete datasets only."""
         feature_names = []
         for dataset in self.discrete_datasets:
             feature_names.extend(dataset.feature_names)
@@ -336,6 +361,7 @@ class MoveDataset(Dataset):
 
     @property
     def continuous_feature_names(self) -> list[str]:
+        """Feature names across continuous datasets only."""
         feature_names = []
         for dataset in self.continuous_datasets:
             feature_names.extend(dataset.feature_names)
@@ -343,6 +369,7 @@ class MoveDataset(Dataset):
 
     @property
     def perturbation(self) -> Optional["Perturbation"]:
+        """Currently active perturbation, if any (see :meth:`perturb`)."""
         return self._perturbation
 
     @perturbation.setter
@@ -383,7 +410,9 @@ class MoveDataset(Dataset):
             split: Subset of data to load ('train', 'test', 'valid', or 'all')
         """
         if split != "all":
-            ind_dict: IndicesDict = torch.load(path / EncodeData.indices_filename)
+            ind_dict: IndicesDict = torch.load(
+                path / EncodeData.indices_filename, weights_only=False
+            )
             indices = ind_dict.get(f"{split}_indices")
             if indices is None:
                 raise KeyError(f"Unknown data subset: '{split}'")
@@ -439,7 +468,12 @@ class Perturbation:
     """Perturbation in a MOVE dataset. A perturbation will target a feature in
     one of the MOVE datasets. All the values of that feature will be replaced
     by the defined target value. For example, target 'metformin' feature in
-    'drugs' dataset and change value from 0 to 1."""
+    'drugs' dataset and change value from 0 to 1.
+
+    Args:
+        target_dataset_name: Name of dataset containing the target feature
+        target_feature_name: Name of feature to perturb
+        target_value: Value the feature will be replaced with"""
 
     def __init__(
         self,
@@ -459,11 +493,15 @@ class Perturbation:
 
     @property
     def feature_indices(self) -> tuple[int, int]:
+        """Start/stop column indices of the target feature, as a tuple."""
         slice_ = self.feature_slice
         return slice_.start, slice_.stop
 
     @property
     def feature_slice(self) -> slice:
+        """Slice selecting the target feature's columns in its dataset's
+        tensor. Set automatically once the perturbation is assigned to a
+        :class:`MoveDataset`."""
         if (slice_ := getattr(self, "_feature_slice", None)) is None:
             raise UnsetProperty("Target feature indices")
         return slice_
@@ -474,6 +512,10 @@ class Perturbation:
 
     @property
     def mapped_value(self) -> torch.Tensor:
+        """Target value, encoded to match the target feature's representation
+        (one-hot for discrete features, a 1-element tensor for continuous
+        ones). Set automatically once the perturbation is assigned to a
+        :class:`MoveDataset`."""
         if (value := getattr(self, "_mapped_value", None)) is None:
             raise UnsetProperty("Encoded target value")
         return value

@@ -23,6 +23,8 @@ class InputDirMixin:
 
     @property
     def input_dir(self) -> Path:
+        """Directory input files are read from. Setting this creates the
+        directory if it does not already exist."""
         if path := getattr(self, "_input_dir", None):
             return path
         raise UnsetProperty("Input directory")
@@ -38,6 +40,8 @@ class OutputDirMixin:
 
     @property
     def output_dir(self) -> Path:
+        """Directory output files are saved to. Setting this creates the
+        directory if it does not already exist."""
         if path := getattr(self, "_output_dir", None):
             return path
         raise UnsetProperty("Output directory")
@@ -53,6 +57,8 @@ class LoggerMixin:
 
     @property
     def logger(self) -> logging.Logger:
+        """Logger for this task. Sub-tasks (:class:`SubTaskMixin`) delegate to
+        their parent task's logger."""
         if issubclass(self.__class__, SubTaskMixin):
             task = cast(SubTaskMixin, self).parent
             if task:
@@ -85,6 +91,7 @@ class Task(ABC, LoggerMixin):
 
     @abstractmethod
     def run(self, *args, **kwargs) -> Any:
+        """Run the task. Must be implemented by subclasses."""
         raise NotImplementedError()
 
     @classmethod
@@ -129,6 +136,8 @@ class OutputDir(ParentTask):
         super().__init__(Path.cwd(), output_dir)
 
     def run(self) -> None:
+        """Not implemented: this task only exists to expose an output
+        directory to its sub-tasks."""
         raise NotImplementedError()
 
 
@@ -136,6 +145,7 @@ class TestTask(Task):
     """Task used for testing"""
 
     def run(self) -> Any:
+        """No-op, used as a stand-in task in tests."""
         pass
 
 
@@ -144,6 +154,7 @@ class SubTaskMixin(LoggerMixin):
 
     @property
     def parent(self) -> Optional[ParentTask]:
+        """Parent task this sub-task belongs to, if any."""
         return getattr(self, "_parent", None)
 
     @parent.setter
@@ -168,6 +179,7 @@ class CsvWriterMixin(LoggerMixin):
 
     @property
     def can_write(self) -> bool:
+        """Whether a CSV writer and file are open and ready to write to."""
         return (
             getattr(self, "_csv_writer", None) is not None
             and getattr(self, "_csv_file", None) is not None
@@ -176,6 +188,7 @@ class CsvWriterMixin(LoggerMixin):
 
     @property
     def csv_file(self) -> TextIOWrapper:
+        """Open file handle the CSV writer writes to."""
         return getattr(self, "_csv_file")
 
     @csv_file.setter
@@ -184,6 +197,7 @@ class CsvWriterMixin(LoggerMixin):
 
     @property
     def csv_writer(self) -> CsvWriter:
+        """CSV writer used to write rows/columns to :attr:`csv_file`."""
         return getattr(self, "_csv_writer")
 
     @csv_writer.setter
@@ -192,12 +206,15 @@ class CsvWriterMixin(LoggerMixin):
 
     @property
     def row_buffer(self) -> list[CsvRow]:
+        """Rows buffered in memory, flushed to disk once :attr:`buffer_size`
+        is reached (see :meth:`add_row_to_buffer`)."""
         if getattr(self, "_buffer", None) is None:
             self._buffer: list[CsvRow] = []
         return self._buffer
 
     @property
     def output_dir(self) -> Path:
+        """Output directory, delegated to the parent task."""
         if self.parent is None:
             raise UnsetProperty("Output directory")
         return self.parent.output_dir

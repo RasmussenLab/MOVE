@@ -18,7 +18,17 @@ if TYPE_CHECKING:
 
 
 class MoveTask(ParentTask):
-    """A task that can initialize a MOVE model, dataloader, and training loop."""
+    """A task that can initialize a MOVE model, dataloader, and training loop.
+
+    Args:
+        discrete_dataset_names: Names of discrete datasets
+        continuous_dataset_names: Names of continuous datasets
+        batch_size: Batch size used by the dataloader
+        model_config: Configuration of the VAE model to instantiate
+        training_loop_config: Configuration of the training loop to instantiate
+        **kwargs: Passed to :class:`~move.tasks.base.ParentTask`
+            (``input_dir``, ``output_dir``)
+    """
 
     def __init__(
         self,

@@ -143,7 +143,7 @@ def identify_associations(config: MOVEConfig):
             model_path = models_path / f"model_{task_config.model.num_latent}_{j}.pt"
             if model_path.exists():
                 logger.debug(f"Re-loading refit {j + 1}/{task_config.num_refits}")
-                model.load_state_dict(torch.load(model_path))
+                model.load_state_dict(torch.load(model_path, weights_only=False))
                 model.to(device)
             else:
                 logger.debug(f"Training refit {j + 1}/{task_config.num_refits}")
@@ -224,7 +224,7 @@ def identify_associations(config: MOVEConfig):
                 model_path = models_path / f"model_{num_latent}_{j}.pt"
                 if model_path.exists():
                     logger.debug(f"Re-loading refit {j + 1}/{task_config.num_refits}")
-                    model.load_state_dict(torch.load(model_path))
+                    model.load_state_dict(torch.load(model_path, weights_only=False))
                     model.to(device)
                 else:
                     logger.debug(f"Training refit {j + 1}/{task_config.num_refits}")

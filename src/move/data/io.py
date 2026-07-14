@@ -158,16 +158,39 @@ def read_tsv(
 
 
 def load_mappings(path: PathLike) -> dict[str, dict[str, int]]:
+    """Loads category-to-code mappings (one per discrete dataset) from a JSON
+    file.
+
+    Args:
+        path: Path to JSON file
+
+    Returns:
+        Dictionary mapping each dataset name to its category-to-code mapping
+    """
     with open(path, "r", encoding="utf-8") as file:
         return json.load(file)
 
 
 def dump_mappings(path: PathLike, mappings: dict[str, dict[str, int]]) -> None:
+    """Saves category-to-code mappings (one per discrete dataset) to a JSON
+    file.
+
+    Args:
+        path: Path to JSON file
+        mappings: Dictionary mapping each dataset name to its category-to-code
+            mapping
+    """
     with open(path, "w", encoding="utf-8") as file:
         json.dump(mappings, file, indent=4, ensure_ascii=False)
 
 
 def dump_names(path: PathLike, names: np.ndarray) -> None:
+    """Saves an array of names to a text file, one name per line.
+
+    Args:
+        path: Path to the text file
+        names: Names to write
+    """
     with open(path, "w", encoding="utf-8") as file:
         file.writelines([f"{name}\n" for name in names])
 

@@ -114,7 +114,8 @@ class Associations(CsvWriterMixin, MoveTask):
             yield model
 
     def run(self) -> Any:
-
+        """Train/refit models, apply the configured perturbation, and record
+        which target features are significantly associated with it."""
         colnames = ["perturbed_feature", "target_feature", "prob", "bayes_k"]
         self.init_csv_writer(
             self.output_dir / self.results_filename,

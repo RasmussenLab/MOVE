@@ -9,6 +9,7 @@ Welcome to MOVE's documentation!
    install
    method
    tutorial/index
+   pages/api/API
 
 MOVE (**m**\ ulti-\ **o**\ mics **v**\ ariational auto\ **e**\ ncoder) is a
 framework for integration of omics and other data modalities (including both

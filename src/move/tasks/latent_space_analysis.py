@@ -89,6 +89,9 @@ class LatentSpaceAnalysis(MoveTask):
         self.compute_feature_importance = compute_feature_importance
 
     def run(self) -> Any:
+        """Train (or reload) a model, project the data into its latent space,
+        and run the configured analyses (dimensionality reduction, accuracy
+        metrics, feature importance)."""
         from move.models.base import reload_vae
 
         model_path = self.output_dir / self.model_filename
@@ -141,6 +144,9 @@ class Project(CsvWriterMixin, SubTask):
     Args:
         model: Variational autoencoder model
         dataloader: Data loader
+        reducer_config: Config of the reducer used to further compress the
+            latent space (e.g., t-SNE or PCA), or None to skip this step
+        output_dir: Where to save results; taken from the parent task if unset
     """
 
     filename: str = "latent_space.csv"
@@ -165,15 +171,23 @@ class Project(CsvWriterMixin, SubTask):
 
     @property
     def num_features(self) -> int:
+        """Number of dimensions in the (unreduced) latent space."""
         return self.model.num_latent
 
     @property
     def num_reduced_features(self) -> int:
+        """Number of dimensions in the reduced latent space, or 0 if no
+        reducer is configured."""
         if self.reducer is None:
             return 0
         return getattr(self.reducer, "n_components")
 
     def plot(self, feature_names: list[str]) -> None:
+        """Generate a 2D latent space plot color-coded by each given feature.
+
+        Args:
+            feature_names: Names of features to color-code the plots by
+        """
         # NOTE: assumes 2D
         if self.csv_filepath is None:
             raise ValueError("No CSV data found")
@@ -205,6 +219,9 @@ class Project(CsvWriterMixin, SubTask):
 
     @torch.no_grad()
     def run(self) -> None:
+        """Project the dataloader's data into the model's latent space
+        (optionally reducing it further) and write the result to a CSV
+        file."""
         if self.parent is None:
             raise UnsetProperty("Output directory")
 

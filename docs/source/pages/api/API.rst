@@ -5,5 +5,8 @@ API
     :maxdepth: 2
 
     configuration_schemas.rst
-    functions.rst
+    data.rst
+    tasks.rst
     models.rst
+    training.rst
+    functions.rst

@@ -15,7 +15,7 @@ logger = logging.getLogger("vae.py")
 class VAE(nn.Module):
     """Variational autoencoder.
 
-    Instantiate with:
+    Args:
         continuous_shapes: shape of the different continuous datasets if any
         categorical_shapes: shape of the different categorical datasets if any
         num_hidden: List of n_neurons in the hidden layers [[200, 200]]
@@ -31,10 +31,8 @@ class VAE(nn.Module):
         ValueError: Beta must be greater than zero.
         ValueError: Dropout must be between zero and one.
         ValueError: Shapes of the input data must be provided.
-        ValueError: Number of continuous weights must be the same as number of
-            continuous datasets
-        ValueError: Number of categorical weights must be the same as number of
-            categorical datasets
+        ValueError: Number of continuous weights must match number of continuous datasets.
+        ValueError: Number of categorical weights must match number of categorical datasets.
     """
 
     def __init__(
@@ -496,11 +494,11 @@ class VAE(nn.Module):
             length: number of samples
 
         Returns:
-            (tuple): a tuple containing:
-                cat_class: empty tensor for input categorical data
-                cat_recon: empty tensor for reconstructed categorical data
-                cat_total_shape: number of features of linearized one hot
-                    categorical data
+            tuple: A tuple containing, in order, an empty tensor for input
+            categorical data (``cat_class``), an empty tensor for
+            reconstructed categorical data (``cat_recon``), and the number of
+            features of linearized one-hot categorical data
+            (``cat_total_shape``).
         """
         cat_total_shape = 0
         for cat_shape in self.categorical_shapes:

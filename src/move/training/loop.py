@@ -89,6 +89,10 @@ class TrainingLoop(CsvWriterMixin, SubTask):
 
     @property
     def annealing_factor(self) -> float:
+        """Current KL-divergence weight multiplier (between 0 and 1),
+        computed from :attr:`current_epoch`/:attr:`global_step` according to
+        the configured :attr:`annealing_function` and
+        :attr:`annealing_schedule`."""
         epoch = self.current_epoch
         if (
             self.annealing_schedule == "monotonic" and epoch < self.annealing_epochs
@@ -119,13 +123,20 @@ class TrainingLoop(CsvWriterMixin, SubTask):
 
     @property
     def kl_weight(self) -> float:
+        """Effective KL-divergence weight, i.e., :attr:`annealing_factor`
+        scaled by the base weight (1.0; the model applies its own
+        ``kl_weight`` on top)."""
         return self.annealing_factor * 1.0
 
     @property
     def num_cycles(self) -> float:
+        """Number of annealing cycles that fit within :attr:`max_epochs`,
+        used by the cyclical annealing schedule."""
         return self.max_epochs / (self.annealing_epochs * 2)
 
     def plot(self) -> None:
+        """Plot loss curves (read from the training CSV log) and save the
+        figure to the parent task's output directory."""
         if self.parent is not None and self.csv_filepath is not None:
             data = pd.read_csv(self.csv_filepath)
             data["kl_div"] *= data["kl_weight"]
@@ -134,6 +145,7 @@ class TrainingLoop(CsvWriterMixin, SubTask):
             fig.savefig(fig_path, bbox_inches="tight")
 
     def run(self, model: BaseVae, train_dataloader: MoveDataLoader) -> None:
+        """Alias of :meth:`train`."""
         return self.train(model, train_dataloader)
 
     def get_colnames(self, model: Optional[BaseVae] = None) -> list[str]:
@@ -161,6 +173,13 @@ class TrainingLoop(CsvWriterMixin, SubTask):
     def get_last_lr(
         self, optimizer: Optimizer, lr_scheduler: Optional[LRScheduler]
     ) -> float:
+        """Return the last learning rate used, accounting for `Prodigy`'s
+        internal step-size adaptation.
+
+        Args:
+            optimizer: Optimizer in use
+            lr_scheduler: Learning-rate scheduler in use, if any
+        """
         if isinstance(optimizer, Prodigy):
             d = optimizer.param_groups[0]["d"]
             lr = optimizer.param_groups[0]["lr"]

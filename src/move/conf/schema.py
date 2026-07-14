@@ -22,6 +22,8 @@ from move.tasks.tuning import TuneModel, TuneStability
 
 @dataclass
 class DataConfig:
+    """Configure the location and shape of the data used by MOVE."""
+
     raw_data_path: str = MISSING
     interim_data_path: str = MISSING
     results_path: str = MISSING

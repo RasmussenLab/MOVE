@@ -24,7 +24,27 @@ from move.models.layers.encoder_decoder import Decoder, Encoder
 
 
 class VaeDistribution(BaseVae):
-    """Variational autoencoder with a distribution on its decoder."""
+    """Variational autoencoder whose decoder parameterizes an explicit
+    probability distribution over the reconstruction (Categorical for
+    discrete features, :attr:`decoder_distribution` for continuous ones),
+    with the loss computed as the negative log-likelihood under that
+    distribution rather than a fixed cross-entropy/MSE loss.
+
+    Args:
+        discrete_shapes: Shape (number of features, number of classes) of
+            each discrete dataset
+        continuous_shapes: Number of features of each continuous dataset
+        discrete_weights: Weight given to each discrete dataset's
+            reconstruction loss (defaults to 1 for each)
+        continuous_weights: Weight given to each continuous dataset's
+            reconstruction loss (defaults to 1 for each)
+        num_hidden: Number of units in each hidden layer of the encoder
+            (mirrored in the decoder)
+        num_latent: Number of dimensions of the latent space
+        kl_weight: Weight applied to the KL-divergence term of the loss
+        dropout_rate: Dropout rate applied in the encoder/decoder
+        use_cuda: Whether to move the model to a CUDA device
+    """
 
     def __init__(
         self,
@@ -121,23 +141,38 @@ class VaeDistribution(BaseVae):
 
     @property
     def decoder_distribution(self) -> Type[Distribution]:
+        """Distribution family used to model continuous reconstructions."""
         return Normal
 
     def encode(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        """Encode a batch into the location and scale of its latent Normal
+        distribution."""
         z_loc, z_logvar, *_ = self.encoder(x)
         return z_loc, torch.exp(z_logvar * 0.5)
 
     def reparameterize(self, loc: torch.Tensor, scale: torch.Tensor) -> torch.Tensor:
+        """Sample from ``Normal(loc, scale)`` using the reparameterization
+        trick."""
         eps = torch.randn_like(scale)
         return eps.mul(scale).add_(loc)
 
     def decode(self, z: torch.Tensor) -> tuple[torch.Tensor, ...]:
+        """Decode a latent sample into the parameters of the reconstruction
+        distribution(s)."""
         return self.decoder(z)
 
     def project(self, batch: torch.Tensor) -> torch.Tensor:
+        """Return the latent location (mean) for a batch."""
         return self.encode(batch)[0]
 
     def reconstruct(self, batch: torch.Tensor, as_one: bool = False):
+        """Reconstruct a batch using the mean of each output distribution.
+
+        Args:
+            batch: Input batch
+            as_one: If True, return the concatenated reconstruction; if
+                False, return separate discrete/continuous reconstructions
+        """
         out = self(batch)["x_recon"]
         out_disc, out_cont = self.split_output(out)
         out_cont = cast(ContinuousDistribution, out_cont)
@@ -151,6 +186,7 @@ class VaeDistribution(BaseVae):
         return recon_disc, recon_cont
 
     def forward(self, x: torch.Tensor) -> VaeOutput:
+        """Encode, sample, and decode a batch."""
         z_loc, z_scale = self.encode(x)
         z = self.reparameterize(z_loc, z_scale)
         x_recon, *_ = self.decode(z)
@@ -184,6 +220,13 @@ class VaeDistribution(BaseVae):
         return kl_divergence(qz, pz).sum(dim=-1).mean()
 
     def compute_loss(self, batch: torch.Tensor, annealing_factor: float) -> LossDict:
+        """Compute the ELBO loss (weighted negative log-likelihood
+        reconstruction terms plus a weighted KL-divergence term) for a batch.
+
+        Args:
+            batch: Input batch
+            annealing_factor: Weight applied to the KL-divergence term
+        """
         # Split concatenated input
         batch_disc, batch_cont = self.split_input(batch)
         # Split concatenated output

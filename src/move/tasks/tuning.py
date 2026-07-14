@@ -201,6 +201,8 @@ class TuneModel(CsvWriterMixin, MoveTask):
         self.close_csv_writer(True)
 
     def run(self):
+        """Train (or reload) a model for the current Hydra multirun job, then
+        record its loss and reconstruction metrics."""
         from move.models.base import reload_vae
 
         model_path = self.output_dir / self.model_filename_fmt.format(self.job_num)
@@ -269,6 +271,8 @@ class TuneStability(TuneModel):
         return np.mean(diff).item()
 
     def run(self) -> None:
+        """Train :attr:`num_refits` models and record the stability of their
+        latent spaces relative to a baseline (the first model trained)."""
         results_filepath = self.output_dir / self.stabilility_filename
 
         if results_filepath.exists() and self.job_num == 1:

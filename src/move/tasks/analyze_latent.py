@@ -111,7 +111,7 @@ def analyze_latent(config: MOVEConfig) -> None:
     model_path = output_path / "model.pt"
     if model_path.exists():
         logger.debug("Re-loading model")
-        model.load_state_dict(torch.load(model_path))
+        model.load_state_dict(torch.load(model_path, weights_only=False))
         model.to(device)
     else:
         logger.debug("Training model")

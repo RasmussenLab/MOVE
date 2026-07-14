@@ -12,4 +12,5 @@ class VaeT(VaeDistribution):
 
     @property
     def decoder_distribution(self) -> Type[Distribution]:
+        """Distribution family used to model continuous reconstructions."""
         return StudentT

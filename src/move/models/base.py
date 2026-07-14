@@ -26,12 +26,16 @@ T = TypeVar("T", bound="BaseVae")
 
 
 class VaeOutput(TypedDict):
+    """Output of a forward pass through a :class:`BaseVae` model."""
+
     z_loc: torch.Tensor
     z_scale: torch.Tensor
     x_recon: torch.Tensor
 
 
 class LossDict(TypedDict):
+    """Components of the loss computed by :meth:`BaseVae.compute_loss`."""
+
     elbo: torch.Tensor
     discrete_loss: torch.Tensor
     continuous_loss: torch.Tensor
@@ -40,11 +44,18 @@ class LossDict(TypedDict):
 
 
 class SerializedModel(TypedDict):
+    """On-disk representation of a model, as saved by :meth:`BaseVae.save`."""
+
     config: dict[str, Any]
     state_dict: OrderedDict[str, torch.Tensor]
 
 
 class BaseVae(nn.Module, ABC):
+    """Abstract base class for MOVE's variational autoencoder models. A
+    subclass encodes a concatenated batch of discrete/continuous features
+    into a latent distribution, samples from it, and decodes the sample back
+    into a reconstruction of the input."""
+
     embedding_args: int = 2
     output_args: int = 1
     encoder: nn.Module
@@ -57,20 +68,36 @@ class BaseVae(nn.Module, ABC):
         return super().__call__(*args, **kwds)
 
     @abstractmethod
-    def encode(self, x: torch.Tensor) -> tuple[torch.Tensor, ...]: ...
+    def encode(self, x: torch.Tensor) -> tuple[torch.Tensor, ...]:
+        """Encode a batch into the parameters of its latent distribution
+        (e.g., location and scale)."""
+        ...
 
     @abstractmethod
     def reparameterize(
         self, loc: torch.Tensor, scale: torch.Tensor
-    ) -> torch.Tensor: ...
+    ) -> torch.Tensor:
+        """Sample a latent representation from the given distribution
+        parameters using the reparameterization trick."""
+        ...
 
     @abstractmethod
-    def decode(self, z: torch.Tensor) -> tuple[torch.Tensor, ...]: ...
+    def decode(self, z: torch.Tensor) -> tuple[torch.Tensor, ...]:
+        """Decode a latent representation into a reconstruction of the
+        input."""
+        ...
 
     @abstractmethod
     def compute_loss(
         self, batch: torch.Tensor, annealing_factor: float
-    ) -> LossDict: ...
+    ) -> LossDict:
+        """Compute the ELBO loss (reconstruction + KL divergence) for a batch.
+
+        Args:
+            batch: Input batch
+            annealing_factor: Weight applied to the KL-divergence term
+        """
+        ...
 
     @torch.no_grad()
     @abstractmethod
@@ -107,7 +134,7 @@ class BaseVae(nn.Module, ABC):
     @classmethod
     def reload(cls: Type[T], model_path: Path) -> T:
         """Reload a model from its serialized config and state dict."""
-        model_dict = cast(SerializedModel, torch.load(model_path))
+        model_dict = cast(SerializedModel, torch.load(model_path, weights_only=False))
         target = model_dict["config"].pop("_target_")
         module_name, class_name = target.rsplit(".", 1)
         module = import_module(module_name)

@@ -40,6 +40,19 @@ def build_network(
 
 
 class Encoder(nn.Sequential):
+    """Feed-forward network mapping an input to the arguments of an embedding
+    (e.g., location and scale of a latent Normal distribution), built with
+    :func:`build_network` and chunked into ``embedding_args`` outputs.
+
+    Args:
+        input_dim: Number of input features
+        compress_dims: Number of units in each hidden layer
+        embedding_dim: Number of dimensions of the embedding
+        embedding_args: Number of arguments the embedding is split into
+        dropout_rate: Dropout rate applied after each hidden layer
+        activation_fun_name: Name of an activation class in `torch.nn`
+    """
+
     num_args: int
 
     def __init__(
@@ -67,6 +80,17 @@ class Encoder(nn.Sequential):
 
 
 class Decoder(Encoder):
+    """`Encoder` configured to map a latent embedding back to a single
+    reconstruction output (``embedding_args=1``).
+
+    Args:
+        embedding_dim: Number of dimensions of the latent embedding
+        compress_dims: Number of units in each hidden layer
+        output_dim: Number of output (reconstructed) features
+        dropout_rate: Dropout rate applied after each hidden layer
+        activation_fun_name: Name of an activation class in `torch.nn`
+    """
+
     def __init__(
         self,
         embedding_dim: int,

@@ -1,4 +1,4 @@
-__all__ = ["create_figure"]
+__all__ = ["create_figure", "show_figure"]
 
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
@@ -16,3 +16,14 @@ def create_figure(**fig_kw) -> tuple[Figure, Axes]:
     assert isinstance(fig, Figure)
     assert isinstance(ax, Axes)
     return fig, ax
+
+
+def show_figure(fig: Figure) -> None:
+    """Display a figure if running inside an interactive IPython/Jupyter
+    session (e.g., a tutorial notebook). """
+    try:
+        from IPython import get_ipython
+    except ImportError:
+        return
+    if get_ipython() is not None:
+        plt.show()

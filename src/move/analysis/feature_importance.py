@@ -60,6 +60,7 @@ class FeatureImportance(CsvWriterMixin, SubTask):
                 )
 
             fig.savefig(fig_filepath, bbox_inches="tight")
+            viz.show_figure(fig)
 
     @torch.no_grad()
     def run(self) -> None:

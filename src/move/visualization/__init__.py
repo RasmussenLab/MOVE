@@ -8,6 +8,7 @@ __all__ = [
     "plot_latent_space_with_con",
     "plot_loss_curves",
     "plot_metrics_boxplot",
+    "show_figure",
     "style_settings",
 ]
 
@@ -16,6 +17,7 @@ from move.visualization.feature_importance import (
     plot_categorical_feature_importance,
     plot_continuous_feature_importance,
 )
+from move.visualization.figure import show_figure
 from move.visualization.grid import generate_grid
 from move.visualization.latent_space import (
     plot_latent_space_with_cat,

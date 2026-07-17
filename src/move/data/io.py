@@ -35,6 +35,8 @@ def read_config(
     Returns:
         Merged configuration
     """
+    import move.conf.schema # registers task configs in Hydra's config store
+
     overrides = []
     if data_config_name is not None:
         overrides.append(f"data={data_config_name}")

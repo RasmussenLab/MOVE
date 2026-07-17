@@ -114,6 +114,7 @@ class ComputeAccuracyMetrics(CsvWriterMixin, SubTask):
             fig = viz.plot_metrics_boxplot(scores, labels=None)
             fig_path = self.parent.output_dir / self.plot_filename
             fig.savefig(fig_path, bbox_inches="tight")
+            viz.show_figure(fig)
 
     @torch.no_grad()
     def run(self) -> None:

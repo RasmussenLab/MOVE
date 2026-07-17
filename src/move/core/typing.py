@@ -31,7 +31,7 @@ class IndicesDict(TypedDict):
 
 BoolArray = NDArray[np.bool_]
 IntArray = Union[NDArray[np.int_], NDArray[np.uint]]
-FloatArray = NDArray[np.float_]
+FloatArray = NDArray[np.float64] # compatible with newer numpy versions
 ObjectArray = NDArray[np.object_]
 
 

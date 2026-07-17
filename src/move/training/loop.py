@@ -143,6 +143,7 @@ class TrainingLoop(CsvWriterMixin, SubTask):
             fig = viz.plot_loss_curves(data)
             fig_path = str(self.parent.output_dir / "loss_curve.png")
             fig.savefig(fig_path, bbox_inches="tight")
+            viz.show_figure(fig)
 
     def run(self, model: BaseVae, train_dataloader: MoveDataLoader) -> None:
         """Alias of :meth:`train`."""

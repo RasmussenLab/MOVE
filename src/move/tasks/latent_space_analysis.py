@@ -216,6 +216,7 @@ class Project(CsvWriterMixin, SubTask):
             fig_filename = sanitize_filename(self.plot_filename_fmt.format(name))
             fig_path = str(self.output_dir / fig_filename)
             fig.savefig(fig_path, bbox_inches="tight")
+            viz.show_figure(fig) # showing figures in notebook
 
     @torch.no_grad()
     def run(self) -> None:

@@ -45,9 +45,14 @@ def plot_metrics_boxplot(
     with style_settings(style), color_cycle(colormap):
         labelcolor = matplotlib.rcParams["axes.labelcolor"]
         fig, ax = create_figure()
+        # matplotlib >=3.9 renamed `labels` to `tick_labels` (removed in 3.11) should be compatible for both versions
+        mpl_version = tuple(int(p) for p in matplotlib.__version__.split(".")[:2])
+        labels_kwarg = (
+            {"tick_labels": labels} if mpl_version >= (3, 9) else {"labels": labels}
+        )
         comps = ax.boxplot(
             values,
-            labels=labels,
+            **labels_kwarg,
             patch_artist=True,
             vert=False,
             capprops=dict(color=labelcolor),

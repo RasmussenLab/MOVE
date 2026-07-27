@@ -196,8 +196,25 @@ class Associations(CsvWriterMixin, MoveTask):
         assert self.csv_filepath is not None
 
         results = pd.read_csv(self.csv_filepath)
-        results.sort_values("prob", ascending=False, inplace=True, ignore_index=True)
-        results["fdr"] = np.cumsum(1 - results["prob"]) / np.arange(1, len(results) + 1)
+        # `prob` is NaN for perturbation/feature pairs with no valid (non-
+        # missing) samples (e.g., 0/0 in the count_nonzero division above).
+        # Sort them last and compute FDR only over the valid rows, so a NaN
+        # does not propagate through the cumulative sum and corrupt every
+        # row that follows it.
+        results.sort_values(
+            "prob", ascending=False, inplace=True, ignore_index=True, na_position="last"
+        )
+        valid = results["prob"].notna()
+        n_valid = int(valid.sum())
+        if n_valid < len(results):
+            self.logger.debug(
+                f"Omitting {len(results) - n_valid}/{len(results)} "
+                "perturbation/feature pairs with no valid (non-missing) samples"
+            )
+        results["fdr"] = np.nan
+        results.loc[valid, "fdr"] = np.cumsum(
+            1 - results.loc[valid, "prob"]
+        ) / np.arange(1, n_valid + 1)
         results["pred_significant"] = results["fdr"] < self.sig_threshold
 
         sig = results[results.pred_significant]

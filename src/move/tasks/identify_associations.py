@@ -168,42 +168,22 @@ def identify_associations(config: MOVEConfig):
 
         # Calculate Bayes factors
         logger.info("Identifying significant features")
-        bayes_k = np.full((num_perturbed, num_continuous), np.nan)
+        bayes_k = np.empty((num_perturbed, num_continuous))
         for i in range(num_perturbed):
             mask = feature_mask[:, [i]] | nan_mask  # 2D: N x C
             diff = np.ma.masked_array(mean_diff[i, :, :], mask=mask)  # 2D: N x C
-            # Columns with no unmasked samples (e.g., a block of missing
-            # values that fully overlaps this perturbation's target group)
-            # stay masked here and are filled with NaN below, instead of
-            # being dropped, so `prob` always keeps length C and feature
-            # indices stay aligned with `mean_diff`/`nan_mask` columns.
-            prob = np.ma.filled(np.ma.mean(diff > 1e-8, axis=0), np.nan)  # 1D: C
+            prob = np.ma.compressed(np.mean(diff > 1e-8, axis=0))  # 1D: C
             bayes_k[i, :] = np.log(prob + 1e-8) - np.log(1 - prob + 1e-8)
 
         # Calculate Bayes probabilities
         bayes_abs = np.abs(bayes_k)
         bayes_p = np.exp(bayes_abs) / (1 + np.exp(bayes_abs))  # 2D: N x C
-
-        # Omit perturbation/feature pairs without enough valid (non-missing)
-        # samples to compute a Bayes factor, instead of letting the NaNs
-        # they produce corrupt the ranking/FDR computation below.
-        flat_abs = bayes_abs.ravel()
-        flat_p = bayes_p.ravel()
-        flat_k = bayes_k.ravel()
-        valid_ids = np.flatnonzero(~np.isnan(flat_abs))  # 1D
-        n_omitted = bayes_abs.size - valid_ids.size
-        if n_omitted:
-            logger.debug(
-                f"Omitting {n_omitted}/{bayes_abs.size} perturbation/feature "
-                "pairs with no valid (non-missing) samples"
-            )
-        order = np.argsort(flat_abs[valid_ids])[::-1]  # 1D
-        sort_ids = valid_ids[order]  # 1D
-        prob = flat_p[sort_ids]  # 1D
+        sort_ids = np.argsort(bayes_abs, axis=None)[::-1]  # 1D: N x C
+        prob = np.take(bayes_p, sort_ids)  # 1D: N x C
         logger.debug(f"Bayes proba range: [{prob[-1]:.3f} {prob[0]:.3f}]")
 
         # Sort Bayes
-        bayes_k = flat_k[sort_ids]
+        bayes_k = np.take(bayes_k, sort_ids)  # 1D: N x C
 
         # Calculate FDR
         fdr = np.cumsum(1 - prob) / np.arange(1, prob.size + 1)  # 1D

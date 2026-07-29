@@ -10,5 +10,5 @@ PathLike = Union[str, os.PathLike]
 
 BoolArray = NDArray[np.bool_]
 IntArray = NDArray[np.int_]
-FloatArray = NDArray[np.float_]
+FloatArray = NDArray[np.float64]  # compatible with numpy >= 2.0
 ObjectArray = NDArray[np.object_]

@@ -227,10 +227,13 @@ class MoveDataset(Dataset):
                         dataset[index], self.perturbation.feature_indices
                     )
                     values.extend((left, self.perturbation.mapped_value, right))
-                    indices = torch.all(
-                        dataset[index][self.perturbation.feature_slice]
-                        != self.perturbation.mapped_value
-                    )
+                    original = dataset[index][self.perturbation.feature_slice]
+                    changed = torch.any(original != self.perturbation.mapped_value)
+                    # An all-zero one-hot vector means the original category
+                    # was missing; skip these instead of treating the forced
+                    # target value as a meaningful perturbation.
+                    not_missing = torch.any(original != 0)
+                    indices = changed & not_missing
                 else:
                     values.append(dataset[index])
             items.append(values)

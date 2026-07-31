@@ -90,7 +90,9 @@ class EncodeData(ParentTask):
             # Read and encode data
             feature_names, values = io.read_tsv(dataset_path, self.sample_names)
             mapping = None
-            if op_name in ("standardize", "log_and_standardize"):
+            if op_name == "log_and_standardize":
+                values = preprocessing.log_n_standardize(values, self.train_indices)
+            elif op_name == "standardize":
                 values = preprocessing.standardize(values, self.train_indices)
             elif op_name == "one_hot_encode":
                 values, mapping = preprocessing.one_hot_encode(values)

@@ -3,7 +3,7 @@ defaults:
   - model_config: vae
   - training_loop_config/optimizer_config: optim_adam
   - training_loop_config/lr_scheduler_config: null
-  - override reducer_config: pca
+  - override reducer_config: tsne
 
 features_to_plot:
   - drugs_20

@@ -6,15 +6,13 @@ batch_size: 10
 
 num_refits: 40
 
-target_dataset: random.small.drugs
-target_value: 1
-save_refits: True
+perturbation_config:
+  target_dataset_name: random.small.drugs
+  target_value: 1
 
-model:
+model_config:
   num_hidden:
     - 1000
-  num_latent: 150
 
-training_loop:
-  lr: 1e-4
-  num_epochs: 40
+training_loop_config:
+  max_epochs: 40

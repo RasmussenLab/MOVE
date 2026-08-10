@@ -1,37 +1,33 @@
+# WARNING: the t-test association method has not been reimplemented for the
+# current MOVE codebase. This config runs the same Bayesian Associations task
+# as `identify_associations_bayes`, not a t-test. Use `identify_associations_bayes`
+# instead until (if ever) t-test support is restored.
+
 defaults:
-  - identify_associations_ttest_schema
+  - task_associations
+  - model_config: vae
+  - training_loop_config/optimizer_config: optim_adam
+  - training_loop_config/lr_scheduler_config: null
 
 batch_size: 10
 
 num_refits: 10
-num_latent:
-  - 150
-  - 200
-  - 250
-  - 300
 
-target_dataset: baseline_drugs
-target_value: 1
+perturbation_config:
+  target_dataset_name: baseline_drugs
+  target_value: 1
 
-model:
-  categorical_weights: ${weights:${data.categorical_inputs}}
-  continuous_weights: ${weights:${data.continuous_inputs}}
+model_config:
   num_hidden:
     - 2000
-  beta: 0.0001
-  dropout: 0.1
-  cuda: false
+  num_latent: 150
+  kl_weight: 0.0001
+  dropout_rate: 0.1
 
-training_loop:
-  lr: 1e-4
-  num_epochs: 30
-  batch_dilation_steps:
-    - 50
-    - 100
-    - 150
-  kld_warmup_steps:
-    - 15
-    - 20
-    - 25
-  early_stopping: false
-  patience: 0
+training_loop_config:
+  max_epochs: 30
+  annealing_epochs: 20
+
+  optimizer_config:
+    lr: 1e-4
+    weight_decay: 0

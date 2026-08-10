@@ -1,29 +1,22 @@
 defaults:
-  - tune_model_reconstruction_schema
+  - task_tuning
+  - model_config: vae
+  - training_loop_config/optimizer_config: optim_adam
+  - training_loop_config/lr_scheduler_config: null
 
 batch_size: 10
 
-model:
-  categorical_weights: ${weights:${data.categorical_inputs}}
-  continuous_weights: ${weights:${data.continuous_inputs}}
+model_config:
   num_hidden:
     - 1000
   num_latent: 150
-  beta: 0.0001
-  dropout: 0.1
-  cuda: false
+  kl_weight: 0.0001
+  dropout_rate: 0.1
 
-training_loop:
-  lr: 1e-4
-  num_epochs: 40
-  batch_dilation_steps:
-    - 50
-    - 100
-    - 150
-  kld_warmup_steps:
-    - 15
-    - 20
-    - 25
-  early_stopping: false
-  patience: 0
-  
+training_loop_config:
+  max_epochs: 40
+  annealing_epochs: 20
+
+  optimizer_config:
+    lr: 1e-4
+    weight_decay: 0

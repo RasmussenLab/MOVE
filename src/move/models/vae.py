@@ -157,10 +157,18 @@ class Vae(BaseVae):
         if as_one:
             return out
         out_disc, out_cont = self.split_output(out)
-        recon_disc = torch.cat(
-            [logits.flatten(start_dim=1) for logits in out_disc], dim=1
-        )
-        recon_cont = torch.cat(cast(ContinuousData, out_cont), dim=1)
+        # torch.cat rejects an empty list, which happens when there are no
+        # discrete/continuous datasets at all (e.g. a continuous-only model).
+        if len(out_disc) > 0:
+            recon_disc = torch.cat(
+                [logits.flatten(start_dim=1) for logits in out_disc], dim=1
+            )
+        else:
+            recon_disc = out.new_zeros((batch.size(0), 0))
+        if len(out_cont) > 0:
+            recon_cont = torch.cat(cast(ContinuousData, out_cont), dim=1)
+        else:
+            recon_cont = out.new_zeros((batch.size(0), 0))
         return recon_disc, recon_cont
 
     def forward(self, x: torch.Tensor) -> VaeOutput:

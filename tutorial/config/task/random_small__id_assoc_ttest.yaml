@@ -2,7 +2,7 @@
 defaults:
   - identify_associations_ttest
 
-batch_size: 10  # number of samples per batch in training loop
+batch_size: 20  # number of samples per batch in training loop
 
 num_refits: 10  # number of times to refit (retrain) model
 

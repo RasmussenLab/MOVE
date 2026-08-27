@@ -59,6 +59,25 @@ compare the change between the reconstruction generated from the original data
 and the perturbed data. To achieve this, we proposed two approaches: using
 *t*\ -test and Bayes factors. Both are described below:
 
+Continuous features can be perturbed too, via ``perturbation_type`` on
+:class:`~move.conf.tasks.PerturbationConfig` (used by
+:class:`~move.tasks.associations.Associations`). Unlike a categorical feature,
+where "change from category A to B" is unambiguous, a single hardcoded target
+value rarely means the same thing across differently-scaled continuous
+features, so five perturbation types are available:
+
+- ``value`` (the default, and the only type applicable to categorical
+  features) replaces every sample's value with a fixed ``target_value``.
+- ``minimum``/``maximum`` replace every sample's value with the feature's own
+  dataset-wide minimum/maximum.
+- ``plus_std``/``minus_std`` add or subtract one standard deviation **to each
+  sample's own existing value**, rather than replacing it. The only types
+  that perturb relative to each sample individually instead of moving every
+  sample to the same point.
+
+Whichever type is used, the resulting perturbed dataset is passed through the
+same procedure described below as the categorical case).
+
 MOVE *t*\ -test
 ^^^^^^^^^^^^^^^
 

@@ -28,6 +28,8 @@ Datasets
     :members:
     :undoc-members:
 
+.. autodata:: move.data.dataset.PerturbationType
+
 Dataloader
 ------------
 

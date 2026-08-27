@@ -103,12 +103,24 @@ class PerturbationConfig:
         target_dataset_name: Name of dataset containing the target feature
         target_feature_name: Name of feature to perturb (all features in the
             dataset are perturbed if unset)
-        target_value: Value the feature will be replaced with
+        target_value: Value the feature will be replaced with (only used
+            when ``perturbation_type`` is ``"value"``)
+        perturbation_type: How to perturb the target feature(s): ``"value"``
+            (default), ``"minimum"``, ``"maximum"``, ``"plus_std"``, or
+            ``"minus_std"`` — see :data:`move.data.dataset.PerturbationType`.
+            ``"value"`` replaces it with ``target_value``, and works for both
+            discrete and continuous datasets. The other four are
+            continuous-only and ignore ``target_value``: ``"minimum"``/
+            ``"maximum"`` replace the feature with its dataset-wide min/max;
+            ``"plus_std"``/``"minus_std"`` add/subtract one standard
+            deviation to/from each sample's own value instead of replacing
+            it. 
     """
 
     target_dataset_name: str
     target_feature_name: Optional[str] = None
     target_value: Union[float, int, str] = MISSING
+    perturbation_type: str = "value"
 
 
 config_store.store(

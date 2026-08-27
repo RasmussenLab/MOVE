@@ -148,6 +148,7 @@ class Associations(CsvWriterMixin, MoveTask):
                     self.perturbation_config.target_dataset_name,
                     perturbed_feature_name,
                     self.perturbation_config.target_value,
+                    self.perturbation_config.perturbation_type,
                 )
 
                 # Compute reconstruction differences (only continuous)

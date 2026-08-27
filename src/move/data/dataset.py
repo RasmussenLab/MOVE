@@ -18,6 +18,9 @@ DataType = Literal["continuous", "discrete"]
 Index = Union[int, tuple[str, int], tuple[int, int]]
 T = TypeVar("T", bound="NamedDataset")
 
+PerturbationType = Literal["value", "minimum", "maximum", "plus_std", "minus_std"]
+RELATIVE_PERTURBATION_TYPES: tuple[PerturbationType, ...] = ("plus_std", "minus_std")
+
 
 class NamedDataset(Dataset, ABC):
     """A dataset with a name and names for its features.
@@ -223,12 +226,18 @@ class MoveDataset(Dataset):
             values: list[torch.Tensor] = []
             for dataset in self._list:
                 if dataset.name == self.perturbation.dataset_name:
-                    left, _, right = torch.tensor_split(
+                    left, middle, right = torch.tensor_split(
                         dataset[index], self.perturbation.feature_indices
                     )
-                    values.extend((left, self.perturbation.mapped_value, right))
+                    if self.perturbation.is_relative:
+                        # plus_std/minus_std: offset each sample's own value,
+                        # rather than replacing it with a fixed target.
+                        perturbed = middle + self.perturbation.mapped_value
+                    else:
+                        perturbed = self.perturbation.mapped_value
+                    values.extend((left, perturbed, right))
                     original = dataset[index][self.perturbation.feature_slice]
-                    changed = torch.any(original != self.perturbation.mapped_value)
+                    changed = torch.any(original != perturbed)
                     # An all-zero one-hot vector means the original category
                     # was missing; skip these instead of treating the forced
                     # target value as a meaningful perturbation.
@@ -390,9 +399,34 @@ class MoveDataset(Dataset):
                     f"'{dataset}' dataset"
                 )
             if isinstance(dataset, DiscreteDataset):
+                if value.perturbation_type != "value":
+                    raise ValueError(
+                        f"Perturbation type '{value.perturbation_type}' is only "
+                        "supported for continuous datasets; discrete features "
+                        "can only be set to a specific value."
+                    )
                 value.mapped_value = dataset.one_hot_encode(value.target_value)
-            else:
+            elif value.perturbation_type == "value":
                 value.mapped_value = torch.FloatTensor([value.target_value])
+            else:
+                # minimum/maximum/plus_std/minus_std: derived from the
+                # feature's own values, computed once and cached on the
+                # Perturbation via mapped_value.
+                feature_values = dataset.select(value.feature_name)
+                if value.perturbation_type == "minimum":
+                    value.mapped_value = feature_values.min(dim=0).values
+                elif value.perturbation_type == "maximum":
+                    value.mapped_value = feature_values.max(dim=0).values
+                elif value.perturbation_type == "plus_std":
+                    value.mapped_value = feature_values.std(dim=0)
+                elif value.perturbation_type == "minus_std":
+                    value.mapped_value = -feature_values.std(dim=0)
+                else:
+                    raise ValueError(
+                        f"Unknown perturbation_type: {value.perturbation_type!r}. "
+                        "Expected one of 'value', 'minimum', 'maximum', "
+                        "'plus_std', 'minus_std'."
+                    )
             value.feature_slice = dataset.feature_slice(value.feature_name)
         self._perturbation = value
 
@@ -442,16 +476,28 @@ class MoveDataset(Dataset):
         raise KeyError(f"{feature_name} not found in any dataset")
 
     def perturb(
-        self, dataset_name: str, feature_name: str, value: Union[str, float, None]
+        self,
+        dataset_name: str,
+        feature_name: str,
+        value: Union[str, float, None],
+        perturbation_type: PerturbationType = "value",
     ) -> None:
         """Add a perturbation to a feature in a constituent dataset.
 
         Args:
             dataset_name: Name of dataset to perturb
             feature_name: Name of feature in dataset to perturb
-            value: Value of perturbation
+            value: Value of perturbation (used only when
+                ``perturbation_type`` is ``"value"``; ignored otherwise)
+            perturbation_type: How to perturb the feature. ``"value"``
+                (default) replaces it with ``value``. ``"minimum"``/
+                ``"maximum"``/``"plus_std"``/``"minus_std"`` are
+                continuous-only, and compute the replacement/offset from the
+                feature's own values instead of taking ``value``.
         """
-        self.perturbation = Perturbation(dataset_name, feature_name, value)
+        self.perturbation = Perturbation(
+            dataset_name, feature_name, value, perturbation_type
+        )
 
     def remove_perturbation(self) -> None:
         """Remove perturbation from dataset."""
@@ -469,27 +515,42 @@ class MoveDataset(Dataset):
 
 class Perturbation:
     """Perturbation in a MOVE dataset. A perturbation will target a feature in
-    one of the MOVE datasets. All the values of that feature will be replaced
-    by the defined target value. For example, target 'metformin' feature in
-    'drugs' dataset and change value from 0 to 1.
+    one of the MOVE datasets. By default (``perturbation_type="value"``), all
+    the values of that feature will be replaced by the defined target value.
+    For example, target 'metformin' feature in 'drugs' dataset and change
+    value from 0 to 1. For continuous features, ``perturbation_type`` can
+    instead derive the change from the feature's own values (see
+    :data:`PerturbationType`).
 
     Args:
         target_dataset_name: Name of dataset containing the target feature
         target_feature_name: Name of feature to perturb
-        target_value: Value the feature will be replaced with"""
+        target_value: Value the feature will be replaced with (only used
+            when ``perturbation_type`` is ``"value"``)
+        perturbation_type: How to perturb the feature; see
+            :data:`PerturbationType`"""
 
     def __init__(
         self,
         target_dataset_name: str,
         target_feature_name: str,
         target_value: Union[str, float, None],
+        perturbation_type: PerturbationType = "value",
     ) -> None:
         self.dataset_name = target_dataset_name
         self.feature_name = target_feature_name
         self.target_value = target_value
+        self.perturbation_type = perturbation_type
 
     def __repr__(self) -> str:
         return str(self)
+
+    @property
+    def is_relative(self) -> bool:
+        """Whether this perturbation offsets each sample's own value (True,
+        for ``"plus_std"``/``"minus_std"``) rather than replacing it with a
+        fixed value (False, for ``"value"``/``"minimum"``/``"maximum"``)."""
+        return self.perturbation_type in RELATIVE_PERTURBATION_TYPES
 
     def __str__(self) -> str:
         return f'{self.__class__.__name__}("{self.dataset_name}/{self.feature_name}")'

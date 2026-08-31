@@ -14,7 +14,7 @@ from cycler import cycler
 from matplotlib.cm import ColormapRegistry
 from matplotlib.colors import ListedColormap
 
-DEFAULT_DIVERGING_PALETTE = "RdYlBu"
+DEFAULT_DIVERGING_PALETTE = "RdYlBu_r"
 DEFAULT_QUALITATIVE_PALETTE = "Dark2"
 DEFAULT_PLOT_STYLE = "ggplot"
 

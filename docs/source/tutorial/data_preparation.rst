@@ -152,7 +152,23 @@ Here we break down the fields of this file:
   Each element of the list should have a name ``name`` and may optionally have
   a ``weight``. All referenced files should have a ``tsv`` extension.
 * ``continuous_inputs`` lists the continuous data files. Same format as
-  ``categorical_inputs``.
+  ``categorical_inputs``, but each element may also set a ``preprocessing``
+  option controlling how the dataset is prepared before encoding:
+
+  * ``standardize`` (default): center to mean 0 and scale to unit variance.
+  * ``log_and_standardize``: apply a base-2 log-transform (``log2(x + 1)``)
+    before standardizing. Useful for skewed, count-like continuous data such
+    as microbiome abundances.
+  * ``none``: leave the data untouched.
+
+  For example, to log-transform the microbiome dataset before standardizing:
+
+  .. code-block:: yaml
+
+      continuous_inputs:
+        - name: maize_metadata
+        - name: maize_microbiome
+          preprocessing: log_and_standardize
 
 The data config file can have any name, but it must be saved in ``config/data``
 directory. The final workspace structure should look like this:::

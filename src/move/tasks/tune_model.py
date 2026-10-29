@@ -47,7 +47,8 @@ def _get_task_type(
 
 def _get_record(values: ArrayLike, **kwargs) -> dict[str, Any]:
     record = kwargs
-    bxp_stats, *_ = boxplot_stats(values)
+    values = np.asarray(values)
+    bxp_stats, *_ = boxplot_stats(values[~np.isnan(values)]) # drop nan values for boxplot stats
     bxp_stats.pop("fliers")
     record.update(bxp_stats)
     return record

@@ -212,7 +212,11 @@ class Project(CsvWriterMixin, SubTask):
                     latent_space, name, target_values, code2cat_map, is_nan
                 )
             else:
-                fig = viz.plot_latent_space_with_con(latent_space, name, target_values)
+                # for plotting continuous features, we will treat 0 as NaN (i.e. missing value)
+                is_nan = target_values == 0
+                fig = viz.plot_latent_space_with_con(
+                    latent_space, name, target_values, is_nan
+                )
             fig_filename = sanitize_filename(self.plot_filename_fmt.format(name))
             fig_path = str(self.output_dir / fig_filename)
             fig.savefig(fig_path, bbox_inches="tight")

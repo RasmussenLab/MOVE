@@ -221,7 +221,8 @@ def analyze_latent(config: MOVEConfig) -> None:
         scores.append(cosine_sim)
 
     logger.debug("Generating plot: reconstruction metrics")
-    fig = viz.plot_metrics_boxplot(scores, labels)
+    plot_scores = [each[~np.isnan(each)] for each in scores] # drop nan values for boxplot
+    fig = viz.plot_metrics_boxplot(plot_scores, labels)
     fig_path = str(output_path / "reconstruction_metrics.png")
     fig.savefig(fig_path, bbox_inches="tight")
     fig_df = pd.DataFrame(dict(zip(labels, scores)), index=df_index)

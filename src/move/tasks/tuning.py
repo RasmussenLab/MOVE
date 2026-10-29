@@ -154,6 +154,7 @@ class TuneModel(CsvWriterMixin, MoveTask):
                     split=split,
                 )
                 scores = np.concatenate(scores_per_dataset[dataset.name], axis=0)
+                scores = scores[~np.isnan(scores)]  # drop samples with all-NaN input
                 bxp_stas, *_ = boxplot_stats(scores)
                 bxp_stas.pop("fliers")
                 csv_row.update(bxp_stas)

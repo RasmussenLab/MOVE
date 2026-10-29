@@ -1,13 +1,13 @@
 __all__ = ["plot_latent_space_with_cat", "plot_latent_space_with_con"]
 
-from typing import Any, cast
+from typing import Any, Optional, cast
 
 import matplotlib.axes
 import matplotlib.figure
 import matplotlib.pyplot as plt
 import matplotlib.style
 import numpy as np
-from matplotlib.colors import TwoSlopeNorm
+from matplotlib.colors import Normalize, TwoSlopeNorm
 
 from move.core.typing import BoolArray, FloatArray
 from move.visualization.style import (
@@ -77,16 +77,19 @@ def plot_latent_space_with_con(
     latent_space: FloatArray,
     feature_name: str,
     feature_values: FloatArray,
+    is_nan: Optional[BoolArray] = None,
     style: str = DEFAULT_PLOT_STYLE,
     colormap: str = DEFAULT_DIVERGING_PALETTE,
 ) -> matplotlib.figure.Figure:
     """Plot a 2D latent space together with a colorbar mapping the latent
-    space to the values of a continuous feature.
+    space to the values of a continuous feature. Samples with a missing
+    feature value are drawn in dark gray.
 
     Args:
         latent_space: Embedding, a ND array with at least two dimensions.
         feature_name: Name of continuous feature
         feature_values: Values of continuous feature
+        is_nan: Array of bool values indicating which feature values are NaNs
         style: Name of style to apply to the plot
         colormap: Name of colormap to use for the colorbar
 
@@ -98,13 +101,25 @@ def plot_latent_space_with_con(
     """
     if latent_space.ndim < 2:
         raise ValueError("Expected at least two dimensions in latent space.")
-    norm = TwoSlopeNorm(0.0, min(feature_values), max(feature_values))
+    feature_values = np.ravel(feature_values)
+    is_nan = np.isnan(feature_values) if is_nan is None else np.ravel(is_nan)
+    observed = feature_values[~is_nan]
+    vmin, vmax = (observed.min(), observed.max()) if observed.size else (-1.0, 1.0)
+    norm = (
+        TwoSlopeNorm(0.0, vmin, vmax)
+        if vmin < 0.0 < vmax
+        else Normalize(vmin, vmax)
+    )
     with style_settings(style):
         fig, ax = plt.subplots()
         assert isinstance(fig, matplotlib.figure.Figure)
         assert isinstance(ax, matplotlib.axes.Axes)
-        dims = latent_space[:, 0], latent_space[:, 1]
-        pts = ax.scatter(*dims, c=cast(list, feature_values), cmap=colormap, norm=norm)
+        if is_nan.any():
+            dims = latent_space[is_nan, 0], latent_space[is_nan, 1]
+            ax.scatter(*dims, c="dimgray", label="NaN")
+            ax.legend()
+        dims = latent_space[~is_nan, 0], latent_space[~is_nan, 1]
+        pts = ax.scatter(*dims, c=cast(list, observed), cmap=colormap, norm=norm)
         cbar = fig.colorbar(pts, ax=ax)
         cbar.ax.set(ylabel=feature_name)
         ax.set(xlabel="dim 0", ylabel="dim 1")

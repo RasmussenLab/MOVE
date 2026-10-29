@@ -4,7 +4,7 @@
 
 We have provided a tutorial. In this first tutorial, we inspect datasets 
 reporting whether 500 fictitious individuals have taken one of 20 imaginary
-drugs. We have included a pair of pretend omics datasets, with measurements
+drugs. We have included a pair of simulated omics datasets, with measurements
 for each sample (individual). All these measurements were generated randomly,
 but we have added 200 associations between different pairs of drugs and omics
 features. Let us find them with MOVE!
@@ -146,10 +146,13 @@ reconstructing our input data and generating an informative latent space. Run:
 >>> move-dl data=random_small task=random_small__latent
 ```
 
-:arrow_up: This command will create four types of plot:
+:arrow_up: This command will create four types of plot in the
+`results/latent_space` folder:
 
-- Loss curve shows the overall loss, KLD term, binary cross-entropy term, and
-sum of squared errors term over number of training epochs.
+- Loss curve shows the overall loss and each of its three components:
+  Kullback-Leibler divergence (KLD) term, cross-entropy term (categorical
+  data), and sum of squared errors term (continuous data) over number of
+  training epochs.
 - Reconstructions metrics boxplot shows a score (accuracy or cosine similarity
 for categorical and continuous datasets, respectively) per reconstructed
 dataset.
@@ -159,7 +162,7 @@ using TSNE (or another user-defined algorithm, e.g., UMAP).
 - Feature importance swarmplot displays the impact perturbing a feature has on
 the latent space.
 
-Additionally, TSV files corresponding to each plot will be generated. These can
+Additionally, CSV files corresponding to each plot will be generated. These can
 be used, for example, to re-create the plots manually.
 
 #### Identifying associations
@@ -171,9 +174,13 @@ and the omics features. Run:
 >>> move-dl data=random_small task=random_small__id_assoc_ttest
 ```
 
-:arrow_up: This command will create a `results_sig_assoc.tsv` file, listing
-each pair of associated features and the corresponding median p-value for such
-association. There should be ~120 associations found.
+:arrow_up: This command will create an `associations.csv` file in
+`results/associations`, listing each pair of perturbed and target features
+with the probability of association, Bayes factor (`bayes_k`), FDR, and whether
+the pair is predicted to be significant.
+
+:warning: The t-test method has not been reimplemented in MOVE 2.0, so this
+config currently runs the Bayesian approach as well (see below).
 
 :warning: Note that the value after `task=` matches the name of our
 configuration file. We can create multiple configuration files (for example,

@@ -58,6 +58,10 @@ you do not have powerful GPUs available, it is possible to run using only CPUs.
 For instance, the tutorial data set consisting of simulated drug, metabolomics
 and proteomics data for 500 individuals runs fine on a standard macbook.
 
+> Note: The pip installation of `move-dl` does not setup your local GPU automatically.
+> To use GPU acceleration, install a CUDA-enabled PyTorch build following the
+> instructions at [pytorch.org](https://pytorch.org/get-started/locally/).
+
 # The MOVE pipeline
 
 MOVE has five-six steps:
@@ -68,8 +72,7 @@ MOVE has five-six steps:
 03. Finding the right architecture of the network focusing on stability of the model
 04. Use model, determined from steps 02-03, to create and analyze the latent space
 05. Identify associations between a categorical and continuous datasets
-05a. Using an ensemble of VAEs with the t-test approach
-05b. Using an ensemble of VAEs with the Bayesian decision theory approach
+05. Using an ensemble of VAEs with the Bayesian decision theory approach
 06. If both 5a and 5b were run select the overlap between them
 ```
 

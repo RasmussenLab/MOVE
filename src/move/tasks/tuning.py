@@ -220,10 +220,10 @@ class TuneModel(CsvWriterMixin, MoveTask):
             "test": self.make_dataloader("test"),
         }
 
-        if model_path.exists():
+        if self.reuse_models and model_path.exists():
             self.logger.warning(
                 f"A model file was found: '{model_path}' and will be reloaded. "
-                "Erase the file if you wish to train a new model."
+                "Set `task.reuse_models=false` if you wish to train a new model."
             )
             self.logger.debug(f"Re-loading model {self.job_num}")
             model = reload_vae(model_path)

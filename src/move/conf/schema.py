@@ -70,6 +70,7 @@ class MoveTaskConfig(TaskConfig):
     batch_size: int = 16
     model_config: Optional[ModelConfig] = MISSING  # "${model}"  # type: ignore
     training_loop_config: Optional[TrainingLoopConfig] = MISSING
+    reuse_models: bool = False  # do not retrain models if they already exist in the results path
 
 
 @dataclass

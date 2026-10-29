@@ -88,16 +88,20 @@ class Associations(CsvWriterMixin, MoveTask):
         self.num_refits = num_refits
         self.sig_threshold = sig_threshold
         self.write_only_sig = write_only_sig
+        # Indices of the models trained (and saved) during this run
+        self._trained_model_ids: set[int] = set()
 
     def get_trained_model(self, train_dataloader) -> Iterator["BaseVae"]:
-        """Yield a trained model. Model will be trained from scratch or
-        re-loaded if it already exists."""
+        """Yield a trained model. Model will be trained from scratch (overwriting
+        any saved model), or re-loaded if it was already trained during this run,
+        or if it was saved by a previous run and :attr:`reuse_models` is enabled."""
         from move.models.base import reload_vae
 
         for i in range(self.num_refits):
             model_path = self.output_dir / self.model_filename_fmt.format(i)
+            can_reload = self.reuse_models or i in self._trained_model_ids
 
-            if model_path.exists():
+            if can_reload and model_path.exists():
                 if i == 0:
                     self.logger.debug(f"Re-loading models")
                 model = reload_vae(model_path)
@@ -110,6 +114,7 @@ class Associations(CsvWriterMixin, MoveTask):
                 if i == 1:
                     training_loop.to_yaml(self.output_dir / self.loop_filename)
                 model.save(model_path)
+                self._trained_model_ids.add(i)
             model.freeze()
             yield model
 

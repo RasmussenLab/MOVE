@@ -26,6 +26,10 @@ class MoveTask(ParentTask):
         batch_size: Batch size used by the dataloader
         model_config: Configuration of the VAE model to instantiate
         training_loop_config: Configuration of the training loop to instantiate
+        reuse_models: Whether to reload models saved by a previous run instead
+            of training (and overwriting) them. Only enable this if the encoded
+            data (including its train/test split) and the model settings have not
+            changed since the models were saved.
         **kwargs: Passed to :class:`~move.tasks.base.ParentTask`
             (``input_dir``, ``output_dir``)
     """
@@ -37,6 +41,7 @@ class MoveTask(ParentTask):
         batch_size: int,
         model_config: Optional["ModelConfig"],
         training_loop_config: Optional["TrainingLoopConfig"],
+        reuse_models: bool = False,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)
@@ -45,6 +50,7 @@ class MoveTask(ParentTask):
         self.model_config = model_config
         self.batch_size = batch_size
         self.training_loop_config = training_loop_config
+        self.reuse_models = reuse_models
 
     def make_dataloader(
         self, split: Split = "all", **dataloader_kwargs

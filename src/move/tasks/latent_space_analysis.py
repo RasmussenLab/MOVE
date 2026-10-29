@@ -14,7 +14,7 @@ import move.visualization as viz
 from move.analysis.feature_importance import FeatureImportance
 from move.analysis.metrics import ComputeAccuracyMetrics
 from move.conf.tasks import ReducerConfig
-from move.core.exceptions import UnsetProperty
+from move.core.exceptions import FILE_EXISTS_WARNING, UnsetProperty
 from move.core.typing import PathLike
 from move.data.io import sanitize_filename
 from move.tasks.base import CsvWriterMixin, SubTask
@@ -96,14 +96,16 @@ class LatentSpaceAnalysis(MoveTask):
 
         model_path = self.output_dir / self.model_filename
 
-        if model_path.exists():
+        if self.reuse_models and model_path.exists():
             self.logger.warning(
                 f"A model file was found: '{model_path}' and will be reloaded. "
-                "Erase the file if you wish to train a new model."
+                "Set `reuse_models` to false if you wish to train a new model."
             )
             self.logger.debug("Re-loading model")
             model = reload_vae(model_path)
         else:
+            if model_path.exists():
+                self.logger.warning(FILE_EXISTS_WARNING.format(model_path))
             self.logger.debug("Training a new model")
             train_dataloader = self.make_dataloader()
             model = self.init_model(train_dataloader)

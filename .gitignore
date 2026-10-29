@@ -1,3 +1,8 @@
+# OS and editor files
+.DS_Store
+.vscode/
+.idea/
+
 # Jupyter NB checkpoints
 .ipynb_checkpoints
 
@@ -11,50 +16,37 @@ __pycache__/
 
 # Distribution and packaging files
 build/
-develop-eggs/
 dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg
 *.egg-info/
-.installed.cfg
-MANIFEST
 
-# Logs
-outputs/
-*.log
-
-# Tutorial files
-tutorial/*
-!tutorial/config/*maize*.yaml
-!tutorial/config/*random_small*.yaml
-!tutorial/data
-!tutorial/maize/maize_dataset.py
-!tutorial/notebooks/*.ipynb
-!tutorial/README.md
+# Testing
+.pytest_cache/
 
 # Virtual environment
 venv/
-virtualvenv/
+.venv/
+
+# Logs and outputs of MOVE runs
+outputs/
+logs/
+*.log
+/interim_data/
+/results/
 
 # docs files
 docs/build/
 docs/source/_templates/
 
-# Root folder
-/*.*
-!/.gitignore
-!/.readthedocs.yaml
-!/LICENSE
-!/MANIFEST.in
-!/README.md
-!/pyproject.toml
-!/requirements.txt
-!/setup.cfg
+# Tutorial files: keep configs, input data, notebooks and README; ignore the
+# rest (e.g., interim data and results generated when running the tutorial)
+tutorial/*
+!tutorial/config/
+!tutorial/data/
+!tutorial/maize/
+tutorial/maize/*
+!tutorial/maize/maize_dataset.py
+!tutorial/notebooks/
+tutorial/notebooks/*
+!tutorial/notebooks/*.ipynb
+!tutorial/notebooks/README.md
+!tutorial/README.md

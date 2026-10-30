@@ -213,7 +213,7 @@ class TuneModel(CsvWriterMixin, MoveTask):
         for filepath in (loss_filepath, metrics_filepath):
             if filepath.exists() and self.job_num == 1:
                 filepath.unlink()
-                self.logger.warning(FILE_EXISTS_WARNING.format(filepath))
+                self.logger.warning(FILE_EXISTS_WARNING.format(filepath.name)) # just print filename
 
         dataloaders = {
             "train": self.make_dataloader("train"),
@@ -278,7 +278,7 @@ class TuneStability(TuneModel):
 
         if results_filepath.exists() and self.job_num == 1:
             results_filepath.unlink()
-            self.logger.warning(FILE_EXISTS_WARNING.format(results_filepath))
+            self.logger.warning(FILE_EXISTS_WARNING.format(results_filepath.name))
 
         train_dataloader = self.make_dataloader("train")
         test_dataloader = self.make_dataloader("test")

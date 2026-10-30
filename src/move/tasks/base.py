@@ -234,7 +234,7 @@ class CsvWriterMixin(LoggerMixin):
         self.csv_filepath = filepath
         exists = self.csv_filepath.exists()
         if exists and mode == "w":  # Warn about overwriting
-            self.log(FILE_EXISTS_WARNING.format(self.csv_filepath))
+            self.log(FILE_EXISTS_WARNING.format(self.csv_filepath.name)) # just print filename
         self.csv_file = open(self.csv_filepath, mode, newline="")  # type: ignore
         self.csv_writer = CsvWriter(self.csv_file, **writer_kwargs)
         # Do not write header if file exists and appending

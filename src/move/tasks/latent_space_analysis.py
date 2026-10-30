@@ -105,7 +105,7 @@ class LatentSpaceAnalysis(MoveTask):
             model = reload_vae(model_path)
         else:
             if model_path.exists():
-                self.logger.warning(FILE_EXISTS_WARNING.format(model_path))
+                self.logger.warning(FILE_EXISTS_WARNING.format(model_path.name)) # just print filename
             self.logger.debug("Training a new model")
             train_dataloader = self.make_dataloader()
             model = self.init_model(train_dataloader)

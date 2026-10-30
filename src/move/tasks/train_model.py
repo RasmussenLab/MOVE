@@ -73,7 +73,7 @@ class TrainModel(ParentTask):
         its training loop config, and loss plot to :attr:`output_dir`."""
         model_path = self.output_dir / self.model_filename
         if model_path.exists():
-            self.logger.warning(FILE_EXISTS_WARNING.format(model_path))
+            self.logger.warning(FILE_EXISTS_WARNING.format(model_path.name)) # just print filename
         # Init data/model
         dataloader = self.make_dataloader(
             batch_size=self.batch_size, shuffle=True, drop_last=True

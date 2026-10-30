@@ -81,6 +81,12 @@ same procedure described below as the categorical case).
 MOVE *t*\ -test
 ^^^^^^^^^^^^^^^
 
+.. note::
+
+    The *t*-test approach was used in the MOVE publication, but it has not
+    been reimplemented in MOVE 2.0. To identify associations with the
+    current version, use the Bayesian approach described below.
+
 #. Perturb a variable in one dataset.
 #. Repeat 10 times for 4 different latent space sizes:
 
@@ -102,7 +108,7 @@ MOVE Bayes
 ^^^^^^^^^^
 
 #. Perturb a variable in one dataset.
-#. Repeat 30 times:
+#. Repeat for each model of the ensemble (``num_refits`` times, e.g., 30):
 
     #. Train VAE model with original data.
     #. Obtain reconstruction of original data (baseline reconstruction).
@@ -113,5 +119,5 @@ MOVE Bayes
 #. Compute Bayes factor from probability: :math:`K = \log p - \log (1 - p)`.
 #. Sort probabilities by Bayes factor, from highest to lowest.
 #. Compute false discovery rate (FDR) as cumulative evidence.
-#. Select features whose FDR is above desired threshold (e.g., 0.05). These
+#. Select features whose FDR is below the desired threshold (e.g., 0.05). These
    features are associated with the perturbed variable.

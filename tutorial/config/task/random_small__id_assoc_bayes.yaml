@@ -2,7 +2,7 @@
 defaults:
   - identify_associations_bayes
 
-batch_size: 10
+batch_size: 30
 
 num_refits: 40
 

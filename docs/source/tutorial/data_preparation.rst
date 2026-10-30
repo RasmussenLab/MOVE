@@ -16,7 +16,7 @@ Formatting omics data
 ---------------------
 
 The ``move-dl`` pipeline requires continuous omics input to be formatted as a 
-TSV file with one column per feature and one row per feature.
+TSV file with one column per feature and one row per sample.
 
 If we load the microbiome OTU table from the maize rhizosphere dataset, it will
 look something like this:
@@ -169,6 +169,10 @@ Here we break down the fields of this file:
         - name: maize_metadata
         - name: maize_microbiome
           preprocessing: log_and_standardize
+
+* ``train_frac`` and ``test_frac`` (optional) set the fractions of samples
+  randomly assigned to the training and test set when encoding the data
+  (default 0.9 and 0.1).
 
 The data config file can have any name, but it must be saved in ``config/data``
 directory. The final workspace structure should look like this:::

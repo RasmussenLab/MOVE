@@ -231,3 +231,16 @@ class Associations(CsvWriterMixin, MoveTask):
             results.drop(columns=["pred_significant"], inplace=True)
 
         results.to_csv(self.csv_filepath, index=False)
+
+
+def identify_associations_ttest(*args: Any, **kwargs: Any) -> None:
+    """Placeholder target of the `identify_associations_ttest` config.
+
+    Raises:
+        NotImplementedError: Always, as the t-test method is not available.
+    """
+    raise NotImplementedError(
+        "The t-test method for identifying associations is not available in "
+        "MOVE 2. Use the Bayesian method instead (task "
+        "`identify_associations_bayes`)."
+    )

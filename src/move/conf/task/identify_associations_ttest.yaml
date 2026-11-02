@@ -1,7 +1,5 @@
-# WARNING: the t-test association method has not been reimplemented for the
-# current MOVE codebase. This config runs the same Bayesian Associations task
-# as `identify_associations_bayes`, not a t-test. Use `identify_associations_bayes`
-# instead until (if ever) t-test support is restored.
+# The t-test association method has not been reimplemented in MOVE 2. This
+# config raises an error explaining so; use `identify_associations_bayes`.
 
 defaults:
   - task_associations
@@ -9,25 +7,4 @@ defaults:
   - training_loop_config/optimizer_config: optim_adam
   - training_loop_config/lr_scheduler_config: null
 
-batch_size: 10
-
-num_refits: 10
-
-perturbation_config:
-  target_dataset_name: baseline_drugs
-  target_value: 1
-
-model_config:
-  num_hidden:
-    - 2000
-  num_latent: 150
-  kl_weight: 0.0001
-  dropout_rate: 0.1
-
-training_loop_config:
-  max_epochs: 30
-  annealing_epochs: 20
-
-  optimizer_config:
-    lr: 1e-4
-    weight_decay: 0
+_target_: move.tasks.associations.identify_associations_ttest

@@ -18,6 +18,9 @@ from move.visualization.style import (
     style_settings,
 )
 
+# Samples with a missing feature value
+NAN_STYLE = dict(c="lightgray", edgecolors="gray", linewidths=0.5)
+
 
 def plot_latent_space_with_cat(
     latent_space: FloatArray,
@@ -59,14 +62,16 @@ def plot_latent_space_with_cat(
         fig, ax = plt.subplots()
         assert isinstance(fig, matplotlib.figure.Figure)
         assert isinstance(ax, matplotlib.axes.Axes)
+        # Missing values first, so they are drawn underneath the categories
+        if is_nan.any():
+            dims = np.take(latent_space.compress(is_nan, axis=0), (0, 1), axis=1).T
+            ax.scatter(*dims, label="NaN", **NAN_STYLE)
         codes = np.unique(feature_values)
         for code in codes:
             category = feature_mapping[str(code)]
             is_category = (feature_values == code) & ~is_nan
             dims = np.take(latent_space.compress(is_category, axis=0), (0, 1), axis=1).T
             ax.scatter(*dims, label=category)
-        dims = np.take(latent_space.compress(is_nan, axis=0), (0, 1), axis=1).T
-        ax.scatter(*dims, label="NaN")
         ax.set(xlabel="dim 0", ylabel="dim 1")
         legend = ax.legend()
         legend.set_title(feature_name)
@@ -83,7 +88,7 @@ def plot_latent_space_with_con(
 ) -> matplotlib.figure.Figure:
     """Plot a 2D latent space together with a colorbar mapping the latent
     space to the values of a continuous feature. Samples with a missing
-    feature value are drawn in dark gray.
+    feature value are drawn in light gray.
 
     Args:
         latent_space: Embedding, a ND array with at least two dimensions.
@@ -116,7 +121,7 @@ def plot_latent_space_with_con(
         assert isinstance(ax, matplotlib.axes.Axes)
         if is_nan.any():
             dims = latent_space[is_nan, 0], latent_space[is_nan, 1]
-            ax.scatter(*dims, c="dimgray", label="NaN")
+            ax.scatter(*dims, label="NaN", **NAN_STYLE)
             ax.legend()
         dims = latent_space[~is_nan, 0], latent_space[~is_nan, 1]
         pts = ax.scatter(*dims, c=cast(list, observed), cmap=colormap, norm=norm)

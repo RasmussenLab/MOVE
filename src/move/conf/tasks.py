@@ -112,15 +112,18 @@ class PerturbationConfig:
             discrete and continuous datasets. The other four are
             continuous-only and ignore ``target_value``: ``"minimum"``/
             ``"maximum"`` replace the feature with its dataset-wide min/max;
-            ``"plus_std"``/``"minus_std"`` add/subtract one standard
-            deviation to/from each sample's own value instead of replacing
-            it. 
+            ``"plus_std"``/``"minus_std"`` add/subtract ``num_std`` standard
+            deviations to/from each sample's own value instead of replacing
+            it.
+        num_std: Number of standard deviations added/subtracted by the
+            ``"plus_std"``/``"minus_std"`` perturbations (default 1)
     """
 
     target_dataset_name: str
     target_feature_name: Optional[str] = None
     target_value: Union[float, int, str] = MISSING
     perturbation_type: str = "value"
+    num_std: float = 1.0
 
 
 config_store.store(

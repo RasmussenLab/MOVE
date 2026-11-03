@@ -418,9 +418,9 @@ class MoveDataset(Dataset):
                 elif value.perturbation_type == "maximum":
                     value.mapped_value = feature_values.max(dim=0).values
                 elif value.perturbation_type == "plus_std":
-                    value.mapped_value = feature_values.std(dim=0)
+                    value.mapped_value = value.num_std * feature_values.std(dim=0)
                 elif value.perturbation_type == "minus_std":
-                    value.mapped_value = -feature_values.std(dim=0)
+                    value.mapped_value = -value.num_std * feature_values.std(dim=0)
                 else:
                     raise ValueError(
                         f"Unknown perturbation_type: {value.perturbation_type!r}. "
@@ -481,6 +481,7 @@ class MoveDataset(Dataset):
         feature_name: str,
         value: Union[str, float, None],
         perturbation_type: PerturbationType = "value",
+        num_std: float = 1.0,
     ) -> None:
         """Add a perturbation to a feature in a constituent dataset.
 
@@ -494,9 +495,11 @@ class MoveDataset(Dataset):
                 ``"maximum"``/``"plus_std"``/``"minus_std"`` are
                 continuous-only, and compute the replacement/offset from the
                 feature's own values instead of taking ``value``.
+            num_std: Number of standard deviations added/subtracted by
+                ``"plus_std"``/``"minus_std"`` (default 1)
         """
         self.perturbation = Perturbation(
-            dataset_name, feature_name, value, perturbation_type
+            dataset_name, feature_name, value, perturbation_type, num_std
         )
 
     def remove_perturbation(self) -> None:
@@ -528,7 +531,9 @@ class Perturbation:
         target_value: Value the feature will be replaced with (only used
             when ``perturbation_type`` is ``"value"``)
         perturbation_type: How to perturb the feature; see
-            :data:`PerturbationType`"""
+            :data:`PerturbationType`
+        num_std: Number of standard deviations added/subtracted by
+            ``"plus_std"``/``"minus_std"`` (default 1)"""
 
     def __init__(
         self,
@@ -536,11 +541,15 @@ class Perturbation:
         target_feature_name: str,
         target_value: Union[str, float, None],
         perturbation_type: PerturbationType = "value",
+        num_std: float = 1.0,
     ) -> None:
+        if num_std <= 0:
+            raise ValueError("Number of standard deviations must be positive")
         self.dataset_name = target_dataset_name
         self.feature_name = target_feature_name
         self.target_value = target_value
         self.perturbation_type = perturbation_type
+        self.num_std = num_std
 
     def __repr__(self) -> str:
         return str(self)

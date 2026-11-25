@@ -113,3 +113,13 @@ To cite MOVE, use the following information:
 Allesøe, R.L., Lundgaard, A.T., Hernández Medina, R. *et al*. Discovery of
 drug–omics associations in type 2 diabetes with generative deep-learning models.
 *Nat Biotechnol* (2023). https://doi.org/10.1038/s41587-022-01520-x
+
+# Related publications
+
+- Pielies Avellí, M., Hernández Medina, R., Webel, H., Rasmussen, S. On the use
+  of variational autoencoders for biomedical data integration. *BMC Artificial
+  Intelligence* **2**, 18 (2026). https://doi.org/10.1186/s44398-026-00034-9
+- Rohrer, C., Gräf, J.F., Pielies Avellí, M., Hernández Medina, R., Webel, H.,
+  Ravn, K., Rasmussen, S. Unsupervised learning of multi-omics data enables
+  disease risk prediction in the UK Biobank. *bioRxiv* (2025).
+  https://doi.org/10.1101/2025.10.02.679853

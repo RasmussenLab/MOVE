@@ -322,8 +322,8 @@ class VAE(nn.Module):
         total_shape = 0
         con_errors_list: list[torch.Tensor] = []
         for s in self.continuous_shapes:
-            c_in = con_in[:, total_shape : (s + total_shape - 1)]
-            c_re = con_out[:, total_shape : (s + total_shape - 1)]
+            c_in = con_in[:, total_shape : (total_shape + s)]
+            c_re = con_out[:, total_shape : (total_shape + s)]
             error = loss(c_re, c_in) / batch_size
             con_errors_list.append(error)
             total_shape += s
